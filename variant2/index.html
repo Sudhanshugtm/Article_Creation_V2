@@ -1,0 +1,385 @@
+<!-- ABOUTME: Main HTML file for mobile article creation interface -->
+<!-- ABOUTME: Provides responsive UI for creating articles on mobile web -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>New article</title>
+    <link rel="stylesheet" href="node_modules/@wikimedia/codex-design-tokens/dist/theme-wikimedia-ui.css">
+    <link rel="stylesheet" href="node_modules/@wikimedia/codex/dist/codex.style.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header" id="header">
+            <button class="header-btn header-btn-left" id="closeBtn" aria-label="Close">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20">
+                    <path d="m4.34 2.93 12.73 12.73-1.41 1.41L2.93 4.35z"/>
+                    <path d="M17.07 4.34 4.34 17.07l-1.41-1.41L15.66 2.93z"/>
+                </svg>
+            </button>
+            <div class="header-divider" id="headerDivider" style="display: none;"></div>
+            <div class="header-toolbar" id="headerToolbar" style="display: none;">
+                <button class="toolbar-btn" id="undoBtnHeader" aria-label="Undo">
+                    <img src="node_modules/@wikimedia/codex-icons/dist/images/undo.svg" alt="" width="20" height="20" class="toolbar-icon">
+                </button>
+                <button class="toolbar-btn" id="textFormatBtnHeader" aria-label="Text formatting">
+                    <img src="node_modules/@wikimedia/codex-icons/dist/images/textStyle.svg" alt="" width="20" height="20" class="toolbar-icon">
+                    <img src="node_modules/@wikimedia/codex-icons/dist/images/expand.svg" alt="" width="12" height="12" class="dropdown-indicator">
+                </button>
+                <button class="toolbar-btn" id="linkBtnHeader" aria-label="Insert link">
+                    <img src="node_modules/@wikimedia/codex-icons/dist/images/link.svg" alt="" width="20" height="20" class="toolbar-icon">
+                </button>
+                <button class="toolbar-btn" id="quoteBtnHeader" aria-label="Insert quote">
+                    <img src="node_modules/@wikimedia/codex-icons/dist/images/quotes.svg" alt="" width="20" height="20" class="toolbar-icon">
+                </button>
+                <button class="toolbar-btn" id="editBtnHeader" aria-label="Edit options">
+                    <img src="node_modules/@wikimedia/codex-icons/dist/images/edit.svg" alt="" width="20" height="20" class="toolbar-icon">
+                    <img src="node_modules/@wikimedia/codex-icons/dist/images/expand.svg" alt="" width="12" height="12" class="dropdown-indicator">
+                </button>
+            </div>
+            <h1 class="header-title" id="headerTitle">New article</h1>
+            <button class="header-btn header-btn-right" id="nextBtn" aria-label="Next">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20">
+                    <path d="M7 1 5.6 2.5 13 10l-7.4 7.5L7 19l9-9z"/>
+                </svg>
+            </button>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content" id="mainContent">
+            <!-- Screen 1: Article Title + Topic Matching -->
+            <div class="screen" id="screen1">
+                <textarea
+                    class="article-title-input"
+                    id="articleTitle"
+                    placeholder="Article title"
+                    rows="1"
+                ></textarea>
+
+                <!-- Topic Matching Section -->
+                <section class="topic-matching" id="topicMatching" style="display: none;">
+                    <h2 class="topic-matching-title">Topic matching</h2>
+                    <p class="topic-matching-description">Is your article about any of these topics?</p>
+
+                    <ul class="topic-list" id="topicList">
+                        <!-- Results will be inserted here -->
+                    </ul>
+
+                    <button class="topic-not-listed-btn" id="topicNotListedBtn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" class="btn-icon">
+                            <path d="M11 9V4H9v5H4v2h5v5h2v-5h5V9z"/>
+                        </svg>
+                        <span>My topic isn't listed, let me choose a type</span>
+                    </button>
+                </section>
+            </div>
+
+            <!-- Screen 2: Choose a Type -->
+            <div class="screen" id="screen2" style="display: none;">
+                <h2 class="type-selection-title" id="typeSelectionTitle">What is "Siberian Tiger" about?</h2>
+                <p class="type-selection-description">Choose a category to help us suggest the right structure for this article.</p>
+
+                <!-- Search Input -->
+                <div class="search-box">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" class="search-icon">
+                        <path d="M12.2 13.6a7 7 0 1 1 1.4-1.4l5.4 5.4-1.4 1.4zM3 8a5 5 0 1 0 10 0A5 5 0 0 0 3 8"/>
+                    </svg>
+                    <input type="text" class="search-input" id="typeSearchInput" placeholder="Search article types">
+                </div>
+
+                <!-- Category List -->
+                <ul class="category-list" id="categoryList">
+                    <!-- Categories will be inserted here -->
+                </ul>
+            </div>
+
+            <!-- Screen 2.5: Add Sources (Optional) -->
+            <div class="screen" id="screen25" style="display: none;">
+                <h2 class="add-sources-title" id="addSourcesTitle">Add key sources</h2>
+                <p class="add-sources-description">Share sources with reliable information about this topic. This helps reviewers and readers verify what you write.</p>
+
+                <div class="sources-input-container" id="sourcesInputContainer">
+                    <div class="source-input-row">
+                        <div class="cdx-text-input">
+                            <input class="cdx-text-input__input" type="url" placeholder="Paste a URL here..." />
+                        </div>
+                    </div>
+                    <div class="source-input-row">
+                        <div class="cdx-text-input">
+                            <input class="cdx-text-input__input" type="url" placeholder="Paste a URL here..." />
+                        </div>
+                    </div>
+                </div>
+
+                <button class="cdx-button cdx-button--weight-quiet cdx-button--size-small add-another-source-btn" id="addAnotherSourceBtn">
+                    <span class="cdx-icon cdx-icon--medium">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20">
+                            <path d="M11 9V4H9v5H4v2h5v5h2v-5h5V9z"/>
+                        </svg>
+                    </span>
+                    <span>Add another source</span>
+                </button>
+
+                <div class="sources-actions-container">
+                    <button class="cdx-button cdx-button--weight-primary cdx-button--action-progressive start-writing-btn" id="startWritingBtn">
+                        <span>Start writing</span>
+                    </button>
+
+                    <button class="cdx-button cdx-button--weight-quiet cdx-button--action-progressive skip-sources-btn" id="skipSourcesBtn">
+                        <span>I'll add sources later</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Screen 3: Article Editor -->
+            <div class="screen" id="screen3" style="display: none;">
+                <!-- Article Sections Container -->
+                <div class="article-sections" id="articleSections">
+                    <!-- Lead Section Block (always present) -->
+                    <div class="section-block" id="leadSectionBlock" data-section-name="Lead section">
+                        <div class="section-content-area">
+                            <div
+                                class="section-textarea"
+                                id="editorTextarea"
+                                contenteditable="true"
+                                data-placeholder="Begin writing about Siberian tiger, or type &quot;/&quot; for article outline"
+                            ></div>
+                        </div>
+                        <button class="section-get-contents-btn" id="getContentsBtn">Get suggested contents</button>
+                    </div>
+                </div>
+
+                <!-- Editing Section Panel -->
+                <div class="editing-section-panel" id="editingSectionPanel" style="display: none;">
+                    <div class="editing-section-header">
+                        <div class="editing-section-label">EDITING SECTION</div>
+                        <button class="panel-close-btn" id="editingPanelCloseBtn" aria-label="Close editing section">
+                            <img src="node_modules/@wikimedia/codex-icons/dist/images/close.svg" alt="" width="20" height="20">
+                        </button>
+                    </div>
+
+                    <div class="editing-section-title-row">
+                        <h2 class="editing-section-title">Lead/Introduction</h2>
+                        <span class="current-badge">current</span>
+                    </div>
+
+                    <!-- Suggested Paragraphs -->
+                    <div class="suggested-section">
+                        <h3 class="section-heading">SUGGESTED PARAGRAPHS</h3>
+
+                        <div class="suggestion-card">
+                            <button class="add-btn-circle" aria-label="Add paragraph">
+                                <img src="node_modules/@wikimedia/codex-icons/dist/images/add.svg" alt="" width="16" height="16">
+                            </button>
+                            <div class="suggestion-content">
+                                <div class="suggestion-title">Short overview</div>
+                                <div class="suggestion-description">A brief introduction to the topic.</div>
+                            </div>
+                        </div>
+
+                        <div class="suggestion-card">
+                            <button class="add-btn-circle" aria-label="Add paragraph">
+                                <img src="node_modules/@wikimedia/codex-icons/dist/images/add.svg" alt="" width="16" height="16">
+                            </button>
+                            <div class="suggestion-content">
+                                <div class="suggestion-title">Taxonomy in brief</div>
+                                <div class="suggestion-description">How it is classified scientifically.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Verified Facts -->
+                    <h3 class="section-heading">VERIFIED FACTS(WIKIDATA)</h3>
+
+                    <div class="verified-facts-section">
+                        <div class="fact-item">
+                            <div class="fact-content">
+                                <div class="fact-label">Scientific name</div>
+                                <div class="fact-value">Panthera tigris altaica</div>
+                            </div>
+                            <button class="add-btn-circle" aria-label="Add fact">
+                                <img src="node_modules/@wikimedia/codex-icons/dist/images/add.svg" alt="" width="16" height="16">
+                            </button>
+                        </div>
+
+                        <div class="fact-item">
+                            <div class="fact-content">
+                                <div class="fact-label">Conservation status</div>
+                                <div class="fact-value">Endangered</div>
+                            </div>
+                            <button class="add-btn-circle" aria-label="Add fact">
+                                <img src="node_modules/@wikimedia/codex-icons/dist/images/add.svg" alt="" width="16" height="16">
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Next Section Button -->
+                    <button class="up-next-btn">
+                        <div class="up-next-content">
+                            <div class="up-next-label">Next section</div>
+                            <div class="up-next-title">Characteristics</div>
+                        </div>
+                        <img src="node_modules/@wikimedia/codex-icons/dist/images/arrowNext.svg" alt="" width="20" height="20" class="up-next-icon">
+                    </button>
+
+                    <!-- View Full Outline Button -->
+                    <button class="view-outline-btn">
+                        <img src="node_modules/@wikimedia/codex-icons/dist/images/listBullet.svg" alt="" width="20" height="20">
+                        <span>View full article outline</span>
+                    </button>
+                </div>
+
+                <!-- Getting Started Panel -->
+                <div class="getting-started-panel" id="gettingStartedPanel">
+                    <div class="panel-header">
+                        <h2 class="panel-title">Getting started with this article</h2>
+                        <button class="panel-close-btn" id="panelCloseBtn" aria-label="Close panel">
+                            <img src="node_modules/@wikimedia/codex-icons/dist/images/close.svg" alt="" width="20" height="20">
+                        </button>
+                    </div>
+
+                    <div class="panel-content">
+                        <h3 class="panel-subheading">For the opening section of an animal article:</h3>
+                        <ul class="panel-list">
+                            <li>Say what kind of animal it is.</li>
+                            <li>Mention where it lives.</li>
+                            <li>Add one thing that makes it notable (size, rarity, conservation status).</li>
+                        </ul>
+
+                        <h3 class="panel-subheading">Article eligibility:</h3>
+                        <ul class="panel-list">
+                            <li>There are several in-depth sources about this topic</li>
+                            <li>The sources are independent (not your own website / company)</li>
+                            <li>They are reliable (books, news, academic, respected sites – not just directory listings)</li>
+                        </ul>
+
+                        <a href="#" class="panel-link" id="learnMoreLink">
+                            Learn more about notability
+                            <img src="node_modules/@wikimedia/codex-icons/dist/images/linkExternal.svg" alt="" width="16" height="16" class="external-icon">
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Article Outline Panel -->
+                <div class="article-outline-panel" id="articleOutlinePanel" style="display: none;">
+                    <div class="outline-panel-header">
+                        <div class="outline-header-content">
+                            <h2 class="outline-panel-title">Article outline</h2>
+                            <p class="outline-panel-subtitle">Based on common animal articles</p>
+                        </div>
+                        <button class="panel-close-btn" id="outlinePanelCloseBtn" aria-label="Close outline panel">
+                            <img src="node_modules/@wikimedia/codex-icons/dist/images/close.svg" alt="" width="20" height="20">
+                        </button>
+                    </div>
+
+                    <div class="outline-sections">
+                        <div class="outline-section">
+                            <div class="outline-section-content">
+                                <h3 class="outline-section-title">Lead section</h3>
+                                <p class="outline-section-description">A short summary of the topic.</p>
+                            </div>
+                            <span class="outline-added-badge">Added</span>
+                        </div>
+
+                        <div class="outline-section">
+                            <div class="outline-section-content">
+                                <h3 class="outline-section-title">Characteristics</h3>
+                                <p class="outline-section-description">Physical traits and appearance.</p>
+                            </div>
+                            <button class="outline-add-btn">Add</button>
+                        </div>
+
+                        <div class="outline-section">
+                            <div class="outline-section-content">
+                                <h3 class="outline-section-title">Distribution and habitat</h3>
+                                <p class="outline-section-description">Where it lives and its environment.</p>
+                            </div>
+                            <button class="outline-add-btn">Add</button>
+                        </div>
+
+                        <div class="outline-section">
+                            <div class="outline-section-content">
+                                <h3 class="outline-section-title">Ecology and behaviour</h3>
+                                <p class="outline-section-description">Diet, activity and social behaviour.</p>
+                            </div>
+                            <button class="outline-add-btn">Add</button>
+                        </div>
+
+                        <button class="add-custom-section-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" class="add-icon">
+                                <path d="M11 9V4H9v5H4v2h5v5h2v-5h5V9z"/>
+                            </svg>
+                            <span>Add custom section...</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Add Custom Section Dialog -->
+                <div class="custom-section-dialog" id="customSectionDialog" style="display: none;">
+                    <div class="dialog-overlay"></div>
+                    <div class="dialog-content">
+                        <div class="dialog-header">
+                            <h2 class="dialog-title">Add custom section</h2>
+                            <button class="panel-close-btn" id="dialogCloseBtn" aria-label="Close dialog">
+                                <img src="node_modules/@wikimedia/codex-icons/dist/images/close.svg" alt="" width="20" height="20">
+                            </button>
+                        </div>
+
+                        <div class="dialog-body">
+                            <label class="input-label" for="customSectionInput">Section name</label>
+                            <input
+                                type="text"
+                                class="custom-section-input"
+                                id="customSectionInput"
+                                placeholder="e.g., Conservation efforts"
+                            />
+
+                            <label class="input-label" for="customSectionDescription">Description (optional)</label>
+                            <textarea
+                                class="custom-section-textarea"
+                                id="customSectionDescription"
+                                placeholder="Brief description of what this section will cover..."
+                                rows="3"
+                            ></textarea>
+                        </div>
+
+                        <div class="dialog-footer">
+                            <button class="dialog-btn dialog-btn-secondary" id="cancelCustomSectionBtn">Cancel</button>
+                            <button class="dialog-btn dialog-btn-primary" id="addCustomSectionBtn">Add section</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Citation Dialog -->
+                <div class="dialog-overlay" id="citationDialog" style="display: none;">
+                    <div class="dialog-container citation-dialog">
+                        <div class="dialog-header">
+                            <div>
+                                <h2 class="dialog-title" id="citationDialogTitle">Verified sources for "Siberian Tiger"</h2>
+                            </div>
+                            <button class="dialog-close-btn" id="citationDialogCloseBtn" aria-label="Close">
+                                <img src="node_modules/@wikimedia/codex-icons/dist/images/close.svg" alt="" width="20" height="20">
+                            </button>
+                        </div>
+
+                        <div class="dialog-body">
+                            <div class="citation-sources" id="citationSourcesList">
+                                <!-- Sections will be dynamically inserted:
+                                     1. User sources (if any)
+                                     2. Wikidata sources -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

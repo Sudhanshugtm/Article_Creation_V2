@@ -1,0 +1,345 @@
+{
+  "ui_configuration": {
+    "interaction_behavior": {
+      "placeholder_tap_action": "replace_with_template",
+      "template_expansion_animation": "fade_in_fields",
+      "suggested_contents_button_behavior": "move_below_active_template",
+      "auto_save": true,
+      "validation_timing": "on_blur",
+      "source_verification": "required_before_submit"
+    },
+    "placeholder_mappings": {
+      "short_overview": {
+        "initial_text": "The [animal name] is a [type of animal] native to [broad region]. It is known for [Key distinctive feature].",
+        "tap_target": "short_overview",
+        "replacement_template": "short_overview",
+        "highlighted_fields": ["animal_common_name", "taxonomic_classification", "geographic_range", "key_distinctive_feature_1"]
+      },
+      "taxonomy_in_brief": {
+        "initial_text": "Taxonomy brief information here.",
+        "tap_target": "taxonomy_in_brief",
+        "replacement_template": "taxonomy_in_brief",
+        "highlighted_fields": ["taxonomic_family", "taxonomic_order", "full_scientific_name"]
+      }
+    },
+    "field_rendering": {
+      "text_input": {
+        "component": "TextInput",
+        "show_help_icon": true,
+        "show_character_count": false,
+        "inline_validation": true
+      },
+      "select_input": {
+        "component": "Dropdown",
+        "searchable": false,
+        "show_help_icon": true
+      },
+      "source_input": {
+        "component": "SourceCitation",
+        "allow_multiple": true,
+        "required_fields": ["title", "url", "access_date"],
+        "prefill_from_url": true
+      }
+    },
+    "progressive_disclosure": {
+      "show_optional_fields": "after_required_complete",
+      "show_advanced_options": false,
+      "sentence_by_sentence": true
+    }
+  },
+  "interactive_lead_templates": {
+    "short_overview": {
+      "template_id": "lead_short_overview_v1",
+      "description": "Template for creating a concise opening paragraph for animal articles",
+      "structure": {
+        "sentence_1_definition": {
+          "template": "The {animal_common_name} or {alternative_name} is a {taxonomic_classification} native to {geographic_range}.",
+          "fields": {
+            "animal_common_name": {
+              "type": "text",
+              "required": true,
+              "placeholder": "Common name (e.g., Siberian tiger)",
+              "validation": "Must be lowercase unless proper noun",
+              "help_text": "Use the most widely recognized common name",
+              "requires_source": false
+            },
+            "alternative_name": {
+              "type": "text",
+              "required": false,
+              "placeholder": "Alternative common name (e.g., Amur tiger)",
+              "validation": "Must be lowercase unless proper noun",
+              "help_text": "Include the most common alternative name if one exists",
+              "requires_source": false
+            },
+            "taxonomic_classification": {
+              "type": "text",
+              "required": true,
+              "placeholder": "e.g., population of the tiger subspecies Panthera tigris tigris",
+              "validation": "Must include scientific name in italics",
+              "help_text": "Specify if it's a species, subspecies, or population",
+              "requires_source": true,
+              "source_guidance": "Use IUCN, Mammal Species of the World, or Cat Specialist Group"
+            },
+            "geographic_range": {
+              "type": "text",
+              "required": true,
+              "placeholder": "e.g., Northeast China, the Russian Far East, and possibly North Korea",
+              "validation": "List countries or major regions",
+              "help_text": "Where does this animal currently live?",
+              "requires_source": true,
+              "source_guidance": "Use recent range maps or distribution studies"
+            }
+          },
+          "example": "The Siberian tiger or Amur tiger is a population of the tiger subspecies Panthera tigris tigris native to Northeast China, the Russian Far East, and possibly North Korea."
+        },
+        "sentence_2_distinctive_features": {
+          "template": "It is known for {key_distinctive_feature_1} and {key_distinctive_feature_2}.",
+          "fields": {
+            "key_distinctive_feature_1": {
+              "type": "text",
+              "required": true,
+              "placeholder": "e.g., its thick fur adapted to cold climates",
+              "validation": "Should be a notable physical or behavioral trait",
+              "help_text": "What makes this animal unique or recognizable?",
+              "requires_source": true,
+              "source_guidance": "Use peer-reviewed studies on morphology or behavior"
+            },
+            "key_distinctive_feature_2": {
+              "type": "text",
+              "required": false,
+              "placeholder": "e.g., being one of the largest tiger populations",
+              "validation": "Should complement the first feature",
+              "help_text": "Add another distinctive characteristic",
+              "requires_source": true
+            }
+          },
+          "example": "It is known for its thick, pale golden coat and being one of the largest tiger subspecies."
+        },
+        "sentence_3_conservation_status": {
+          "template": "The species is classified as {conservation_status} by the IUCN, with an estimated population of {current_population} in the wild as of {year}.",
+          "fields": {
+            "conservation_status": {
+              "type": "select",
+              "required": true,
+              "options": [
+                "Critically Endangered",
+                "Endangered",
+                "Vulnerable",
+                "Near Threatened",
+                "Least Concern",
+                "Data Deficient"
+              ],
+              "help_text": "Select the current IUCN Red List status",
+              "requires_source": true,
+              "source_guidance": "Must cite IUCN Red List directly"
+            },
+            "current_population": {
+              "type": "text",
+              "required": true,
+              "placeholder": "e.g., approximately 500-600 individuals",
+              "validation": "Include range if exact number unknown",
+              "help_text": "Most recent population estimate",
+              "requires_source": true,
+              "source_guidance": "Use census data or peer-reviewed population studies"
+            },
+            "year": {
+              "type": "number",
+              "required": true,
+              "placeholder": "e.g., 2022",
+              "validation": "Must be within last 10 years",
+              "help_text": "Year of the population estimate",
+              "requires_source": true
+            }
+          },
+          "example": "The species is classified as Endangered by the IUCN, with an estimated population of approximately 500-600 individuals in the wild as of 2022."
+        }
+      },
+      "complete_example": "The Siberian tiger or Amur tiger is a population of the tiger subspecies Panthera tigris tigris native to Northeast China, the Russian Far East, and possibly North Korea. It is known for its thick, pale golden coat adapted to harsh winters and being one of the largest tiger populations. The species is classified as Endangered by the IUCN, with an estimated population of approximately 500-600 individuals in the wild as of 2022.",
+      "minimum_required_sources": 3,
+      "suggested_source_types": [
+        "IUCN Red List assessment",
+        "Peer-reviewed taxonomic study",
+        "Geographic distribution study or range map",
+        "Population census or monitoring report"
+      ]
+    },
+    "taxonomy_in_brief": {
+      "template_id": "lead_taxonomy_brief_v1",
+      "description": "Template for summarizing taxonomic classification and evolutionary relationships",
+      "structure": {
+        "sentence_1_higher_classification": {
+          "template": "The {animal_common_name} belongs to the {taxonomic_family} family within the order {taxonomic_order}.",
+          "fields": {
+            "animal_common_name": {
+              "type": "text",
+              "required": true,
+              "placeholder": "Common name",
+              "help_text": "Same as used in short overview",
+              "requires_source": false
+            },
+            "taxonomic_family": {
+              "type": "text",
+              "required": true,
+              "placeholder": "e.g., Felidae",
+              "validation": "Must be capitalized, not italicized",
+              "help_text": "Scientific family name",
+              "requires_source": true,
+              "source_guidance": "Use Mammal Species of the World or ITIS"
+            },
+            "taxonomic_order": {
+              "type": "text",
+              "required": true,
+              "placeholder": "e.g., Carnivora",
+              "validation": "Must be capitalized, not italicized",
+              "help_text": "Scientific order name",
+              "requires_source": true
+            }
+          },
+          "example": "The Siberian tiger belongs to the Felidae family within the order Carnivora."
+        },
+        "sentence_2_scientific_name": {
+          "template": "It is scientifically classified as {full_scientific_name}, first described by {original_describer} in {year_described}.",
+          "fields": {
+            "full_scientific_name": {
+              "type": "text",
+              "required": true,
+              "placeholder": "e.g., Panthera tigris altaica",
+              "validation": "Must be in italics, genus capitalized",
+              "help_text": "Binomial or trinomial nomenclature",
+              "requires_source": true,
+              "source_guidance": "Use original taxonomic description or authoritative revision"
+            },
+            "original_describer": {
+              "type": "text",
+              "required": true,
+              "placeholder": "e.g., Temminck",
+              "help_text": "Who first scientifically described this animal?",
+              "requires_source": true
+            },
+            "year_described": {
+              "type": "number",
+              "required": true,
+              "placeholder": "e.g., 1844",
+              "validation": "Must be valid historical year",
+              "help_text": "Year of original description",
+              "requires_source": true
+            }
+          },
+          "example": "It is scientifically classified as Panthera tigris altaica, first described by Temminck in 1844."
+        },
+        "sentence_3_evolutionary_note": {
+          "template": "Recent genetic studies indicate {evolutionary_relationship}.",
+          "fields": {
+            "evolutionary_relationship": {
+              "type": "text",
+              "required": false,
+              "placeholder": "e.g., it is genetically close to the extinct Caspian tiger",
+              "validation": "Should reference phylogenetic or genetic findings",
+              "help_text": "Notable evolutionary or genetic relationships",
+              "requires_source": true,
+              "source_guidance": "Cite molecular phylogeny studies"
+            }
+          },
+          "example": "Recent genetic studies indicate it is genetically close to the extinct Caspian tiger, with which it shared a common ancestor approximately 10,000 years ago."
+        }
+      },
+      "complete_example": "The Siberian tiger belongs to the Felidae family within the order Carnivora. It is scientifically classified as Panthera tigris altaica, first described by Temminck in 1844. Recent genetic studies indicate it is genetically close to the extinct Caspian tiger, with which it shared a common ancestor approximately 10,000 years ago.",
+      "minimum_required_sources": 2,
+      "suggested_source_types": [
+        "Taxonomic authority database (ITIS, Catalogue of Life)",
+        "Original species description",
+        "Recent phylogenetic or molecular study"
+      ]
+    }
+  },
+  "templates": {
+    "siberian_tiger_characteristics": {
+      "source": "https://en.wikipedia.org/wiki/Siberian_tiger",
+      "section": "Characteristics",
+      "content": {
+        "general_description": "The tiger is reddish-rusty, or rusty-yellow in colour, with narrow black transverse stripes. The body length is not less than 150 cm, condylobasal length of skull 250 mm, zygomatic width 180 mm, and length of upper carnassial tooth over 26 mm long. It has an extended supple body standing on rather short legs with a fairly long tail.",
+
+        "body_size": {
+          "historical_weight_range": {
+            "males": "180-306 kg",
+            "females": "100-167 kg"
+          },
+          "average_historical_weight": {
+            "males": "215.3 kg",
+            "females": "137.5 kg"
+          },
+          "contemporary_weight": {
+            "males": "176.4 kg average (asymptotic limit 222.3 kg)",
+            "females": "117.9 kg average"
+          },
+          "measurements_siberian_tiger_project": {
+            "males": {
+              "head_body_length_range": "178-208 cm",
+              "head_body_length_average": "195 cm",
+              "tail_average": "99 cm",
+              "longest_male_total_length": "309 cm",
+              "longest_male_tail": "101 cm",
+              "longest_male_chest_girth": "127 cm"
+            },
+            "females": {
+              "head_body_length_range": "167-182 cm",
+              "head_body_length_average": "174 cm",
+              "tail_average": "91 cm",
+              "longest_female_total_length": "270 cm",
+              "longest_female_tail": "88 cm",
+              "longest_female_chest_girth": "108 cm"
+            }
+          },
+          "recorded_specimens": {
+            "captured_male_weight": "206 kg",
+            "largest_radio_collared_male": "212 kg",
+            "manchuria_1943_male": {
+              "length_over_curves": "350 cm",
+              "tail_length": "~100 cm",
+              "weight": "~300 kg",
+              "dubious_weights": "318 kg, 384 kg, 408 kg"
+            },
+            "2019_largest_recorded": {
+              "weight": "384.09 kg",
+              "length": "over 11 ft (335+ cm)"
+            }
+          }
+        },
+
+        "skull": {
+          "characteristics": "Large size, very powerful facial region, very broad in the region of the canines",
+          "skull_prominences": "Sagittal crest and crista occipitalis very high and strong in old males, often more massive than Bengal tigers",
+          "size_range": "331-383 mm (nine individuals measured)",
+          "sexual_dimorphism": "Female skull always smaller and never as heavily built as male",
+          "sagittal_crest_height": {
+            "middle_part": "up to 27 mm",
+            "posterior_part": "up to 46 mm"
+          }
+        },
+
+        "fur_and_coat": {
+          "whiskers_and_hair": "Whiskers and hair on back of head and top of neck greatly elongated",
+          "winter_coat": "Generally less bright and rusty compared to summer coat",
+          "stripe_appearance": "Winter stripes appear broader with less defined outlines due to longer fur",
+          "fur_length": {
+            "summer": {
+              "back": "15-17 mm",
+              "top_of_neck": "30-50 mm",
+              "abdomen": "25-35 mm",
+              "tail": "14-16 mm"
+            },
+            "winter": {
+              "back": "40-50 mm",
+              "top_of_neck": "70-110 mm",
+              "throat": "70-95 mm",
+              "chest": "60-100 mm",
+              "abdomen": "65-105 mm"
+            }
+          },
+          "whisker_length": "90-115 mm"
+        }
+      },
+      "notes": "Data includes historical comparisons showing that contemporary Siberian tigers are lighter than historical ones, possibly due to reduced prey abundance from illegal hunting and capturing of sick/injured individuals in conflict situations."
+    }
+  }
+}
