@@ -390,12 +390,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Go back to screen 1
             showScreen(1);
         } else {
-            // Close confirmation
-            if (confirm('Are you sure you want to close? Your changes may not be saved.')) {
-                articleTitle.value = '';
-                articleTitle.style.height = 'auto';
-                topicMatching.style.display = 'none';
-            }
+            // Navigate back to landing page (experience selector)
+            window.location.href = '../index.html';
         }
     });
 
