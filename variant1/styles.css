@@ -1665,6 +1665,27 @@ body {
     width: 100%;
 }
 
+/* Desktop alignment for action buttons */
+@media (min-width: 768px) {
+    .sources-actions-container {
+        display: flex;
+        align-items: center;
+        gap: var(--size-200);
+        max-width: 600px;
+    }
+
+    .start-writing-btn {
+        width: auto;
+        margin-bottom: 0;
+        flex-shrink: 0;
+    }
+
+    .skip-sources-btn {
+        width: auto;
+        flex-shrink: 0;
+    }
+}
+
 /* Source section headers in dialog */
 .sources-section-header {
     font-size: var(--font-size-large);
