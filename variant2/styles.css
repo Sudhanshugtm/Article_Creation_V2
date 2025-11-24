@@ -458,7 +458,22 @@ body {
     margin-bottom: var(--size-50);
 }
 
-.section-get-contents-btn {
+/* Section action buttons container */
+.section-action-buttons {
+    display: flex;
+    gap: var(--size-100);
+    align-items: center;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.section-block.active .section-action-buttons {
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.section-get-contents-btn,
+.section-add-source-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -474,20 +489,15 @@ body {
     transition: var(--transition-property-base) var(--transition-duration-base);
     -webkit-tap-highlight-color: transparent;
     line-height: var(--line-height-small);
-    visibility: hidden;
-    pointer-events: none;
 }
 
-.section-block.active .section-get-contents-btn {
-    visibility: visible;
-    pointer-events: auto;
-}
-
-.section-get-contents-btn:hover {
+.section-get-contents-btn:hover,
+.section-add-source-btn:hover {
     background-color: var(--background-color-progressive-subtle);
 }
 
-.section-get-contents-btn:active {
+.section-get-contents-btn:active,
+.section-add-source-btn:active {
     background-color: var(--background-color-progressive-subtle--active);
 }
 

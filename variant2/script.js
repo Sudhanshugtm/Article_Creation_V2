@@ -41,6 +41,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const citationDialog = document.getElementById('citationDialog');
     const citationDialogCloseBtn = document.getElementById('citationDialogCloseBtn');
     const citationSourcesList = document.getElementById('citationSourcesList');
+    const sectionAddSourceBtn = document.getElementById('sectionAddSourceBtn');
 
     let searchTimeout;
     let currentArticleTitle = '';
@@ -778,6 +779,11 @@ document.addEventListener('DOMContentLoaded', function() {
             editingSectionPanel.style.display = 'block';
             gettingStartedPanel.style.display = 'none';
         }
+    });
+
+    // Section Add source button handler - opens citation dialog
+    sectionAddSourceBtn.addEventListener('click', function() {
+        openCitationDialog();
     });
 
     // Editing panel close button handler
