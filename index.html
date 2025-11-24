@@ -17,91 +17,86 @@
             color: #202122;
             background-color: #f8f9fa;
             padding: 20px;
+            min-height: 100vh;
         }
 
         .container {
-            max-width: 800px;
+            max-width: 600px;
             margin: 0 auto;
-            background: white;
-            padding: 40px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
         h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
+            font-size: 1.75em;
+            margin-bottom: 8px;
             color: #202122;
-            border-bottom: 3px solid #3366cc;
-            padding-bottom: 10px;
+            font-weight: 600;
         }
 
         .subtitle {
-            font-size: 1.1em;
+            font-size: 0.95em;
             color: #54595d;
-            margin-bottom: 40px;
+            margin-bottom: 32px;
         }
 
-        .prototype-card {
-            background: #f8f9fa;
-            border-left: 4px solid #3366cc;
-            padding: 24px;
-            margin-bottom: 24px;
-            border-radius: 4px;
-            transition: all 0.3s ease;
+        .variant-list {
+            list-style: none;
         }
 
-        .prototype-card:hover {
-            background: #eaecf0;
-            transform: translateX(4px);
-        }
-
-        .prototype-card h2 {
-            font-size: 1.5em;
+        .variant-item {
+            background: white;
+            border-radius: 8px;
             margin-bottom: 12px;
-            color: #202122;
+            transition: box-shadow 0.2s ease;
         }
 
-        .prototype-card p {
-            color: #54595d;
-            margin-bottom: 16px;
-            line-height: 1.6;
+        .variant-item:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
-        .prototype-card a {
-            display: inline-block;
-            color: #3366cc;
+        .variant-link {
+            display: block;
+            padding: 20px;
             text-decoration: none;
+            color: inherit;
+        }
+
+        .variant-title {
+            font-size: 1.1em;
             font-weight: 600;
-            padding: 10px 20px;
-            border: 2px solid #3366cc;
-            border-radius: 4px;
-            transition: all 0.3s ease;
+            color: #202122;
+            margin-bottom: 4px;
         }
 
-        .prototype-card a:hover {
-            background: #3366cc;
-            color: white;
-        }
-
-        .meta {
+        .variant-description {
             font-size: 0.9em;
-            color: #72777d;
-            font-style: italic;
-            margin-bottom: 12px;
+            color: #54595d;
+            line-height: 1.5;
         }
 
         @media (max-width: 640px) {
-            .container {
-                padding: 24px;
+            body {
+                padding: 16px;
             }
 
             h1 {
-                font-size: 1.8em;
+                font-size: 1.5em;
             }
 
-            .prototype-card {
+            .subtitle {
+                font-size: 0.9em;
+                margin-bottom: 24px;
+            }
+
+            .variant-link {
                 padding: 16px;
+            }
+
+            .variant-title {
+                font-size: 1em;
+            }
+
+            .variant-description {
+                font-size: 0.85em;
             }
         }
     </style>
@@ -109,18 +104,16 @@
 <body>
     <div class="container">
         <h1>Article Creation Prototypes</h1>
-        <p class="subtitle">Exploring different approaches to mobile-first article creation with guided templates</p>
+        <p class="subtitle">Select an experience to explore</p>
 
-        <div class="prototype-card">
-            <h2>Variant 1: Verified Facts with Auto-Citations</h2>
-            <p class="meta">Mobile-first • Codex Design System • Wikidata Integration</p>
-            <p>
-                A streamlined article creation experience featuring pre-verified facts from Wikidata that insert with automatic citations.
-                Click on verified facts to insert them as formatted sentences with superscript citations.
-                Includes a dual-source citation system separating user-added sources from Wikidata sources.
-            </p>
-            <a href="variant1/index.html">Try Variant 1 →</a>
-        </div>
+        <ul class="variant-list">
+            <li class="variant-item">
+                <a href="variant1/index.html" class="variant-link">
+                    <div class="variant-title">Variant 1: Verified Facts with Auto-Citations</div>
+                    <div class="variant-description">Pre-verified facts from Wikidata with automatic citations</div>
+                </a>
+            </li>
+        </ul>
     </div>
 </body>
 </html>
