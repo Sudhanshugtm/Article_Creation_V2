@@ -60,6 +60,17 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentSuggestion = '';
     let suggestionOverlay = null;
 
+    // Load NLP suggestions from tiger_templates.json
+    fetch('tiger_templates.json')
+        .then(response => response.json())
+        .then(data => {
+            if (data.nlp_suggestions) {
+                nlpSuggestions = data.nlp_suggestions;
+                console.log('NLP suggestions loaded:', nlpSuggestions);
+            }
+        })
+        .catch(error => console.error('Error loading NLP suggestions:', error));
+
     // Define section order for "Next section" functionality
     const sectionOrder = ['Lead section', 'Characteristics', 'Distribution and habitat', 'Ecology and behaviour'];
 
@@ -193,6 +204,112 @@ document.addEventListener('DOMContentLoaded', function() {
             { id: 'amphibians', name: 'Amphibians' }
         ]
     };
+
+    // ===== INLINE AUTOCOMPLETE FUNCTIONS =====
+
+    // Function to get section key from section name
+    function getSectionKey(sectionName) {
+        const keyMap = {
+            'Lead section': 'lead_section',
+            'Characteristics': 'characteristics',
+            'Distribution and habitat': 'distribution_habitat',
+            'Ecology and behaviour': 'ecology_behaviour'
+        };
+        return keyMap[sectionName] || 'lead_section';
+    }
+
+    // Function to find matching suggestion based on current text
+    function findSuggestion(text, sectionName) {
+        const sectionKey = getSectionKey(sectionName);
+        const triggers = nlpSuggestions[sectionKey]?.triggers || {};
+
+        // Find the longest matching trigger
+        let bestMatch = null;
+        let bestMatchLength = 0;
+
+        for (const [trigger, completion] of Object.entries(triggers)) {
+            if (text.endsWith(trigger) && trigger.length > bestMatchLength) {
+                bestMatch = completion;
+                bestMatchLength = trigger.length;
+            }
+        }
+
+        return bestMatch;
+    }
+
+    // Function to show ghost text suggestion
+    function showGhostText(textarea, suggestion) {
+        if (!suggestion || !textarea) return;
+
+        // Remove existing overlay if any
+        hideGhostText();
+
+        // Create overlay element
+        suggestionOverlay = document.createElement('span');
+        suggestionOverlay.className = 'autocomplete-ghost-text';
+        suggestionOverlay.textContent = suggestion;
+        suggestionOverlay.contentEditable = false;
+
+        // Insert after cursor position
+        const selection = window.getSelection();
+        if (selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            range.collapse(false);
+            range.insertNode(suggestionOverlay);
+
+            // Move cursor back before the ghost text
+            range.setStartBefore(suggestionOverlay);
+            range.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+
+        currentSuggestion = suggestion;
+    }
+
+    // Function to hide ghost text
+    function hideGhostText() {
+        if (suggestionOverlay && suggestionOverlay.parentNode) {
+            suggestionOverlay.parentNode.removeChild(suggestionOverlay);
+        }
+        suggestionOverlay = null;
+        currentSuggestion = '';
+    }
+
+    // Function to accept ghost text suggestion
+    function acceptSuggestion() {
+        if (!currentSuggestion || !suggestionOverlay) return false;
+
+        // Replace ghost text with actual text
+        const textNode = document.createTextNode(currentSuggestion);
+        suggestionOverlay.parentNode.replaceChild(textNode, suggestionOverlay);
+
+        // Move cursor to end of inserted text
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.setStartAfter(textNode);
+        range.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(range);
+
+        hideGhostText();
+        return true;
+    }
+
+    // Function to handle autocomplete on input
+    function handleAutocomplete(textarea, sectionName) {
+        const text = textarea.innerText || textarea.textContent || '';
+        const lastSentence = text.split('.').pop().trim();
+
+        // Find suggestion based on what user typed
+        const suggestion = findSuggestion(lastSentence, sectionName);
+
+        if (suggestion) {
+            showGhostText(textarea, suggestion);
+        } else {
+            hideGhostText();
+        }
+    }
 
     // Navigation functions
     function showScreen(screenNum) {
@@ -800,6 +917,21 @@ document.addEventListener('DOMContentLoaded', function() {
             editingSectionPanel.style.display = 'block';
             gettingStartedPanel.style.display = 'none';
         }
+
+        // Handle autocomplete
+        handleAutocomplete(this, 'Lead section');
+    });
+
+    // Keyboard handler for accepting suggestions (Tab or Right Arrow)
+    editorTextarea.addEventListener('keydown', function(e) {
+        if (currentSuggestion && (e.key === 'Tab' || e.key === 'ArrowRight')) {
+            e.preventDefault();
+            acceptSuggestion();
+        }
+        // Escape key to dismiss suggestion
+        if (e.key === 'Escape') {
+            hideGhostText();
+        }
     });
 
     // Click on editor textarea - hide getting started panel
@@ -940,6 +1072,22 @@ document.addEventListener('DOMContentLoaded', function() {
         // Set active section on focus
         textarea.addEventListener('focus', function() {
             setActiveSection(sectionBlock);
+        });
+
+        // Add autocomplete handler for this textarea
+        textarea.addEventListener('input', function() {
+            handleAutocomplete(this, sectionName);
+        });
+
+        // Add keyboard handler for accepting suggestions
+        textarea.addEventListener('keydown', function(e) {
+            if (currentSuggestion && (e.key === 'Tab' || e.key === 'ArrowRight')) {
+                e.preventDefault();
+                acceptSuggestion();
+            }
+            if (e.key === 'Escape') {
+                hideGhostText();
+            }
         });
 
         contentArea.appendChild(textarea);

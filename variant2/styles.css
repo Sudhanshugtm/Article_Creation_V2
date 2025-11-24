@@ -583,6 +583,16 @@ body {
     text-decoration: underline;
 }
 
+/* Autocomplete ghost text styling */
+.autocomplete-ghost-text {
+    color: var(--color-placeholder);
+    opacity: 0.5;
+    font-style: normal;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
 /* Editor Textarea */
 .editor-textarea {
     width: 100%;
