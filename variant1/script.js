@@ -391,7 +391,7 @@ document.addEventListener('DOMContentLoaded', function() {
             showScreen(1);
         } else {
             // Navigate back to landing page (experience selector)
-            window.location.href = '../index.html';
+            window.location.replace('../index.html');
         }
     });
 
