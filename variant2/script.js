@@ -54,6 +54,11 @@ document.addEventListener('DOMContentLoaded', function() {
     let citationCounter = 0; // Track citation numbers globally
     const wikidataCitations = []; // Store Wikidata citations
 
+    // NLP autocomplete variables
+    let nlpSuggestions = {};
+    let currentSuggestion = '';
+    let suggestionOverlay = null;
+
     // Define section order for "Next section" functionality
     const sectionOrder = ['Lead section', 'Characteristics', 'Distribution and habitat', 'Ecology and behaviour'];
 
