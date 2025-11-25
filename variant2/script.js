@@ -218,19 +218,50 @@ document.addEventListener('DOMContentLoaded', function() {
         return keyMap[sectionName] || 'lead_section';
     }
 
+    // Default suggestions for when user starts typing
+    const defaultSuggestions = {
+        'lead_section': ' Siberian tiger is a subspecies of tiger native to the Russian Far East.',
+        'characteristics': ' Siberian tiger has a reddish-rusty coat with narrow black stripes.',
+        'distribution_habitat': ' Siberian tiger inhabits temperate forests in the Russian Far East.',
+        'ecology_behaviour': ' Siberian tiger is a solitary and territorial animal.'
+    };
+
     // Function to find matching suggestion based on current text
     function findSuggestion(text, sectionName) {
         const sectionKey = getSectionKey(sectionName);
         const triggers = nlpSuggestions[sectionKey]?.triggers || {};
 
-        // Find the longest matching trigger
+        // Trim trailing whitespace but preserve the text for matching
+        const trimmedText = text.trimEnd();
+        
+        // If text is empty, don't show suggestion (wait for user to type)
+        if (!trimmedText) {
+            return null;
+        }
+
+        // Find the longest matching trigger (case-insensitive)
         let bestMatch = null;
         let bestMatchLength = 0;
 
         for (const [trigger, completion] of Object.entries(triggers)) {
-            if (text.endsWith(trigger) && trigger.length > bestMatchLength) {
+            const lowerTrimmedText = trimmedText.toLowerCase();
+            const lowerTrigger = trigger.toLowerCase();
+            
+            // Check if text ends with trigger (case-insensitive)
+            if (lowerTrimmedText.endsWith(lowerTrigger) && trigger.length > bestMatchLength) {
                 bestMatch = completion;
                 bestMatchLength = trigger.length;
+            }
+            
+            // Also check if trigger starts with the current text (for prefix matching)
+            // This allows showing suggestions as user types
+            if (lowerTrigger.startsWith(lowerTrimmedText) && !bestMatch) {
+                // Show the remainder of the trigger plus its completion
+                const remainder = trigger.slice(trimmedText.length);
+                if (remainder.length > 0) {
+                    bestMatch = remainder + completion;
+                    bestMatchLength = 0; // Lower priority than exact matches
+                }
             }
         }
 
@@ -307,7 +338,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (suggestion) {
             showGhostText(textarea, suggestion);
         } else {
-            hideGhostText();
+            // Show default suggestion if text is empty or very short
+            const sectionKey = getSectionKey(sectionName);
+            if (!lastSentence && defaultSuggestions[sectionKey]) {
+                showGhostText(textarea, defaultSuggestions[sectionKey]);
+            } else {
+                hideGhostText();
+            }
         }
     }
 
@@ -1069,9 +1106,20 @@ document.addEventListener('DOMContentLoaded', function() {
         textarea.contentEditable = 'true';
         textarea.dataset.placeholder = sectionPlaceholders[sectionName] || `Write about ${sectionName.toLowerCase()}...`;
 
-        // Set active section on focus
+        // Set active section on focus and show default suggestion if empty
         textarea.addEventListener('focus', function() {
             setActiveSection(sectionBlock);
+            const text = this.innerText || this.textContent || '';
+            if (!text.trim()) {
+                // Show default suggestion when section editor is empty
+                const sectionKey = getSectionKey(sectionName);
+                const defaultSuggestion = defaultSuggestions[sectionKey];
+                if (defaultSuggestion) {
+                    setTimeout(() => {
+                        showGhostText(this, defaultSuggestion);
+                    }, 100);
+                }
+            }
         });
 
         // Add autocomplete handler for this textarea
@@ -1236,6 +1284,18 @@ document.addEventListener('DOMContentLoaded', function() {
     editorTextarea.addEventListener('focus', function() {
         const leadSectionBlock = document.getElementById('leadSectionBlock');
         setActiveSection(leadSectionBlock);
+        
+        // Show default suggestion when editor is empty
+        const text = this.innerText || this.textContent || '';
+        if (!text.trim()) {
+            const sectionKey = getSectionKey('Lead section');
+            const defaultSuggestion = defaultSuggestions[sectionKey];
+            if (defaultSuggestion) {
+                setTimeout(() => {
+                    showGhostText(this, defaultSuggestion);
+                }, 100);
+            }
+        }
     });
 
     // Mark lead section as added by default
