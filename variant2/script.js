@@ -49,7 +49,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const addedSections = new Set(); // Track which sections are added to editor
     let currentEditingSection = 'Lead/Introduction'; // Track which section is being edited
     let activeSection = null; // Track which section has focus
-    const insertedTemplates = new Map(); // Track which templates have been inserted per section
     const insertedFacts = new Map(); // Track which facts have been inserted per section
     const userSources = []; // Store user-added sources
     let citationCounter = 0; // Track citation numbers globally
@@ -60,12 +59,15 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentSuggestion = '';
     let suggestionOverlay = null;
 
+    // Example paragraphs from similar articles (loaded from tiger_templates.json)
+    let exampleParagraphs = {};
+
     // Smart suggestion tracking system
     const usedSuggestions = new Set(); // Track suggestions that have been accepted
     const triggerIndices = new Map(); // Track which suggestion index to use next for each trigger
     let lastAcceptedContent = ''; // Track the last accepted suggestion content
 
-    // Load NLP suggestions from tiger_templates.json
+    // Load NLP autocomplete suggestions and example paragraphs from tiger_templates.json
     fetch('tiger_templates.json')
         .then(response => response.json())
         .then(data => {
@@ -73,8 +75,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 nlpSuggestions = data.nlp_suggestions;
                 console.log('NLP suggestions loaded:', nlpSuggestions);
             }
+            if (data.example_paragraphs) {
+                exampleParagraphs = data.example_paragraphs;
+                console.log('Example paragraphs loaded:', exampleParagraphs);
+            }
         })
-        .catch(error => console.error('Error loading NLP suggestions:', error));
+        .catch(error => console.error('Error loading NLP suggestions and example paragraphs:', error));
 
     // Define section order for "Next section" functionality
     const sectionOrder = ['Lead section', 'Characteristics', 'Distribution and habitat', 'Ecology and behaviour'];
@@ -85,29 +91,6 @@ document.addEventListener('DOMContentLoaded', function() {
         'Characteristics': 'Describe the physical traits and appearance of the Siberian tiger...',
         'Distribution and habitat': 'Explain where the Siberian tiger lives and its environment...',
         'Ecology and behaviour': 'Describe the diet, activity and social behaviour of the Siberian tiger...'
-    };
-
-    // Section-specific suggested paragraphs
-    const sectionSuggestions = {
-        'Lead section': [
-            { title: 'Short overview', description: 'A brief introduction to the topic.' },
-            { title: 'Taxonomy in brief', description: 'How it is classified scientifically.' }
-        ],
-        'Characteristics': [
-            { title: 'Physical description', description: 'Detailed physical appearance and features.' },
-            { title: 'Size and weight', description: 'Typical dimensions and mass ranges.' },
-            { title: 'Coat and coloration', description: 'Fur patterns and seasonal variations.' }
-        ],
-        'Distribution and habitat': [
-            { title: 'Geographic range', description: 'Current and historical distribution areas.' },
-            { title: 'Habitat preferences', description: 'Preferred ecosystems and terrain types.' },
-            { title: 'Population estimates', description: 'Current population numbers and trends.' }
-        ],
-        'Ecology and behaviour': [
-            { title: 'Diet and hunting', description: 'Prey species and hunting strategies.' },
-            { title: 'Social structure', description: 'Territorial behavior and social interactions.' },
-            { title: 'Reproduction', description: 'Breeding patterns and life cycle.' }
-        ]
     };
 
     // Section-specific verified facts
@@ -832,100 +815,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Function to insert suggested content into the editor
-    function handleInsertSuggestion(suggestionTitle, sectionName) {
-        // Find the active section's textarea
-        let targetTextarea;
-        let targetContainer;
-
-        if (sectionName === 'Lead section') {
-            // For lead section, use the main editor textarea
-            targetTextarea = editorTextarea;
-            targetContainer = document.querySelector('#leadSectionBlock .section-content-area');
-        } else {
-            // For other sections, find the section block's textarea
-            const sectionBlocks = document.querySelectorAll('.section-block');
-            sectionBlocks.forEach(block => {
-                if (block.dataset.sectionName === sectionName) {
-                    targetTextarea = block.querySelector('.section-textarea');
-                    targetContainer = block.querySelector('.section-content-area');
-                }
-            });
-        }
-
-        if (!targetTextarea) {
-            console.error('Could not find textarea for section:', sectionName);
-            return;
-        }
-
-        // Get template content based on suggestion title
-        const templateContent = getTemplateContent(suggestionTitle, sectionName);
-
-        // Check if textarea is contenteditable or regular textarea
-        const isContentEditable = targetTextarea.contentEditable === 'true';
-
-        if (isContentEditable) {
-            // For contenteditable, insert HTML content
-            const currentContent = targetTextarea.innerHTML;
-            const prefix = currentContent && currentContent !== '' ? '<br><br>' : '';
-            targetTextarea.innerHTML = currentContent + prefix + templateContent;
-
-            // Focus at the end
-            targetTextarea.focus();
-            const range = document.createRange();
-            const sel = window.getSelection();
-            range.selectNodeContents(targetTextarea);
-            range.collapse(false);
-            sel.removeAllRanges();
-            sel.addRange(range);
-        } else {
-            // For regular textarea, strip HTML and insert plain text
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = templateContent;
-            const plainText = tempDiv.textContent || tempDiv.innerText;
-
-            const cursorPos = targetTextarea.selectionStart;
-            const textBefore = targetTextarea.value.substring(0, cursorPos);
-            const textAfter = targetTextarea.value.substring(cursorPos);
-
-            // Add newlines if needed
-            const prefix = textBefore && !textBefore.endsWith('\n\n') ? '\n\n' : '';
-            const suffix = textAfter && !textAfter.startsWith('\n') ? '\n' : '';
-
-            targetTextarea.value = textBefore + prefix + plainText + suffix + textAfter;
-
-            // Trigger auto-resize
-            targetTextarea.style.height = 'auto';
-            targetTextarea.style.height = targetTextarea.scrollHeight + 'px';
-
-            // Focus the textarea and set cursor position
-            targetTextarea.focus();
-            const newCursorPos = (textBefore + prefix + plainText).length;
-            targetTextarea.setSelectionRange(newCursorPos, newCursorPos);
-        }
-
-        // Add visual indicators for [Add source] markers
-        addSourceMarkerHighlights(targetTextarea, targetContainer);
-
-        // Track that this template has been inserted for this section
-        if (!insertedTemplates.has(sectionName)) {
-            insertedTemplates.set(sectionName, new Set());
-        }
-        insertedTemplates.get(sectionName).add(suggestionTitle);
-
-        // Update the panel to show the template as added
-        updateEditingPanelContent(sectionName);
-
-        // Hide the editing panel after insertion
-        editingSectionPanel.style.display = 'none';
-    }
-
-    // Function to add visual highlights and click handlers for [Add source] markers
-    function addSourceMarkerHighlights(textarea, container) {
-        // Mark textarea as having source markers
-        textarea.dataset.hasSourceMarkers = 'true';
-    }
-
     // Function to insert verified fact into the editor
     function handleInsertFact(fact, sectionName) {
         // Find the active section's textarea
@@ -1003,27 +892,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // Don't hide panel for facts (user might want to add multiple facts)
     }
 
-    // Function to get template content based on suggestion title
-    function getTemplateContent(suggestionTitle, sectionName) {
-        // Template content mapping with proper [Add source] markers
-        // Based on the UI mockup and tiger_templates.json structure
-        const templates = {
-            'Short overview': 'The <span class="placeholder">animal name</span> is a <span class="placeholder">type of animal</span> native to <span class="placeholder">broad region</span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. It is known for <span class="placeholder">Key distinctive feature</span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>.',
-            'Taxonomy in brief': 'The <span class="placeholder">animal name</span> belongs to the <span class="placeholder">taxonomic family</span> family <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. It was first described by <span class="placeholder">scientist name</span> in <span class="placeholder">year</span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>.',
-            'Physical description': 'The <span class="placeholder">animal name</span> has <span class="placeholder">describe physical appearance</span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder">Add details about coloration, body structure, notable features</span>.',
-            'Size and weight': 'Adult <span class="placeholder">animal name</span> typically measure <span class="placeholder">length range</span> in length and weigh <span class="placeholder">weight range</span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder">Add information about sexual dimorphism if applicable</span>.',
-            'Coat and coloration': 'The <span class="placeholder">animal name</span> has <span class="placeholder">describe coat type and color</span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder">Add details about seasonal variations, regional differences, or distinctive markings</span>.',
-            'Geographic range': 'The <span class="placeholder">animal name</span> is found in <span class="placeholder">list countries/regions</span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder">Add details about historical vs current range</span>.',
-            'Habitat preferences': 'The <span class="placeholder">animal name</span> inhabits <span class="placeholder">describe habitat types</span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder">Add details about elevation range, vegetation types, climate preferences</span>.',
-            'Population estimates': 'Current population estimates suggest <span class="placeholder">number</span> individuals in the wild <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder">Add information about population trends and conservation status</span>.',
-            'Diet and hunting': 'The <span class="placeholder">animal name</span> primarily feeds on <span class="placeholder">list prey species</span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder">Add details about hunting strategies, feeding behavior</span>.',
-            'Social structure': 'The <span class="placeholder">animal name</span> is <span class="placeholder">solitary/social</span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder">Add details about territorial behavior, group size, social hierarchy</span>.',
-            'Reproduction': 'The <span class="placeholder">animal name</span> breeds <span class="placeholder">breeding season/frequency</span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder">Add details about gestation period, litter size, parental care</span>.'
-        };
-
-        return templates[suggestionTitle] || `<span class="placeholder">[Content for ${suggestionTitle}]</span>`;
-    }
-
     // Function to update editing panel content based on section
     function updateEditingPanelContent(sectionName) {
         // Update section title
@@ -1032,44 +900,33 @@ document.addEventListener('DOMContentLoaded', function() {
         editingSectionTitle.textContent = displayName;
         currentEditingSection = displayName;
 
-        // Update suggested paragraphs
+        // Get the section key for example paragraphs
+        const sectionKey = getSectionKey(sectionName);
+        
+        // Update example paragraphs section
         const suggestedSection = document.querySelector('.suggested-section');
-        const suggestions = sectionSuggestions[sectionName] || sectionSuggestions['Lead section'];
+        const examples = exampleParagraphs[sectionKey] || exampleParagraphs['lead_section'] || [];
 
-        // Clear existing suggestions (keep the heading)
-        const existingSuggestions = suggestedSection.querySelectorAll('.suggestion-card');
-        existingSuggestions.forEach(card => card.remove());
+        // Clear existing example cards (keep the heading)
+        const existingCards = suggestedSection.querySelectorAll('.example-paragraph-card');
+        existingCards.forEach(card => card.remove());
 
-        // Add new suggestions
-        suggestions.forEach(suggestion => {
+        // Add new example paragraph cards
+        examples.forEach(example => {
             const card = document.createElement('div');
-            card.className = 'suggestion-card';
-
-            // Check if this template has already been inserted for this section
-            const isInserted = insertedTemplates.has(sectionName) &&
-                              insertedTemplates.get(sectionName).has(suggestion.title);
-
-            if (isInserted) {
-                card.classList.add('suggestion-added');
-            }
+            card.className = 'example-paragraph-card';
 
             card.innerHTML = `
-                <button class="add-btn-circle" aria-label="${isInserted ? 'Already added' : 'Add paragraph'}" ${isInserted ? 'disabled' : ''}>
-                    <img src="node_modules/@wikimedia/codex-icons/dist/images/${isInserted ? 'check.svg' : 'add.svg'}" alt="" width="16" height="16">
-                </button>
-                <div class="suggestion-content">
-                    <div class="suggestion-title">${suggestion.title}</div>
-                    <div class="suggestion-description">${suggestion.description}</div>
+                <div class="example-source">
+                    <span class="example-source-label">From:</span>
+                    <span class="example-source-article">${example.source_article}</span>
+                </div>
+                <div class="example-paragraph-text">${example.paragraph}</div>
+                <div class="example-notice">
+                    <span class="example-notice-icon">💡</span>
+                    <span class="example-notice-text">${example.what_to_notice}</span>
                 </div>
             `;
-
-            // Add click handler to insert content into editor (only if not already inserted)
-            if (!isInserted) {
-                const addBtn = card.querySelector('.add-btn-circle');
-                addBtn.addEventListener('click', function() {
-                    handleInsertSuggestion(suggestion.title, sectionName);
-                });
-            }
 
             suggestedSection.appendChild(card);
         });
