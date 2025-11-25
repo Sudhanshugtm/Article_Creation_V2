@@ -59,15 +59,38 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentSuggestion = '';
     let suggestionOverlay = null;
 
-    // Example paragraphs from similar articles (loaded from tiger_templates.json)
-    let exampleParagraphs = {};
+    // Section suggestions for the editing panel (visual feedback only)
+    const sectionSuggestions = {
+        'Lead section': [
+            { title: 'Short overview', description: 'A brief introduction to the topic.' },
+            { title: 'Taxonomy in brief', description: 'How it is classified scientifically.' }
+        ],
+        'Characteristics': [
+            { title: 'Physical description', description: 'Detailed physical appearance and features.' },
+            { title: 'Size and weight', description: 'Typical dimensions and mass ranges.' },
+            { title: 'Coat and coloration', description: 'Fur patterns and seasonal variations.' }
+        ],
+        'Distribution and habitat': [
+            { title: 'Geographic range', description: 'Where the species is found.' },
+            { title: 'Habitat preferences', description: 'Types of environments it inhabits.' },
+            { title: 'Population estimates', description: 'Current population numbers and trends.' }
+        ],
+        'Ecology and behaviour': [
+            { title: 'Diet and hunting', description: 'What it eats and how it hunts.' },
+            { title: 'Social structure', description: 'How individuals interact with each other.' },
+            { title: 'Reproduction', description: 'Mating and raising offspring.' }
+        ]
+    };
+
+    // Track which suggestion cards have been "added" (visual feedback only)
+    const addedSuggestionCards = new Map(); // Map<sectionName, Set<suggestionTitle>>
 
     // Smart suggestion tracking system
     const usedSuggestions = new Set(); // Track suggestions that have been accepted
     const triggerIndices = new Map(); // Track which suggestion index to use next for each trigger
     let lastAcceptedContent = ''; // Track the last accepted suggestion content
 
-    // Load NLP autocomplete suggestions and example paragraphs from tiger_templates.json
+    // Load NLP autocomplete suggestions from tiger_templates.json
     fetch('tiger_templates.json')
         .then(response => response.json())
         .then(data => {
@@ -75,12 +98,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 nlpSuggestions = data.nlp_suggestions;
                 console.log('NLP suggestions loaded:', nlpSuggestions);
             }
-            if (data.example_paragraphs) {
-                exampleParagraphs = data.example_paragraphs;
-                console.log('Example paragraphs loaded:', exampleParagraphs);
-            }
         })
-        .catch(error => console.error('Error loading NLP suggestions and example paragraphs:', error));
+        .catch(error => console.error('Error loading NLP suggestions:', error));
 
     // Define section order for "Next section" functionality
     const sectionOrder = ['Lead section', 'Characteristics', 'Distribution and habitat', 'Ecology and behaviour'];
@@ -900,33 +919,53 @@ document.addEventListener('DOMContentLoaded', function() {
         editingSectionTitle.textContent = displayName;
         currentEditingSection = displayName;
 
-        // Get the section key for example paragraphs
-        const sectionKey = getSectionKey(sectionName);
-        
-        // Update example paragraphs section
+        // Update suggested paragraphs section
         const suggestedSection = document.querySelector('.suggested-section');
-        const examples = exampleParagraphs[sectionKey] || exampleParagraphs['lead_section'] || [];
+        const suggestions = sectionSuggestions[sectionName] || sectionSuggestions['Lead section'];
 
-        // Clear existing example cards (keep the heading)
-        const existingCards = suggestedSection.querySelectorAll('.example-paragraph-card');
+        // Clear existing suggestion cards (keep the heading)
+        const existingCards = suggestedSection.querySelectorAll('.suggestion-card');
         existingCards.forEach(card => card.remove());
 
-        // Add new example paragraph cards
-        examples.forEach(example => {
+        // Initialize the section's added suggestions set if not present
+        if (!addedSuggestionCards.has(sectionName)) {
+            addedSuggestionCards.set(sectionName, new Set());
+        }
+        const addedSet = addedSuggestionCards.get(sectionName);
+
+        // Add new suggestion cards
+        suggestions.forEach(suggestion => {
             const card = document.createElement('div');
-            card.className = 'example-paragraph-card';
+            card.className = 'suggestion-card';
+
+            const isAdded = addedSet.has(suggestion.title);
+            if (isAdded) {
+                card.classList.add('suggestion-added');
+            }
 
             card.innerHTML = `
-                <div class="example-source">
-                    <span class="example-source-label">From:</span>
-                    <span class="example-source-article">${example.source_article}</span>
+                <div class="suggestion-content">
+                    <div class="suggestion-title">${suggestion.title}</div>
+                    <div class="suggestion-description">${suggestion.description}</div>
                 </div>
-                <div class="example-paragraph-text">${example.paragraph}</div>
-                <div class="example-notice">
-                    <span class="example-notice-icon">💡</span>
-                    <span class="example-notice-text">${example.what_to_notice}</span>
-                </div>
+                <button class="add-btn-circle" aria-label="${isAdded ? 'Already added' : 'Add suggestion'}" ${isAdded ? 'disabled' : ''}>
+                    <img src="node_modules/@wikimedia/codex-icons/dist/images/${isAdded ? 'check.svg' : 'add.svg'}" alt="" width="16" height="16">
+                </button>
             `;
+
+            // Add click handler (visual feedback only - mark as added)
+            if (!isAdded) {
+                const addBtn = card.querySelector('.add-btn-circle');
+                addBtn.addEventListener('click', function() {
+                    // Mark the suggestion as added (visual feedback only)
+                    addedSet.add(suggestion.title);
+                    // Update the card appearance
+                    card.classList.add('suggestion-added');
+                    addBtn.disabled = true;
+                    addBtn.setAttribute('aria-label', 'Already added');
+                    addBtn.querySelector('img').src = 'node_modules/@wikimedia/codex-icons/dist/images/check.svg';
+                });
+            }
 
             suggestedSection.appendChild(card);
         });
