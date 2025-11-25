@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const triggerIndices = new Map(); // Track which suggestion index to use next for each trigger
     let lastAcceptedContent = ''; // Track the last accepted suggestion content
 
-    // Load NLP suggestions and example paragraphs from tiger_templates.json
+    // Load NLP autocomplete suggestions and example paragraphs from tiger_templates.json
     fetch('tiger_templates.json')
         .then(response => response.json())
         .then(data => {
@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('Example paragraphs loaded:', exampleParagraphs);
             }
         })
-        .catch(error => console.error('Error loading template data:', error));
+        .catch(error => console.error('Error loading NLP suggestions and example paragraphs:', error));
 
     // Define section order for "Next section" functionality
     const sectionOrder = ['Lead section', 'Characteristics', 'Distribution and habitat', 'Ecology and behaviour'];
