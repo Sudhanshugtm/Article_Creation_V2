@@ -240,32 +240,34 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Find the longest matching trigger (case-insensitive)
-        let bestMatch = null;
-        let bestMatchLength = 0;
+        let bestExactMatch = null;
+        let bestExactMatchLength = 0;
+        let bestPrefixMatch = null;
 
         for (const [trigger, completion] of Object.entries(triggers)) {
             const lowerTrimmedText = trimmedText.toLowerCase();
             const lowerTrigger = trigger.toLowerCase();
             
-            // Check if text ends with trigger (case-insensitive)
-            if (lowerTrimmedText.endsWith(lowerTrigger) && trigger.length > bestMatchLength) {
-                bestMatch = completion;
-                bestMatchLength = trigger.length;
+            // Check if text ends with trigger (case-insensitive) - exact match
+            if (lowerTrimmedText.endsWith(lowerTrigger) && trigger.length > bestExactMatchLength) {
+                bestExactMatch = completion;
+                bestExactMatchLength = trigger.length;
             }
             
             // Also check if trigger starts with the current text (for prefix matching)
             // This allows showing suggestions as user types
-            if (lowerTrigger.startsWith(lowerTrimmedText) && !bestMatch) {
+            if (lowerTrigger.startsWith(lowerTrimmedText) && !bestPrefixMatch) {
                 // Show the remainder of the trigger plus its completion
-                const remainder = trigger.slice(trimmedText.length);
+                // Use the original trigger to preserve case
+                const remainder = trigger.slice(lowerTrimmedText.length);
                 if (remainder.length > 0) {
-                    bestMatch = remainder + completion;
-                    bestMatchLength = 0; // Lower priority than exact matches
+                    bestPrefixMatch = remainder + completion;
                 }
             }
         }
 
-        return bestMatch;
+        // Prioritize exact matches over prefix matches
+        return bestExactMatch || bestPrefixMatch;
     }
 
     // Function to show ghost text suggestion
