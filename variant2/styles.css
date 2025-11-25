@@ -802,6 +802,73 @@ body {
     line-height: var(--line-height-small);
 }
 
+/* Example Paragraph Cards (for inspiration, not insertion) */
+.example-paragraph-card {
+    padding: var(--size-100);
+    border: var(--border-width-base) var(--border-style-base) var(--border-color-subtle);
+    border-radius: var(--border-radius-base);
+    margin-bottom: var(--size-100);
+    background-color: var(--background-color-base);
+}
+
+.example-paragraph-card:last-child {
+    margin-bottom: var(--size-0);
+}
+
+.example-source {
+    display: flex;
+    align-items: center;
+    gap: var(--size-50);
+    margin-bottom: var(--size-75);
+}
+
+.example-source-label {
+    font-size: var(--font-size-small);
+    color: var(--color-subtle);
+    font-family: var(--font-family-system-sans);
+}
+
+.example-source-article {
+    font-size: var(--font-size-small);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-progressive);
+    font-family: var(--font-family-system-sans);
+}
+
+.example-paragraph-text {
+    font-size: var(--font-size-medium);
+    color: var(--color-base);
+    font-family: var(--font-family-serif);
+    line-height: var(--line-height-medium);
+    margin-bottom: var(--size-100);
+    padding: var(--size-75);
+    background-color: var(--background-color-neutral-subtle);
+    border-radius: var(--border-radius-base);
+    border-left: 3px solid var(--color-progressive);
+}
+
+.example-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--size-50);
+    padding: var(--size-50) var(--size-75);
+    background-color: var(--background-color-interactive-subtle);
+    border-radius: var(--border-radius-base);
+}
+
+.example-notice-icon {
+    font-size: var(--font-size-small);
+    flex-shrink: 0;
+}
+
+.example-notice-text {
+    font-size: var(--font-size-small);
+    color: var(--color-subtle);
+    font-family: var(--font-family-system-sans);
+    line-height: var(--line-height-small);
+    font-style: italic;
+}
+
 /* Verified Facts */
 .verified-facts-section {
     margin-bottom: var(--size-200);

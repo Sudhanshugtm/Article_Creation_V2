@@ -1,4 +1,59 @@
 {
+  "example_paragraphs": {
+    "lead_section": [
+      {
+        "source_article": "Bengal tiger",
+        "paragraph": "The Bengal tiger is a population of the Panthera tigris tigris subspecies and the nominate tiger subspecies. It ranks among the biggest wild cats alive today. It is considered to belong to the world's charismatic megafauna.",
+        "what_to_notice": "Starts with definition, mentions scientific name, ends with significance"
+      },
+      {
+        "source_article": "African lion",
+        "paragraph": "The lion is a large cat of the genus Panthera native to Africa and India. It has a muscular, broad-chested body, short, rounded head, round ears, and a hairy tuft at the end of its tail.",
+        "what_to_notice": "Combines taxonomy with key physical features"
+      },
+      {
+        "source_article": "Snow leopard",
+        "paragraph": "The snow leopard, also known as the ounce, is a felid in the genus Panthera native to the mountain ranges of Central Asia. It is listed as Vulnerable on the IUCN Red List.",
+        "what_to_notice": "Includes alternative name, habitat, and conservation status"
+      }
+    ],
+    "characteristics": [
+      {
+        "source_article": "Bengal tiger",
+        "paragraph": "The Bengal tiger's coat is yellow to light orange, with stripes ranging from dark brown to black; the belly and the interior parts of the limbs are white, and the tail is orange with black rings.",
+        "what_to_notice": "Specific color descriptions with anatomical details"
+      },
+      {
+        "source_article": "African lion",
+        "paragraph": "The lion is a muscular, broad-chested cat with a short, rounded head, a reduced neck and round ears. Its fur varies in colour from light buff to silvery grey, yellowish red and dark brown.",
+        "what_to_notice": "Body structure followed by coloration"
+      }
+    ],
+    "distribution_habitat": [
+      {
+        "source_article": "Bengal tiger",
+        "paragraph": "Bengal tigers live in many types of forests, including wet, evergreen, and semi-evergreen forests of Assam and eastern Bengal; the swampy mangrove forest of the Ganges Delta; and the deciduous forests of Nepal.",
+        "what_to_notice": "Lists multiple habitat types with specific geographic locations"
+      },
+      {
+        "source_article": "Snow leopard",
+        "paragraph": "The snow leopard inhabits alpine and subalpine zones at elevations of 3,000 to 4,500 m, occasionally ranging to 5,500 m in summer. It prefers steep cliffs, rocky outcrops and ravines.",
+        "what_to_notice": "Includes elevation ranges and terrain preferences"
+      }
+    ],
+    "ecology_behaviour": [
+      {
+        "source_article": "Bengal tiger",
+        "paragraph": "Tigers are mostly solitary, apart from associations between mother and offspring. Each tiger maintains a home range where it can meet its needs. Adult females establish ranges that provide sufficient prey.",
+        "what_to_notice": "Social structure, then territory explanation"
+      },
+      {
+        "source_article": "African lion",
+        "paragraph": "The lion is a social species, forming groups called prides. A pride consists of a few adult males, related females, and cubs. Groups of female lions usually hunt together, preying mostly on large ungulates.",
+        "what_to_notice": "Social structure unique to lions, then hunting behavior"
+      }
+    ]
+  },
   "nlp_suggestions": {
     "lead_section": {
       "triggers": {
