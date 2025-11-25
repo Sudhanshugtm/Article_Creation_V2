@@ -60,6 +60,11 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentSuggestion = '';
     let suggestionOverlay = null;
 
+    // Smart suggestion tracking system
+    const usedSuggestions = new Set(); // Track suggestions that have been accepted
+    const triggerIndices = new Map(); // Track which suggestion index to use next for each trigger
+    let lastAcceptedContent = ''; // Track the last accepted suggestion content
+
     // Load NLP suggestions from tiger_templates.json
     fetch('tiger_templates.json')
         .then(response => response.json())
@@ -218,18 +223,159 @@ document.addEventListener('DOMContentLoaded', function() {
         return keyMap[sectionName] || 'lead_section';
     }
 
-    // Default suggestions for when user starts typing
+    // Default suggestions for when user starts typing (used when editor is empty)
     const defaultSuggestions = {
-        'lead_section': ' Siberian tiger is a subspecies of tiger native to the Russian Far East.',
-        'characteristics': ' Siberian tiger has a reddish-rusty coat with narrow black stripes.',
-        'distribution_habitat': ' Siberian tiger inhabits temperate forests in the Russian Far East.',
-        'ecology_behaviour': ' Siberian tiger is a solitary and territorial animal.'
+        'lead_section': [
+            ' Siberian tiger is a subspecies of tiger native to the Russian Far East.',
+            ' Amur tiger, as it is also known, inhabits temperate forests.',
+            ' species is classified as Endangered on the IUCN Red List.'
+        ],
+        'characteristics': [
+            ' Siberian tiger has a reddish-rusty coat with narrow black stripes.',
+            ' tiger is the largest living cat species by body mass.',
+            ' subspecies is distinguished by its pale coat and thick fur.'
+        ],
+        'distribution_habitat': [
+            ' Siberian tiger inhabits temperate forests in the Russian Far East.',
+            ' habitat includes coniferous, deciduous, and mixed forests.',
+            ' species is found primarily in the Primorsky region.'
+        ],
+        'ecology_behaviour': [
+            ' Siberian tiger is a solitary and territorial animal.',
+            ' diet consists primarily of large ungulates like deer and wild boar.',
+            ' species is primarily crepuscular, active at dawn and dusk.'
+        ]
     };
+
+    // Track default suggestion indices per section
+    const defaultSuggestionIndices = new Map();
+
+    // Function to get the full content of the editor for a section
+    function getEditorContent(sectionName) {
+        let textarea;
+        if (sectionName === 'Lead section') {
+            textarea = editorTextarea;
+        } else {
+            const sectionBlocks = document.querySelectorAll('.section-block');
+            sectionBlocks.forEach(block => {
+                if (block.dataset.sectionName === sectionName) {
+                    textarea = block.querySelector('.section-textarea');
+                }
+            });
+        }
+        return textarea ? (textarea.innerText || textarea.textContent || '') : '';
+    }
+
+    // Function to check if content is already written in the editor
+    function isContentAlreadyWritten(suggestion, sectionName) {
+        const editorContent = getEditorContent(sectionName).toLowerCase();
+        if (!editorContent) return false;
+
+        // Extract key phrases from the suggestion (words with 4+ characters)
+        const keyPhrases = suggestion.toLowerCase().split(/\s+/).filter(word => word.length >= 4);
+        
+        // Check if significant portions of the suggestion are already in the editor
+        let matchCount = 0;
+        for (const phrase of keyPhrases) {
+            if (editorContent.includes(phrase)) {
+                matchCount++;
+            }
+        }
+        
+        // If more than 40% of key phrases are already present, consider it duplicate
+        return keyPhrases.length > 0 && (matchCount / keyPhrases.length) > 0.4;
+    }
+
+    // Function to get the next available suggestion from an array
+    function getNextSuggestion(triggerKey, suggestions, sectionName) {
+        if (!Array.isArray(suggestions) || suggestions.length === 0) {
+            return typeof suggestions === 'string' ? suggestions : null;
+        }
+
+        // Create a unique key for this trigger+section combination
+        const uniqueKey = `${sectionName}:${triggerKey}`;
+        
+        // Get current index for this trigger
+        let currentIndex = triggerIndices.get(uniqueKey) || 0;
+        
+        // Find the next available suggestion that hasn't been used and isn't already written
+        let attempts = 0;
+        while (attempts < suggestions.length) {
+            const suggestion = suggestions[currentIndex % suggestions.length];
+            const suggestionKey = `${sectionName}:${triggerKey}:${suggestion}`;
+            
+            // Check if this suggestion hasn't been used and isn't already in content
+            if (!usedSuggestions.has(suggestionKey) && !isContentAlreadyWritten(suggestion, sectionName)) {
+                return suggestion;
+            }
+            
+            // Try next suggestion
+            currentIndex++;
+            attempts++;
+        }
+        
+        // If all suggestions were used/written, reset and return the first one that isn't in content
+        currentIndex = 0;
+        for (let i = 0; i < suggestions.length; i++) {
+            if (!isContentAlreadyWritten(suggestions[i], sectionName)) {
+                triggerIndices.set(uniqueKey, i);
+                return suggestions[i];
+            }
+        }
+        
+        // All suggestions are already in content - return null to hide ghost text
+        return null;
+    }
+
+    // Function to mark a suggestion as used and advance to next
+    function markSuggestionUsed(triggerKey, suggestion, sectionName) {
+        const uniqueKey = `${sectionName}:${triggerKey}`;
+        const suggestionKey = `${sectionName}:${triggerKey}:${suggestion}`;
+        
+        usedSuggestions.add(suggestionKey);
+        lastAcceptedContent = suggestion;
+        
+        // Advance the index for this trigger
+        const currentIndex = triggerIndices.get(uniqueKey) || 0;
+        triggerIndices.set(uniqueKey, currentIndex + 1);
+    }
+
+    // Function to detect sentence position (start, middle, after period)
+    function getSentencePosition(text) {
+        if (!text || text.trim() === '') {
+            return 'paragraph_start';
+        }
+        
+        const trimmed = text.trimEnd();
+        const lastChar = trimmed.slice(-1);
+        
+        // After punctuation that ends a sentence
+        if (['.', '!', '?'].includes(lastChar)) {
+            return 'after_period';
+        }
+        
+        // Check if we're at the start of a new line/paragraph
+        if (trimmed.endsWith('\n') || trimmed.endsWith('\n\n')) {
+            return 'paragraph_start';
+        }
+        
+        // Check if we're mid-sentence
+        const lastSentence = trimmed.split(/[.!?]/).pop();
+        if (lastSentence && lastSentence.trim().length > 0) {
+            return 'mid_sentence';
+        }
+        
+        return 'start';
+    }
+
+    // Store the current trigger key for marking as used when accepted
+    let currentTriggerKey = null;
 
     // Function to find matching suggestion based on current text
     function findSuggestion(text, sectionName) {
         const sectionKey = getSectionKey(sectionName);
-        const triggers = nlpSuggestions[sectionKey]?.triggers || {};
+        const sectionData = nlpSuggestions[sectionKey];
+        const triggers = sectionData?.triggers || {};
 
         // Trim trailing whitespace but preserve the text for matching
         const trimmedText = text.trimEnd();
@@ -239,35 +385,67 @@ document.addEventListener('DOMContentLoaded', function() {
             return null;
         }
 
-        // Find the longest matching trigger (case-insensitive)
-        let bestExactMatch = null;
-        let bestExactMatchLength = 0;
-        let bestPrefixMatch = null;
+        // Detect sentence position
+        const position = getSentencePosition(trimmedText);
 
-        for (const [trigger, completion] of Object.entries(triggers)) {
+        // For after period, check if we have specific after_period suggestions
+        if (position === 'after_period' && sectionData?.after_period) {
+            const afterPeriodSuggestions = sectionData.after_period;
+            const suggestion = getNextSuggestion('after_period', afterPeriodSuggestions, sectionName);
+            if (suggestion) {
+                currentTriggerKey = 'after_period';
+                return suggestion;
+            }
+        }
+
+        // Find the longest matching trigger (case-insensitive)
+        let bestMatch = null;
+        let bestMatchLength = 0;
+        let bestTriggerKey = null;
+
+        for (const [trigger, completions] of Object.entries(triggers)) {
             const lowerTrimmedText = trimmedText.toLowerCase();
             const lowerTrigger = trigger.toLowerCase();
             
             // Check if text ends with trigger (case-insensitive) - exact match
-            if (lowerTrimmedText.endsWith(lowerTrigger) && trigger.length > bestExactMatchLength) {
-                bestExactMatch = completion;
-                bestExactMatchLength = trigger.length;
-            }
-            
-            // Also check if trigger starts with the current text (for prefix matching)
-            // This allows showing suggestions as user types
-            if (lowerTrigger.startsWith(lowerTrimmedText) && !bestPrefixMatch) {
-                // Show the remainder of the trigger plus its completion
-                // Use the original trigger to preserve case
-                const remainder = trigger.slice(lowerTrimmedText.length);
-                if (remainder.length > 0) {
-                    bestPrefixMatch = remainder + completion;
+            if (lowerTrimmedText.endsWith(lowerTrigger) && trigger.length > bestMatchLength) {
+                const suggestion = getNextSuggestion(trigger, completions, sectionName);
+                if (suggestion) {
+                    bestMatch = suggestion;
+                    bestMatchLength = trigger.length;
+                    bestTriggerKey = trigger;
                 }
             }
         }
 
-        // Prioritize exact matches over prefix matches
-        return bestExactMatch || bestPrefixMatch;
+        if (bestMatch) {
+            currentTriggerKey = bestTriggerKey;
+            return bestMatch;
+        }
+
+        return null;
+    }
+
+    // Function to get default suggestion for empty editor
+    function getDefaultSuggestion(sectionName) {
+        const sectionKey = getSectionKey(sectionName);
+        const defaults = defaultSuggestions[sectionKey];
+        
+        if (!defaults || defaults.length === 0) return null;
+        
+        // Get the current index for this section's defaults
+        let index = defaultSuggestionIndices.get(sectionKey) || 0;
+        
+        // Find a suggestion that isn't already in the editor
+        for (let i = 0; i < defaults.length; i++) {
+            const suggestion = defaults[(index + i) % defaults.length];
+            if (!isContentAlreadyWritten(suggestion, sectionName)) {
+                currentTriggerKey = `default_${sectionKey}`;
+                return suggestion;
+            }
+        }
+        
+        return null;
     }
 
     // Function to show ghost text suggestion
@@ -313,6 +491,11 @@ document.addEventListener('DOMContentLoaded', function() {
     function acceptSuggestion() {
         if (!currentSuggestion || !suggestionOverlay) return false;
 
+        // Mark the suggestion as used before accepting
+        if (currentTriggerKey) {
+            markSuggestionUsed(currentTriggerKey, currentSuggestion, activeSection || 'Lead section');
+        }
+
         // Replace ghost text with actual text
         const textNode = document.createTextNode(currentSuggestion);
         suggestionOverlay.parentNode.replaceChild(textNode, suggestionOverlay);
@@ -326,24 +509,36 @@ document.addEventListener('DOMContentLoaded', function() {
         selection.addRange(range);
 
         hideGhostText();
+        currentTriggerKey = null;
         return true;
     }
 
     // Function to handle autocomplete on input
     function handleAutocomplete(textarea, sectionName) {
         const text = textarea.innerText || textarea.textContent || '';
-        const lastSentence = text.split('.').pop().trim();
-
-        // Find suggestion based on what user typed
-        const suggestion = findSuggestion(lastSentence, sectionName);
+        
+        // Remove any ghost text from the text we're analyzing
+        const cleanText = text.replace(/[\u200B-\u200D\uFEFF]/g, '');
+        
+        // Get the text after the last period for trigger matching
+        const sentences = cleanText.split(/[.!?]/);
+        const lastSentence = sentences[sentences.length - 1] || '';
+        
+        // First try to find a trigger-based suggestion
+        let suggestion = findSuggestion(lastSentence.trim() ? lastSentence : cleanText, sectionName);
 
         if (suggestion) {
             showGhostText(textarea, suggestion);
         } else {
-            // Show default suggestion if text is empty or very short
-            const sectionKey = getSectionKey(sectionName);
-            if (!lastSentence && defaultSuggestions[sectionKey]) {
-                showGhostText(textarea, defaultSuggestions[sectionKey]);
+            // If no trigger match and text is empty or very short, show default
+            const trimmedContent = cleanText.trim();
+            if (!trimmedContent) {
+                const defaultSugg = getDefaultSuggestion(sectionName);
+                if (defaultSugg) {
+                    showGhostText(textarea, defaultSugg);
+                } else {
+                    hideGhostText();
+                }
             } else {
                 hideGhostText();
             }
@@ -1114,8 +1309,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const text = this.innerText || this.textContent || '';
             if (!text.trim()) {
                 // Show default suggestion when section editor is empty
-                const sectionKey = getSectionKey(sectionName);
-                const defaultSuggestion = defaultSuggestions[sectionKey];
+                const defaultSuggestion = getDefaultSuggestion(sectionName);
                 if (defaultSuggestion) {
                     setTimeout(() => {
                         showGhostText(this, defaultSuggestion);
@@ -1290,8 +1484,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Show default suggestion when editor is empty
         const text = this.innerText || this.textContent || '';
         if (!text.trim()) {
-            const sectionKey = getSectionKey('Lead section');
-            const defaultSuggestion = defaultSuggestions[sectionKey];
+            const defaultSuggestion = getDefaultSuggestion('Lead section');
             if (defaultSuggestion) {
                 setTimeout(() => {
                     showGhostText(this, defaultSuggestion);

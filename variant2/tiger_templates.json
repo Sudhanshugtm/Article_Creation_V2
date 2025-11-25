@@ -2,133 +2,231 @@
   "nlp_suggestions": {
     "lead_section": {
       "triggers": {
-        "The": " Siberian tiger is a subspecies of tiger native to the Russian Far East and Northeast Asia.",
-        "The S": "iberian tiger is a subspecies of tiger native to the Russian Far East.",
-        "The Si": "berian tiger is a subspecies of tiger native to the Russian Far East.",
-        "The Sib": "erian tiger is a subspecies of tiger native to the Russian Far East.",
-        "The Sibe": "rian tiger is a subspecies of tiger native to the Russian Far East.",
-        "The Siber": "ian tiger is a subspecies of tiger native to the Russian Far East.",
-        "The Siberi": "an tiger is a subspecies of tiger native to the Russian Far East.",
-        "The Siberia": "n tiger is a subspecies of tiger native to the Russian Far East.",
-        "The Siberian": " tiger is a subspecies of tiger native to the Russian Far East.",
-        "The Siberian t": "iger is a subspecies of tiger native to the Russian Far East.",
-        "The Siberian ti": "ger is a subspecies of tiger native to the Russian Far East.",
-        "The Siberian tig": "er is a subspecies of tiger native to the Russian Far East.",
-        "The Siberian tige": "r is a subspecies of tiger native to the Russian Far East.",
-        "The Siberian tiger": " is a subspecies of tiger native to the Russian Far East and Northeast Asia.",
-        "This": " species is native to the Russian Far East and is known for its large size.",
-        "This s": "pecies is native to the Russian Far East.",
-        "This sp": "ecies is native to the Russian Far East.",
-        "This spe": "cies is native to the Russian Far East.",
-        "This spec": "ies is native to the Russian Far East.",
-        "This speci": "es is native to the Russian Far East.",
-        "This species": " is native to the Russian Far East and is known for its large size.",
-        "It": " is a large cat native to the Russian Far East and Northeast China.",
-        "It i": "s a large cat native to the Russian Far East.",
-        "It is": " a large cat native to the Russian Far East and Northeast China.",
-        "It is a": " subspecies of tiger known for its large size and thick winter coat.",
-        "It is k": "nown for its large size and thick winter coat.",
-        "It is kn": "own for its large size and thick winter coat.",
-        "It is kno": "wn for its large size and thick winter coat.",
-        "It is know": "n for its large size and thick winter coat.",
-        "It is known": " for its large size and thick winter coat.",
-        "It is known for": " its large size and thick winter coat.",
-        "They": " are found in the Russian Far East, Northeast China, and possibly North Korea.",
-        "They a": "re found in the Russian Far East and Northeast China.",
-        "They ar": "e found in the Russian Far East and Northeast China.",
-        "They are": " found in the Russian Far East, Northeast China, and possibly North Korea.",
-        "A": " large cat native to the Russian Far East, the Siberian tiger is classified as Endangered.",
-        "An": " endangered subspecies, the Siberian tiger is the largest living cat.",
-        "As": " the largest living cat, the Siberian tiger can weigh up to 300 kg.",
-        "The scientific name is": " Panthera tigris altaica.",
-        "The species is classified as": " Endangered by the IUCN.",
-        "The population is estimated at": " approximately 500-600 individuals in the wild.",
-        "It belongs to the": " Felidae family within the order Carnivora.",
-        "Siberian tigers are found in": " Northeast China, the Russian Far East, and possibly North Korea.",
-        "They are characterized by": " pale golden fur with dark stripes.",
-        "The average weight of males": " is about 180-220 kg.",
-        "The average weight of females": " is about 100-170 kg.",
-        "Also known as": " the Amur tiger, it is native to the Russian Far East.",
-        "Native to": " the Russian Far East, the Siberian tiger is the largest living cat.",
-        "Found in": " temperate forests, this subspecies is classified as Endangered."
-      }
+        "The": [
+          " Siberian tiger is the largest subspecies of tiger, native to the Russian Far East.",
+          " species is also known as the Amur tiger, named after the Amur River.",
+          " Siberian tiger is classified as Endangered on the IUCN Red List.",
+          " population has recovered significantly since the 1940s when it nearly went extinct."
+        ],
+        "It": [
+          " is classified as Endangered by the IUCN.",
+          " is the largest living cat species by body mass.",
+          " has a thick coat adapted to the cold climate of its habitat.",
+          " is also known as the Amur tiger, after the Amur River region."
+        ],
+        "This": [
+          " subspecies is distinguished by its pale coat with fewer stripes.",
+          " apex predator plays a crucial role in its ecosystem.",
+          " species was nearly driven to extinction in the 1940s.",
+          " magnificent cat is found primarily in eastern Russia."
+        ],
+        "They": [
+          " are found in the Russian Far East and Northeast China.",
+          " were once widespread across eastern Asia.",
+          " are solitary animals that maintain large territories.",
+          " are known for their distinctive orange coat with black stripes."
+        ],
+        "Also": [
+          " known as the Amur tiger, it is native to the Russian Far East.",
+          " called the Manchurian tiger, it inhabits temperate forests.",
+          " referred to as Panthera tigris altaica in scientific literature."
+        ],
+        "Native": [
+          " to the Russian Far East, the Siberian tiger is the largest living cat.",
+          " to temperate forests, this subspecies has adapted to harsh winters.",
+          " to northeastern Asia, it once ranged across a much larger territory."
+        ],
+        "As": [
+          " the largest living cat, the Siberian tiger can weigh up to 300 kg.",
+          " an apex predator, it plays a vital role in maintaining ecosystem balance.",
+          " a critically endangered species, conservation efforts are ongoing."
+        ],
+        "The Siberian tiger": [
+          " is a tiger subspecies native to the Russian Far East and Northeast China.",
+          " has the palest coat among all tiger subspecies.",
+          " was first scientifically described in 1844 by Temminck."
+        ],
+        "Conservation": [
+          " efforts have helped stabilize the wild population since the 1940s.",
+          " programs include anti-poaching patrols and habitat protection.",
+          " status is listed as Endangered by the IUCN."
+        ]
+      },
+      "sentence_starters": [
+        "The Siberian tiger is",
+        "Native to the Russian Far East,",
+        "As an apex predator,",
+        "Conservation efforts have",
+        "Also known as the Amur tiger,",
+        "This subspecies is"
+      ],
+      "after_period": [
+        " It is known for its distinctive appearance.",
+        " The species faces ongoing threats from poaching.",
+        " Conservation programs have helped stabilize populations.",
+        " The population is estimated at 500-600 individuals.",
+        " It is the largest living cat species.",
+        " Habitat loss remains a significant challenge."
+      ]
     },
     "characteristics": {
       "triggers": {
-        "The": " Siberian tiger has a reddish-rusty coat with narrow black transverse stripes.",
-        "The S": "iberian tiger has a reddish-rusty coat with narrow black stripes.",
-        "The Siberian tiger": " has a reddish-rusty or rusty-yellow coat with narrow black transverse stripes.",
-        "The Siberian tiger has": " a reddish-rusty or rusty-yellow coat with narrow black transverse stripes.",
-        "This": " subspecies has a distinctive pale golden fur with dark stripes.",
-        "This species": " has a distinctive pale golden fur with dark stripes.",
-        "It": " has a muscular body with a large head and powerful limbs.",
-        "It is": " the largest living cat species, with males weighing up to 300 kg.",
-        "It has": " a reddish-rusty coat with narrow black transverse stripes.",
-        "They": " have a distinctive coat pattern with pale golden fur and dark stripes.",
-        "They are": " the largest living cats, with males significantly larger than females.",
-        "A": " large and powerful cat, it has a muscular body and thick winter coat.",
-        "Males": " typically weigh between 180-306 kg with an average of 215 kg.",
-        "Males typically weigh": " between 180-306 kg with an average of 215 kg.",
-        "Females": " typically weigh between 100-167 kg with an average of 137 kg.",
-        "Females typically weigh": " between 100-167 kg with an average of 137 kg.",
-        "The body length": " ranges from 150-200 cm not including the tail.",
-        "The tail measures": " approximately 90-100 cm in length.",
-        "Their": " winter coat is thicker and paler than their summer coat.",
-        "Their winter coat": " is thicker and paler than their summer coat.",
-        "The skull is": " large and powerful, with prominent sagittal crest in males.",
-        "Whiskers can reach": " lengths of 90-115 mm.",
-        "Adult males": " can reach lengths of up to 3.3 meters including the tail.",
-        "The coat": " is pale golden with dark brown or black stripes.",
-        "Its fur": " is thicker and paler than other tiger subspecies."
-      }
+        "The": [
+          " Siberian tiger has a reddish-rusty coat with narrow black stripes.",
+          " coat is paler than other tiger subspecies, adapted to snowy environments.",
+          " body is muscular and powerful, with strong limbs for hunting.",
+          " skull is large with a prominent sagittal crest in males."
+        ],
+        "It": [
+          " has a muscular body with a large head and powerful limbs.",
+          " is the largest living cat species, with males weighing up to 300 kg.",
+          " has a reddish-rusty coat with narrow black transverse stripes.",
+          " possesses powerful jaws capable of crushing bone."
+        ],
+        "Males": [
+          " typically weigh between 180-306 kg with an average of 215 kg.",
+          " can reach lengths of up to 3.3 meters including the tail.",
+          " are significantly larger than females.",
+          " have more prominent sagittal crests on their skulls."
+        ],
+        "Females": [
+          " typically weigh between 100-167 kg with an average of 137 kg.",
+          " are smaller than males but equally formidable hunters.",
+          " reach lengths of approximately 2.4-2.75 meters."
+        ],
+        "The coat": [
+          " is pale golden with dark brown or black stripes.",
+          " varies seasonally, becoming thicker and paler in winter.",
+          " provides excellent camouflage in snowy forest environments."
+        ],
+        "Their": [
+          " winter coat is thicker and paler than their summer coat.",
+          " stripes are narrower and more spaced than other subspecies.",
+          " powerful build enables them to take down large prey."
+        ],
+        "This": [
+          " subspecies has a distinctive pale golden fur with dark stripes.",
+          " species has a thicker coat than other tiger subspecies.",
+          " large cat has powerful jaws and strong limbs."
+        ]
+      },
+      "sentence_starters": [
+        "Males typically weigh",
+        "The coat is",
+        "Their winter fur",
+        "The body is",
+        "Females are generally"
+      ],
+      "after_period": [
+        " The tail measures approximately 90-100 cm.",
+        " Males are significantly larger than females.",
+        " The winter coat is thicker than the summer coat.",
+        " Whiskers can reach lengths of 90-115 mm.",
+        " The fur provides camouflage in snowy environments."
+      ]
     },
     "distribution_habitat": {
       "triggers": {
-        "The": " Siberian tiger inhabits temperate forests in the Russian Far East.",
-        "The S": "iberian tiger inhabits temperate forests in the Russian Far East.",
-        "The Siberian tiger": " inhabits temperate forests in the Russian Far East.",
-        "This": " species is found primarily in the Primorsky and Khabarovsk territories.",
-        "This species": " is found primarily in the Russian Far East.",
-        "It": " is found in temperate forests of the Russian Far East.",
-        "It is": " found in temperate forests of the Russian Far East.",
-        "It inhabits": " temperate forests in the Russian Far East.",
-        "They": " inhabit temperate forests with dense vegetation.",
-        "They are": " found primarily in the Russian Far East.",
-        "They inhabit": " coniferous, deciduous, and mixed forests.",
-        "A": " forest-dwelling species, it requires large territories.",
-        "Siberian tigers inhabit": " temperate forests in the Russian Far East.",
-        "Their habitat includes": " coniferous, deciduous, and mixed forests.",
-        "They prefer": " areas with dense vegetation and abundant prey.",
-        "The current range": " is limited to the Primorsky and Khabarovsk territories.",
-        "Historically they ranged": " across much of eastern Russia, China, and Korea.",
-        "Found in": " the Russian Far East, Northeast China, and possibly North Korea.",
-        "Native to": " temperate forests in the Russian Far East.",
-        "The range": " has significantly contracted due to habitat loss."
-      }
+        "The": [
+          " Siberian tiger inhabits temperate forests in the Russian Far East.",
+          " range has significantly contracted due to habitat loss.",
+          " current population is concentrated in the Primorsky region.",
+          " habitat includes coniferous, deciduous, and mixed forests."
+        ],
+        "It": [
+          " is found in temperate forests of the Russian Far East.",
+          " inhabits areas with dense vegetation and abundant prey.",
+          " prefers mountainous terrain with access to water sources.",
+          " requires large territories to support its hunting needs."
+        ],
+        "They": [
+          " inhabit temperate forests with dense vegetation.",
+          " are found primarily in the Russian Far East.",
+          " prefer areas with abundant ungulate prey.",
+          " range across northeastern China and eastern Russia."
+        ],
+        "This": [
+          " species is found primarily in the Primorsky and Khabarovsk territories.",
+          " subspecies requires large, undisturbed forest areas.",
+          " tiger's range once extended throughout northeastern Asia."
+        ],
+        "Historically": [
+          " they ranged across much of eastern Russia, China, and Korea.",
+          " the population was found throughout northeastern Asia.",
+          " the range extended to the Korean Peninsula."
+        ],
+        "The habitat": [
+          " includes birch forests, mountain ranges, and river valleys.",
+          " provides cover for stalking prey and raising cubs.",
+          " must support sufficient prey populations."
+        ]
+      },
+      "sentence_starters": [
+        "The current range is",
+        "Historically, they inhabited",
+        "The habitat includes",
+        "Population estimates suggest",
+        "They prefer areas with"
+      ],
+      "after_period": [
+        " The population is concentrated in Russia's Far East.",
+        " Small numbers may persist in northeast China.",
+        " Habitat fragmentation remains a major threat.",
+        " Protected areas have been established for conservation.",
+        " The range has contracted significantly since 1900."
+      ]
     },
     "ecology_behaviour": {
       "triggers": {
-        "The": " Siberian tiger is a solitary and territorial animal.",
-        "The S": "iberian tiger is a solitary and territorial animal.",
-        "The Siberian tiger": " is a solitary and territorial animal.",
-        "This": " species is primarily solitary and maintains large territories.",
-        "This species": " is primarily solitary and highly territorial.",
-        "It": " is a solitary predator that primarily hunts large ungulates.",
-        "It is": " a solitary predator that hunts large ungulates.",
-        "It hunts": " large ungulates including deer, wild boar, and elk.",
-        "They": " are solitary and territorial, with males having larger ranges.",
-        "They are": " solitary and territorial animals.",
-        "They primarily hunt": " large ungulates including deer, wild boar, and elk.",
-        "A": " powerful apex predator, it can take down prey much larger than itself.",
-        "Siberian tigers are": " solitary and territorial animals.",
-        "A tiger's territory": " can range from 500-1000 square kilometers.",
-        "They are most active": " during dawn and dusk hours.",
-        "Tigers communicate through": " vocalizations, scent marking, and visual signals.",
-        "As apex predators": ", they play a crucial role in their ecosystem.",
-        "Their diet": " consists primarily of large ungulates.",
-        "Hunting": " typically occurs at dawn and dusk.",
-        "Males": " maintain larger territories than females."
-      }
+        "The": [
+          " Siberian tiger is a solitary and territorial animal.",
+          " diet consists primarily of large ungulates.",
+          " tiger is an apex predator in its ecosystem.",
+          " species is primarily crepuscular, active at dawn and dusk."
+        ],
+        "It": [
+          " is a solitary predator that primarily hunts large ungulates.",
+          " hunts deer, wild boar, and other large mammals.",
+          " is primarily active during dawn and dusk hours.",
+          " maintains a large territory for hunting and breeding."
+        ],
+        "They": [
+          " are solitary and territorial, with males having larger ranges.",
+          " primarily hunt large ungulates including deer and wild boar.",
+          " communicate through vocalizations and scent marking.",
+          " are apex predators with no natural enemies."
+        ],
+        "Tigers": [
+          " are most active during dawn and dusk hours.",
+          " communicate through vocalizations, scent marking, and visual signals.",
+          " require large territories to support their hunting needs.",
+          " are ambush predators that stalk their prey."
+        ],
+        "Hunting": [
+          " typically occurs at dawn and dusk.",
+          " success rate is approximately 10-15 percent.",
+          " involves stalking prey before a short, powerful charge."
+        ],
+        "The territory": [
+          " of a male can range from 800-1000 square kilometers.",
+          " is marked using scent and scratch marks on trees.",
+          " size depends on prey availability and habitat quality."
+        ]
+      },
+      "sentence_starters": [
+        "The Siberian tiger is",
+        "They primarily hunt",
+        "As apex predators,",
+        "Hunting behavior includes",
+        "Territory size varies based on"
+      ],
+      "after_period": [
+        " They are primarily solitary except during mating.",
+        " The gestation period is approximately 103 days.",
+        " Cubs remain with their mother for 2-3 years.",
+        " They can consume up to 40 kg of meat in one sitting.",
+        " Territorial disputes can result in fatal conflicts."
+      ]
     }
   },
   "suggested_paragraphs": {
