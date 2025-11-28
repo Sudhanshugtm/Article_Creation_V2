@@ -650,21 +650,22 @@ document.addEventListener('DOMContentLoaded', function() {
     function getTemplateContent(suggestionTitle, sectionName) {
         // Template content mapping with proper [Add source] markers
         // Based on the UI mockup and tiger_templates.json structure
+        // Placeholders use data-placeholder attribute with empty content - text shows as hint, disappears when typing
         const templates = {
-            'Short overview': 'The <span class="placeholder">animal name</span> is a <span class="placeholder">type of animal</span> native to <span class="placeholder">broad region</span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. It is known for <span class="placeholder">Key distinctive feature</span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>.',
-            'Taxonomy in brief': 'The <span class="placeholder">animal name</span> belongs to the <span class="placeholder">taxonomic family</span> family <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. It was first described by <span class="placeholder">scientist name</span> in <span class="placeholder">year</span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>.',
-            'Physical description': 'The <span class="placeholder">animal name</span> has <span class="placeholder">describe physical appearance</span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder">Add details about coloration, body structure, notable features</span>.',
-            'Size and weight': 'Adult <span class="placeholder">animal name</span> typically measure <span class="placeholder">length range</span> in length and weigh <span class="placeholder">weight range</span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder">Add information about sexual dimorphism if applicable</span>.',
-            'Coat and coloration': 'The <span class="placeholder">animal name</span> has <span class="placeholder">describe coat type and color</span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder">Add details about seasonal variations, regional differences, or distinctive markings</span>.',
-            'Geographic range': 'The <span class="placeholder">animal name</span> is found in <span class="placeholder">list countries/regions</span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder">Add details about historical vs current range</span>.',
-            'Habitat preferences': 'The <span class="placeholder">animal name</span> inhabits <span class="placeholder">describe habitat types</span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder">Add details about elevation range, vegetation types, climate preferences</span>.',
-            'Population estimates': 'Current population estimates suggest <span class="placeholder">number</span> individuals in the wild <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder">Add information about population trends and conservation status</span>.',
-            'Diet and hunting': 'The <span class="placeholder">animal name</span> primarily feeds on <span class="placeholder">list prey species</span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder">Add details about hunting strategies, feeding behavior</span>.',
-            'Social structure': 'The <span class="placeholder">animal name</span> is <span class="placeholder">solitary/social</span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder">Add details about territorial behavior, group size, social hierarchy</span>.',
-            'Reproduction': 'The <span class="placeholder">animal name</span> breeds <span class="placeholder">breeding season/frequency</span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder">Add details about gestation period, litter size, parental care</span>.'
+            'Short overview': 'The <span class="placeholder" contenteditable="true" data-placeholder="animal name"></span> is a <span class="placeholder" contenteditable="true" data-placeholder="type of animal"></span> native to <span class="placeholder" contenteditable="true" data-placeholder="broad region"></span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. It is known for <span class="placeholder" contenteditable="true" data-placeholder="key distinctive feature"></span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>.',
+            'Taxonomy in brief': 'The <span class="placeholder" contenteditable="true" data-placeholder="animal name"></span> belongs to the <span class="placeholder" contenteditable="true" data-placeholder="taxonomic family"></span> family <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. It was first described by <span class="placeholder" contenteditable="true" data-placeholder="scientist name"></span> in <span class="placeholder" contenteditable="true" data-placeholder="year"></span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>.',
+            'Physical description': 'The <span class="placeholder" contenteditable="true" data-placeholder="animal name"></span> has <span class="placeholder" contenteditable="true" data-placeholder="describe physical appearance"></span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder" contenteditable="true" data-placeholder="Add details about coloration, body structure, notable features"></span>.',
+            'Size and weight': 'Adult <span class="placeholder" contenteditable="true" data-placeholder="animal name"></span> typically measure <span class="placeholder" contenteditable="true" data-placeholder="length range"></span> in length and weigh <span class="placeholder" contenteditable="true" data-placeholder="weight range"></span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder" contenteditable="true" data-placeholder="Add information about sexual dimorphism if applicable"></span>.',
+            'Coat and coloration': 'The <span class="placeholder" contenteditable="true" data-placeholder="animal name"></span> has <span class="placeholder" contenteditable="true" data-placeholder="describe coat type and color"></span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder" contenteditable="true" data-placeholder="Add details about seasonal variations, regional differences, or distinctive markings"></span>.',
+            'Geographic range': 'The <span class="placeholder" contenteditable="true" data-placeholder="animal name"></span> is found in <span class="placeholder" contenteditable="true" data-placeholder="list countries/regions"></span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder" contenteditable="true" data-placeholder="Add details about historical vs current range"></span>.',
+            'Habitat preferences': 'The <span class="placeholder" contenteditable="true" data-placeholder="animal name"></span> inhabits <span class="placeholder" contenteditable="true" data-placeholder="describe habitat types"></span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder" contenteditable="true" data-placeholder="Add details about elevation range, vegetation types, climate preferences"></span>.',
+            'Population estimates': 'Current population estimates suggest <span class="placeholder" contenteditable="true" data-placeholder="number"></span> individuals in the wild <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder" contenteditable="true" data-placeholder="Add information about population trends and conservation status"></span>.',
+            'Diet and hunting': 'The <span class="placeholder" contenteditable="true" data-placeholder="animal name"></span> primarily feeds on <span class="placeholder" contenteditable="true" data-placeholder="list prey species"></span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder" contenteditable="true" data-placeholder="Add details about hunting strategies, feeding behavior"></span>.',
+            'Social structure': 'The <span class="placeholder" contenteditable="true" data-placeholder="animal name"></span> is <span class="placeholder" contenteditable="true" data-placeholder="solitary/social"></span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder" contenteditable="true" data-placeholder="Add details about territorial behavior, group size, social hierarchy"></span>.',
+            'Reproduction': 'The <span class="placeholder" contenteditable="true" data-placeholder="animal name"></span> breeds <span class="placeholder" contenteditable="true" data-placeholder="breeding season/frequency"></span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder" contenteditable="true" data-placeholder="Add details about gestation period, litter size, parental care"></span>.'
         };
 
-        return templates[suggestionTitle] || `<span class="placeholder">[Content for ${suggestionTitle}]</span>`;
+        return templates[suggestionTitle] || `<span class="placeholder" contenteditable="true" data-placeholder="Content for ${suggestionTitle}"></span>`;
     }
 
     // Function to update editing panel content based on section
@@ -1353,4 +1354,65 @@ document.addEventListener('DOMContentLoaded', function() {
             return url;
         }
     }
+
+    // Handle inline placeholder field behavior
+    // When clicking on a placeholder, place cursor at start for immediate typing
+    document.addEventListener('click', function(e) {
+        const placeholder = e.target.closest('.section-textarea .placeholder');
+        if (placeholder && placeholder.contentEditable === 'true') {
+            // If empty, position cursor at start
+            if (placeholder.textContent.trim() === '') {
+                e.preventDefault();
+                placeholder.focus();
+                const range = document.createRange();
+                const sel = window.getSelection();
+                range.setStart(placeholder, 0);
+                range.collapse(true);
+                sel.removeAllRanges();
+                sel.addRange(range);
+            }
+        }
+    });
+
+    // Handle Tab key navigation between placeholder fields
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Tab') {
+            const activeElement = document.activeElement;
+            if (activeElement && activeElement.classList.contains('placeholder')) {
+                const sectionTextarea = activeElement.closest('.section-textarea');
+                if (sectionTextarea) {
+                    const placeholders = Array.from(sectionTextarea.querySelectorAll('.placeholder'));
+                    const currentIndex = placeholders.indexOf(activeElement);
+
+                    if (e.shiftKey) {
+                        // Shift+Tab: go to previous placeholder
+                        if (currentIndex > 0) {
+                            e.preventDefault();
+                            placeholders[currentIndex - 1].focus();
+                        }
+                    } else {
+                        // Tab: go to next placeholder
+                        if (currentIndex < placeholders.length - 1) {
+                            e.preventDefault();
+                            placeholders[currentIndex + 1].focus();
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Prevent default behavior issues with contenteditable placeholder spans
+    // Ensure typing replaces placeholder hint, not appends to it
+    document.addEventListener('input', function(e) {
+        const placeholder = e.target.closest('.section-textarea .placeholder');
+        if (placeholder) {
+            // Remove any lingering placeholder hint that might get inserted as text
+            // This handles edge cases in some browsers
+            const dataPlaceholder = placeholder.getAttribute('data-placeholder');
+            if (dataPlaceholder && placeholder.textContent === dataPlaceholder) {
+                placeholder.textContent = '';
+            }
+        }
+    });
 });

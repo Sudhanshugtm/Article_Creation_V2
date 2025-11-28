@@ -523,15 +523,39 @@ body {
     display: block;
 }
 
-/* Placeholder highlighting */
+/* Inline placeholder fields - true input-like placeholders */
 .section-textarea .placeholder {
+    display: inline-block;
+    position: relative;
     background-color: var(--background-color-interactive);
-    padding: 4px 8px;
+    padding: 2px 8px;
     border-radius: 4px;
+    min-width: 80px;
+    min-height: 1.4em;
+    vertical-align: baseline;
+    outline: none;
+    font-style: normal;
+    font-weight: var(--font-weight-normal);
+    color: var(--color-base);
+}
+
+/* Show placeholder text via ::before when empty */
+.section-textarea .placeholder:empty::before {
+    content: attr(data-placeholder);
     color: var(--color-placeholder);
     font-style: italic;
-    font-weight: var(--font-weight-normal);
-    line-height: 2.4;
+    pointer-events: none;
+}
+
+/* Focus state for placeholder fields */
+.section-textarea .placeholder:focus {
+    background-color: var(--background-color-base);
+    box-shadow: inset 0 0 0 1px var(--border-color-progressive--focus);
+}
+
+/* When placeholder has content, remove italic hint styling */
+.section-textarea .placeholder:not(:empty) {
+    font-style: normal;
 }
 
 /* Add source marker styling */
