@@ -497,11 +497,11 @@ body {
     outline: none;
     font-size: var(--font-size-medium);
     font-weight: var(--font-weight-normal);
-    color: var(--color-base);
+    color: #202122;
     background: transparent;
     resize: none;
     overflow: hidden;
-    line-height: var(--line-height-medium);
+    line-height: 1.8;
     font-family: var(--font-family-serif);
     padding: var(--size-0);
     min-height: var(--size-400);
@@ -523,63 +523,49 @@ body {
     display: block;
 }
 
-/* Inline placeholder fields - true input-like placeholders */
+/* Placeholder styling - ghost text that behaves like native placeholders */
 .section-textarea .placeholder {
-    display: inline-block;
-    position: relative;
-    background-color: var(--background-color-interactive);
-    padding: 2px 8px;
-    border-radius: 4px;
-    min-width: 80px;
-    min-height: 1.4em;
-    vertical-align: baseline;
-    outline: none;
-    font-style: normal;
-    font-weight: var(--font-weight-normal);
-    color: var(--color-base);
+    background: none !important;
+    background-color: transparent !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    color: #b0b0b0 !important;
+    font-style: italic !important;
+    font-weight: var(--font-weight-normal) !important;
+    cursor: text;
+    display: inline;
+    line-height: 1.8;
 }
 
-/* Show placeholder text via ::before when empty */
-.section-textarea .placeholder:empty::before {
-    content: attr(data-placeholder);
-    color: var(--color-placeholder);
-    font-style: italic;
-    pointer-events: none;
-}
-
-/* Focus state for placeholder fields */
-.section-textarea .placeholder:focus {
-    background-color: var(--background-color-base);
-    box-shadow: inset 0 0 0 1px var(--border-color-progressive--focus);
-}
-
-/* When placeholder has content, remove italic hint styling */
-.section-textarea .placeholder:not(:empty) {
-    font-style: normal;
-}
-
-/* Add source marker styling */
+/* Add source marker styling - superscript style */
 .section-textarea .add-source-marker {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    background-color: var(--background-color-progressive-subtle);
-    padding: 2px 6px;
-    border-radius: 2px;
+    gap: 2px;
+    background: none;
+    padding: 0;
+    border: none;
     color: var(--color-progressive);
-    font-size: var(--font-size-small);
+    font-size: 0.7em;
+    font-weight: var(--font-weight-bold);
     cursor: pointer;
-    white-space: nowrap;
+    vertical-align: super;
+    line-height: 0;
+    font-family: var(--font-family-system-sans);
+    font-style: normal;
+    margin-left: 4px;
 }
 
-.section-textarea .add-source-marker:hover {
-    background-color: var(--background-color-progressive);
-    color: var(--color-inverted);
+.section-textarea .add-source-marker:active {
+    color: var(--color-progressive--active);
 }
 
 .section-textarea .add-source-marker img {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
     vertical-align: middle;
-    flex-shrink: 0;
 }
 
 /* Citation superscript styling */

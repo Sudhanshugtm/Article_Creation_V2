@@ -2,6 +2,9 @@
 // ABOUTME: Handles user interactions, auto-resize textarea, topic matching, and navigation
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Store original placeholder text to detect changes when user types
+    const placeholderOriginalText = new WeakMap();
+
     const articleTitle = document.getElementById('articleTitle');
     const closeBtn = document.getElementById('closeBtn');
     const nextBtn = document.getElementById('nextBtn');
@@ -513,14 +516,27 @@ document.addEventListener('DOMContentLoaded', function() {
             const prefix = currentContent && currentContent !== '' ? '<br><br>' : '';
             targetTextarea.innerHTML = currentContent + prefix + templateContent;
 
-            // Focus at the end
-            targetTextarea.focus();
-            const range = document.createRange();
-            const sel = window.getSelection();
-            range.selectNodeContents(targetTextarea);
-            range.collapse(false);
-            sel.removeAllRanges();
-            sel.addRange(range);
+            // Initialize placeholders to track their original text
+            const placeholders = targetTextarea.querySelectorAll('.placeholder');
+            placeholders.forEach(ph => {
+                placeholderOriginalText.set(ph, ph.textContent);
+            });
+
+            // Focus and position cursor at start of first placeholder
+            // Use setTimeout to ensure the cursor placement wins over default browser focus
+            setTimeout(() => {
+                targetTextarea.focus();
+                const firstPlaceholder = targetTextarea.querySelector('.placeholder');
+
+                if (firstPlaceholder) {
+                    const range = document.createRange();
+                    range.setStart(firstPlaceholder.firstChild || firstPlaceholder, 0);
+                    range.collapse(true);
+                    const sel = window.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                }
+            }, 10);
         } else {
             // For regular textarea, strip HTML and insert plain text
             const tempDiv = document.createElement('div');
@@ -648,24 +664,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Function to get template content based on suggestion title
     function getTemplateContent(suggestionTitle, sectionName) {
-        // Template content mapping with proper [Add source] markers
-        // Based on the UI mockup and tiger_templates.json structure
-        // Placeholders use data-placeholder attribute with empty content - text shows as hint, disappears when typing
+        // Template content mapping with superscript citation markers
+        const sourceMarker = '<span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="">add source</span>';
         const templates = {
-            'Short overview': 'The <span class="placeholder" contenteditable="true" data-placeholder="animal name"></span> is a <span class="placeholder" contenteditable="true" data-placeholder="type of animal"></span> native to <span class="placeholder" contenteditable="true" data-placeholder="broad region"></span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. It is known for <span class="placeholder" contenteditable="true" data-placeholder="key distinctive feature"></span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>.',
-            'Taxonomy in brief': 'The <span class="placeholder" contenteditable="true" data-placeholder="animal name"></span> belongs to the <span class="placeholder" contenteditable="true" data-placeholder="taxonomic family"></span> family <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. It was first described by <span class="placeholder" contenteditable="true" data-placeholder="scientist name"></span> in <span class="placeholder" contenteditable="true" data-placeholder="year"></span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>.',
-            'Physical description': 'The <span class="placeholder" contenteditable="true" data-placeholder="animal name"></span> has <span class="placeholder" contenteditable="true" data-placeholder="describe physical appearance"></span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder" contenteditable="true" data-placeholder="Add details about coloration, body structure, notable features"></span>.',
-            'Size and weight': 'Adult <span class="placeholder" contenteditable="true" data-placeholder="animal name"></span> typically measure <span class="placeholder" contenteditable="true" data-placeholder="length range"></span> in length and weigh <span class="placeholder" contenteditable="true" data-placeholder="weight range"></span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder" contenteditable="true" data-placeholder="Add information about sexual dimorphism if applicable"></span>.',
-            'Coat and coloration': 'The <span class="placeholder" contenteditable="true" data-placeholder="animal name"></span> has <span class="placeholder" contenteditable="true" data-placeholder="describe coat type and color"></span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder" contenteditable="true" data-placeholder="Add details about seasonal variations, regional differences, or distinctive markings"></span>.',
-            'Geographic range': 'The <span class="placeholder" contenteditable="true" data-placeholder="animal name"></span> is found in <span class="placeholder" contenteditable="true" data-placeholder="list countries/regions"></span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder" contenteditable="true" data-placeholder="Add details about historical vs current range"></span>.',
-            'Habitat preferences': 'The <span class="placeholder" contenteditable="true" data-placeholder="animal name"></span> inhabits <span class="placeholder" contenteditable="true" data-placeholder="describe habitat types"></span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder" contenteditable="true" data-placeholder="Add details about elevation range, vegetation types, climate preferences"></span>.',
-            'Population estimates': 'Current population estimates suggest <span class="placeholder" contenteditable="true" data-placeholder="number"></span> individuals in the wild <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder" contenteditable="true" data-placeholder="Add information about population trends and conservation status"></span>.',
-            'Diet and hunting': 'The <span class="placeholder" contenteditable="true" data-placeholder="animal name"></span> primarily feeds on <span class="placeholder" contenteditable="true" data-placeholder="list prey species"></span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder" contenteditable="true" data-placeholder="Add details about hunting strategies, feeding behavior"></span>.',
-            'Social structure': 'The <span class="placeholder" contenteditable="true" data-placeholder="animal name"></span> is <span class="placeholder" contenteditable="true" data-placeholder="solitary/social"></span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder" contenteditable="true" data-placeholder="Add details about territorial behavior, group size, social hierarchy"></span>.',
-            'Reproduction': 'The <span class="placeholder" contenteditable="true" data-placeholder="animal name"></span> breeds <span class="placeholder" contenteditable="true" data-placeholder="breeding season/frequency"></span> <span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="14" height="14">Add source</span>. <span class="placeholder" contenteditable="true" data-placeholder="Add details about gestation period, litter size, parental care"></span>.'
+            'Short overview': `The <span class="placeholder">animal name</span> is a <span class="placeholder">type of animal</span> native to <span class="placeholder">broad region</span>${sourceMarker}. It is known for <span class="placeholder">key distinctive feature</span>${sourceMarker}.`,
+            'Taxonomy in brief': `The <span class="placeholder">animal name</span> belongs to the <span class="placeholder">taxonomic family</span> family${sourceMarker}. It was first described by <span class="placeholder">scientist name</span> in <span class="placeholder">year</span>${sourceMarker}.`,
+            'Physical description': `The <span class="placeholder">animal name</span> has <span class="placeholder">describe physical appearance</span>${sourceMarker}. <span class="placeholder">Add details about coloration, body structure, notable features</span>.`,
+            'Size and weight': `Adult <span class="placeholder">animal name</span> typically measure <span class="placeholder">length range</span> in length and weigh <span class="placeholder">weight range</span>${sourceMarker}. <span class="placeholder">Add information about sexual dimorphism if applicable</span>.`,
+            'Coat and coloration': `The <span class="placeholder">animal name</span> has <span class="placeholder">describe coat type and color</span>${sourceMarker}. <span class="placeholder">Add details about seasonal variations, regional differences, or distinctive markings</span>.`,
+            'Geographic range': `The <span class="placeholder">animal name</span> is found in <span class="placeholder">list countries/regions</span>${sourceMarker}. <span class="placeholder">Add details about historical vs current range</span>.`,
+            'Habitat preferences': `The <span class="placeholder">animal name</span> inhabits <span class="placeholder">describe habitat types</span>${sourceMarker}. <span class="placeholder">Add details about elevation range, vegetation types, climate preferences</span>.`,
+            'Population estimates': `Current population estimates suggest <span class="placeholder">number</span> individuals in the wild${sourceMarker}. <span class="placeholder">Add information about population trends and conservation status</span>.`,
+            'Diet and hunting': `The <span class="placeholder">animal name</span> primarily feeds on <span class="placeholder">list prey species</span>${sourceMarker}. <span class="placeholder">Add details about hunting strategies, feeding behavior</span>.`,
+            'Social structure': `The <span class="placeholder">animal name</span> is <span class="placeholder">solitary/social</span>${sourceMarker}. <span class="placeholder">Add details about territorial behavior, group size, social hierarchy</span>.`,
+            'Reproduction': `The <span class="placeholder">animal name</span> breeds <span class="placeholder">breeding season/frequency</span>${sourceMarker}. <span class="placeholder">Add details about gestation period, litter size, parental care</span>.`
         };
 
-        return templates[suggestionTitle] || `<span class="placeholder" contenteditable="true" data-placeholder="Content for ${suggestionTitle}"></span>`;
+        return templates[suggestionTitle] || `<span class="placeholder">[Content for ${suggestionTitle}]</span>`;
     }
 
     // Function to update editing panel content based on section
@@ -1257,13 +1272,68 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Removed old add own source button - now handled inline in the list
+    // REPLACED LOGIC: Handle typing inside placeholders
+    // We use 'keydown' to intercept the key before it is added to the DOM
+    document.addEventListener('keydown', function(e) {
+        // Ensure we are in a contenteditable element
+        if (!e.target.isContentEditable) return;
 
-    // Make "Add source" markers in contenteditable clickable
+        const sel = window.getSelection();
+        if (!sel.rangeCount) return;
+
+        let node = sel.anchorNode;
+        // If we are on the text node, move up to the span
+        if (node.nodeType === 3) node = node.parentNode;
+
+        // Check if we are currently inside a placeholder
+        if (node.classList && node.classList.contains('placeholder')) {
+            // If user types a visible character (length 1), replace the placeholder
+            // (Exclude Control, Alt, Meta keys)
+            if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                e.preventDefault(); // Stop the default character insertion
+
+                // Create a pure text node with the typed character
+                const newText = document.createTextNode(e.key);
+
+                // Replace the placeholder span with the new text node
+                node.parentNode.replaceChild(newText, node);
+
+                // Normalize to clean up adjacent text nodes
+                e.target.normalize();
+
+                // Set the cursor specifically AFTER the new character
+                try {
+                    const range = document.createRange();
+                    range.setStart(newText, 1);
+                    range.collapse(true);
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                } catch(err) {
+                    // Fallback if normalization merged nodes
+                }
+            }
+        }
+    });
+
+    // REPLACED LOGIC: Click handler for placeholders and source markers
     document.addEventListener('click', function(e) {
+        // 1. Handle clicking "Add source" markers
         if (e.target.closest('.add-source-marker')) {
             e.preventDefault();
             openCitationDialog();
+            return;
+        }
+
+        // 2. Handle clicking a placeholder
+        // If user clicks anywhere on a placeholder, force cursor to the START
+        const placeholder = e.target.closest('.placeholder');
+        if (placeholder) {
+            const range = document.createRange();
+            range.setStart(placeholder.firstChild || placeholder, 0);
+            range.collapse(true);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
         }
     });
 
