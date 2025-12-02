@@ -961,7 +961,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // Clear previous timer
             clearTimeout(debounceTimer);
 
-            if (url && url.length > 5) {
+            if (url && url.length > 3 && url.includes('.')) {
                 // Show checking state immediately or after short delay?
                 // User asked for "self-run check... maybe a little bit of spinner animation"
 
