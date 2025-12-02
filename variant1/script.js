@@ -1,10 +1,9 @@
 // ABOUTME: Main JavaScript file for article creation functionality
 // ABOUTME: Handles user interactions, auto-resize textarea, topic matching, and navigation
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Store original placeholder text to detect changes when user types
-    const placeholderOriginalText = new WeakMap();
+document.addEventListener('DOMContentLoaded', function () {
 
+    // --- ELEMENT REFERENCES ---
     const articleTitle = document.getElementById('articleTitle');
     const closeBtn = document.getElementById('closeBtn');
     const nextBtn = document.getElementById('nextBtn');
@@ -45,22 +44,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const citationDialogCloseBtn = document.getElementById('citationDialogCloseBtn');
     const citationSourcesList = document.getElementById('citationSourcesList');
 
+    // --- STATE VARIABLES ---
     let searchTimeout;
     let currentArticleTitle = '';
     let currentCategory = null;
-    const addedSections = new Set(); // Track which sections are added to editor
-    let currentEditingSection = 'Lead/Introduction'; // Track which section is being edited
-    let activeSection = null; // Track which section has focus
-    const insertedTemplates = new Map(); // Track which templates have been inserted per section
-    const insertedFacts = new Map(); // Track which facts have been inserted per section
-    const userSources = []; // Store user-added sources
-    let citationCounter = 0; // Track citation numbers globally
-    const wikidataCitations = []; // Store Wikidata citations
+    const addedSections = new Set();
+    let currentEditingSection = 'Lead/Introduction';
+    let activeSection = null;
+    const insertedTemplates = new Map();
+    const insertedFacts = new Map();
+    const userSources = [];
+    let citationCounter = 0;
+    const wikidataCitations = []; // Added missing initialization
 
-    // Define section order for "Next section" functionality
+    // --- DATA (Mocks) ---
     const sectionOrder = ['Lead section', 'Characteristics', 'Distribution and habitat', 'Ecology and behaviour'];
 
-    // Section placeholder mapping
     const sectionPlaceholders = {
         'Lead section': 'Begin writing about Siberian tiger, or type "/" for article outline',
         'Characteristics': 'Describe the physical traits and appearance of the Siberian tiger...',
@@ -68,7 +67,6 @@ document.addEventListener('DOMContentLoaded', function() {
         'Ecology and behaviour': 'Describe the diet, activity and social behaviour of the Siberian tiger...'
     };
 
-    // Section-specific suggested paragraphs
     const sectionSuggestions = {
         'Lead section': [
             { title: 'Short overview', description: 'A brief introduction to the topic.' },
@@ -91,7 +89,6 @@ document.addEventListener('DOMContentLoaded', function() {
         ]
     };
 
-    // Section-specific verified facts
     const sectionFacts = {
         'Lead section': [
             { label: 'Scientific name', value: 'Panthera tigris altaica' },
@@ -114,292 +111,170 @@ document.addEventListener('DOMContentLoaded', function() {
         ]
     };
 
-    // Mock Wikidata verified sources for prototype
     const mockWikidataSources = {
         'Siberian Tiger': [
-            {
-                title: 'IUCN Red List entry - Panthera tigris altaica',
-                type: 'Red List entry',
-                publisher: 'IUCN',
-                year: '2010',
-                icon: 'article',
-                url: 'https://www.iucnredlist.org/species/15956/5333650'
-            },
-            {
-                title: 'Mammal Species of the World, 3rd ed.',
-                type: 'Reference book',
-                publisher: 'Wilson & Reeder',
-                year: '2005',
-                icon: 'book',
-                url: 'https://www.departments.bucknell.edu/biology/resources/msw3/'
-            },
-            {
-                title: 'Encyclopedia of Life - Panthera tigris tigris',
-                type: 'Online database',
-                publisher: 'eol.org',
-                year: '',
-                icon: 'globe',
-                url: 'https://eol.org/pages/328606'
-            }
+            { title: 'IUCN Red List entry - Panthera tigris altaica', type: 'Red List entry', publisher: 'IUCN', year: '2010', icon: 'article', url: 'https://www.iucnredlist.org/species/15956/5333650' },
+            { title: 'Mammal Species of the World, 3rd ed.', type: 'Reference book', publisher: 'Wilson & Reeder', year: '2005', icon: 'book', url: 'https://www.departments.bucknell.edu/biology/resources/msw3/' },
+            { title: 'Encyclopedia of Life - Panthera tigris tigris', type: 'Online database', publisher: 'eol.org', year: '', icon: 'globe', url: 'https://eol.org/pages/328606' }
         ]
     };
 
-    // Topic data with locally stored thumbnail images from Wikimedia Commons
     const mockTopics = {
         'siberian tiger': [
-            {
-                title: 'Siberian tiger',
-                description: 'subspecies of tiger',
-                thumbnail: 'assets/images/siberian-tiger-1-thumb.jpg'
-            },
-            {
-                title: 'Siberian tiger',
-                description: 'Sculpture by Kurt Bauer in Hamburg',
-                thumbnail: 'assets/images/siberian-tiger-2-thumb.jpg'
-            },
-            {
-                title: 'Siberian Tiger Park',
-                description: 'zoological park in Harbin, China',
-                thumbnail: 'assets/images/siberian-tiger-3-thumb.jpg'
-            },
-            {
-                title: 'Siberian Tiger Re-population Project',
-                description: 'reestablishment of Siberian tiger populations',
-                thumbnail: 'assets/images/siberian-tiger-4-thumb.jpg'
-            }
+            { title: 'Siberian tiger', description: 'subspecies of tiger', thumbnail: 'assets/images/siberian-tiger-1-thumb.jpg' },
+            { title: 'Siberian tiger', description: 'Sculpture by Kurt Bauer in Hamburg', thumbnail: 'assets/images/siberian-tiger-2-thumb.jpg' },
+            { title: 'Siberian Tiger Park', description: 'zoological park in Harbin, China', thumbnail: 'assets/images/siberian-tiger-3-thumb.jpg' },
+            { title: 'Siberian Tiger Re-population Project', description: 'reestablishment of Siberian tiger populations', thumbnail: 'assets/images/siberian-tiger-4-thumb.jpg' }
         ]
     };
 
-    // Category hierarchy for type selection
     const categories = {
         root: [
-            { id: 'people', name: 'People' },
-            { id: 'culture', name: 'Culture' },
-            { id: 'geography', name: 'Geography' },
-            { id: 'history', name: 'History' },
-            { id: 'science', name: 'Science' },
-            { id: 'organizations', name: 'Organizations' },
+            { id: 'people', name: 'People' }, { id: 'culture', name: 'Culture' }, { id: 'geography', name: 'Geography' },
+            { id: 'history', name: 'History' }, { id: 'science', name: 'Science' }, { id: 'organizations', name: 'Organizations' },
             { id: 'animal', name: 'Animal' }
         ],
         animal: [
-            { id: 'mammals', name: 'Mammals' },
-            { id: 'birds', name: 'Birds' },
-            { id: 'fish', name: 'Fish' },
-            { id: 'reptiles', name: 'Reptiles' },
-            { id: 'insects', name: 'Insects' },
-            { id: 'amphibians', name: 'Amphibians' }
+            { id: 'mammals', name: 'Mammals' }, { id: 'birds', name: 'Birds' }, { id: 'fish', name: 'Fish' },
+            { id: 'reptiles', name: 'Reptiles' }, { id: 'insects', name: 'Insects' }, { id: 'amphibians', name: 'Amphibians' }
+        ],
+        people: [
+            { id: 'biography', name: 'Biography' }, { id: 'artist', name: 'Artist' }, { id: 'politician', name: 'Politician' },
+            { id: 'athlete', name: 'Athlete' }, { id: 'scientist', name: 'Scientist' }, { id: 'writer', name: 'Writer' }
         ]
     };
 
-    // Navigation functions
+    // --- NAVIGATION FUNCTIONS ---
     function showScreen(screenNum) {
+        screen1.style.display = 'none';
+        screen2.style.display = 'none';
+        screen25.style.display = 'none';
+        screen3.style.display = 'none';
+        headerTitle.style.display = 'none';
+        headerDivider.style.display = 'none';
+        headerToolbar.style.display = 'none';
+        nextBtn.style.display = 'block';
+        nextBtn.classList.remove('btn-progressive');
+
         if (screenNum === 1) {
             screen1.style.display = 'block';
-            screen2.style.display = 'none';
-            screen25.style.display = 'none';
-            screen3.style.display = 'none';
             headerTitle.style.display = 'block';
-            headerDivider.style.display = 'none';
-            headerToolbar.style.display = 'none';
-            nextBtn.style.display = 'block';
-            nextBtn.classList.remove('btn-progressive');
+            headerTitle.textContent = 'New article';
         } else if (screenNum === 2) {
-            screen1.style.display = 'none';
             screen2.style.display = 'block';
-            screen25.style.display = 'none';
-            screen3.style.display = 'none';
             headerTitle.style.display = 'block';
-            headerDivider.style.display = 'none';
-            headerToolbar.style.display = 'none';
-            nextBtn.style.display = 'block';
-            nextBtn.classList.remove('btn-progressive');
+            headerTitle.textContent = 'New article';
         } else if (screenNum === 2.5) {
-            screen1.style.display = 'none';
-            screen2.style.display = 'none';
             screen25.style.display = 'block';
-            screen3.style.display = 'none';
             headerTitle.style.display = 'block';
             headerTitle.textContent = 'Add sources';
-            headerDivider.style.display = 'none';
-            headerToolbar.style.display = 'none';
-            nextBtn.style.display = 'none'; // Hide next button on Add sources screen
-
-            // Update the main title with article name
+            nextBtn.style.display = 'none';
             const addSourcesTitle = document.getElementById('addSourcesTitle');
-            if (currentArticleTitle) {
-                addSourcesTitle.textContent = `Add key sources for "${currentArticleTitle}"`;
-            } else {
-                addSourcesTitle.textContent = 'Add key sources';
-            }
+            addSourcesTitle.textContent = currentArticleTitle ? `Add key sources for "${currentArticleTitle}"` : 'Add key sources';
         } else if (screenNum === 3) {
-            screen1.style.display = 'none';
-            screen2.style.display = 'none';
-            screen25.style.display = 'none';
             screen3.style.display = 'block';
-            headerTitle.style.display = 'none';
             headerDivider.style.display = 'block';
             headerToolbar.style.display = 'flex';
-            nextBtn.style.display = 'block';
             nextBtn.classList.add('btn-progressive');
+
+            // Ensure editor is clean for placeholder to show
+            const editor = document.getElementById('editorTextarea');
+            if (editor && (!editor.textContent.trim())) {
+                editor.innerHTML = '';
+            }
         }
     }
 
-    // Render categories
     function renderCategories(categoryKey) {
         categoryList.innerHTML = '';
         const categoriesToShow = categories[categoryKey] || categories.root;
-
         categoriesToShow.forEach(category => {
             const li = document.createElement('li');
             li.className = 'category-item';
-
-            const nameSpan = document.createElement('span');
-            nameSpan.className = 'category-name';
-            nameSpan.textContent = category.name;
-
-            const chevron = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-            chevron.setAttribute('class', 'category-chevron');
-            chevron.setAttribute('width', '20');
-            chevron.setAttribute('height', '20');
-            chevron.setAttribute('viewBox', '0 0 20 20');
-
-            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            path.setAttribute('d', 'M7 1 5.6 2.5 13 10l-7.4 7.5L7 19l9-9z');
-
-            chevron.appendChild(path);
-            li.appendChild(nameSpan);
-            li.appendChild(chevron);
-
-            li.addEventListener('click', function() {
-                handleCategoryClick(category);
-            });
-
+            li.innerHTML = `<span class="category-name">${category.name}</span>
+                            <svg class="category-chevron" width="20" height="20" viewBox="0 0 20 20"><path d="M7 1 5.6 2.5 13 10l-7.4 7.5L7 19l9-9z"/></svg>`;
+            li.addEventListener('click', () => handleCategoryClick(category));
             categoryList.appendChild(li);
         });
     }
 
-    // Handle category selection
     function handleCategoryClick(category) {
         currentCategory = category.id;
-
         if (categories[category.id]) {
-            // Has subcategories - show drill-down
             typeSelectionTitle.textContent = `What kind of ${category.name.toLowerCase()}?`;
-            const description = document.querySelector('.type-selection-description');
-            description.textContent = `You've selected '${category.name.toLowerCase()}'. Now choose a more specific category.`;
+            document.querySelector('.type-selection-description').textContent = `You've selected '${category.name.toLowerCase()}'. Now choose a more specific category.`;
             renderCategories(category.id);
         } else {
-            // Leaf category - proceed to add sources screen
-            console.log('Selected final category:', category.name);
             showScreen(2.5);
         }
     }
 
-    // Auto-resize textarea as user types
     function autoResize() {
         this.style.height = 'auto';
         this.style.height = this.scrollHeight + 'px';
     }
 
-    // Show topic matching results
     function showTopicMatching(query) {
         const normalizedQuery = query.toLowerCase().trim();
         const topics = mockTopics[normalizedQuery] || [];
+        topicList.innerHTML = '';
 
         if (topics.length > 0) {
-            topicList.innerHTML = '';
             topics.forEach(topic => {
                 const li = document.createElement('li');
                 li.className = 'topic-item';
 
-                // Create thumbnail element
-                let thumbnailEl;
-                if (topic.thumbnail) {
-                    thumbnailEl = document.createElement('img');
-                    thumbnailEl.src = topic.thumbnail;
-                    thumbnailEl.alt = topic.title;
-                    thumbnailEl.className = 'topic-thumbnail';
+                const thumbSrc = topic.thumbnail || '';
+                const thumbHtml = thumbSrc ? `<img src="${thumbSrc}" alt="${topic.title}" class="topic-thumbnail" onerror="this.replaceWith(document.createElement('div').className='topic-thumbnail')">` : '<div class="topic-thumbnail"></div>';
 
-                    // Add error handler to show placeholder if image fails to load
-                    thumbnailEl.onerror = function() {
-                        const placeholder = document.createElement('div');
-                        placeholder.className = 'topic-thumbnail';
-                        this.replaceWith(placeholder);
-                    };
-                } else {
-                    thumbnailEl = document.createElement('div');
-                    thumbnailEl.className = 'topic-thumbnail';
-                }
+                li.innerHTML = `${thumbHtml}
+                                <div class="topic-content">
+                                    <div class="topic-title">${topic.title}</div>
+                                    <div class="topic-description">${topic.description}</div>
+                                </div>`;
 
-                // Create content container
-                const contentDiv = document.createElement('div');
-                contentDiv.className = 'topic-content';
-
-                const titleDiv = document.createElement('div');
-                titleDiv.className = 'topic-title';
-                titleDiv.textContent = topic.title;
-
-                const descDiv = document.createElement('div');
-                descDiv.className = 'topic-description';
-                descDiv.textContent = topic.description;
-
-                contentDiv.appendChild(titleDiv);
-                contentDiv.appendChild(descDiv);
-
-                li.appendChild(thumbnailEl);
-                li.appendChild(contentDiv);
-
-                li.addEventListener('click', function() {
-                    console.log('Selected topic:', topic.title);
+                li.addEventListener('click', function () {
                     currentArticleTitle = topic.title;
                     showScreen(2.5);
                 });
-
                 topicList.appendChild(li);
             });
-
             topicMatching.style.display = 'block';
         } else {
             topicMatching.style.display = 'none';
         }
     }
 
-    // Handle input changes with debounce
-    articleTitle.addEventListener('input', function() {
+    // --- EVENT LISTENERS: NAVIGATION & SETUP ---
+    articleTitle.addEventListener('input', function () {
         autoResize.call(this);
-
         clearTimeout(searchTimeout);
         const query = this.value.trim();
-
         if (query.length > 2) {
-            searchTimeout = setTimeout(() => {
-                showTopicMatching(query);
-            }, 500);
+            searchTimeout = setTimeout(() => showTopicMatching(query), 500);
         } else {
             topicMatching.style.display = 'none';
         }
     });
 
-    // Close button handler (also works as back button on screen 2 and 3)
-    closeBtn.addEventListener('click', function() {
+    closeBtn.addEventListener('click', function () {
         if (screen3.style.display === 'block') {
-            // Go back to screen 2 if we came from there, otherwise screen 1
-            if (currentCategory) {
-                showScreen(2);
-            } else {
-                showScreen(1);
-            }
+            currentCategory ? showScreen(2) : showScreen(1);
         } else if (screen2.style.display === 'block') {
-            // Go back to screen 1
             showScreen(1);
         } else {
-            // Navigate back to landing page (experience selector)
             window.location.replace('../index.html');
         }
     });
 
-    // Next button handler
-    nextBtn.addEventListener('click', function() {
+    nextBtn.addEventListener('click', function () {
+        if (screen25.style.display === 'block') {
+            captureUserSources();
+            showScreen(3);
+            setTimeout(() => editorTextarea.focus(), 100);
+            return;
+        }
+
         const title = articleTitle.value.trim();
         if (title) {
             console.log('Article title:', title);
@@ -409,60 +284,58 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Topic not listed button handler
-    topicNotListedBtn.addEventListener('click', function() {
-        console.log('User clicked: topic not listed');
+    topicNotListedBtn.addEventListener('click', function () {
         currentArticleTitle = articleTitle.value.trim();
         typeSelectionTitle.textContent = `What is "${currentArticleTitle}" about?`;
         renderCategories('root');
         showScreen(2);
     });
 
-    // Type search functionality (basic filtering)
-    typeSearchInput.addEventListener('input', function() {
+    typeSearchInput.addEventListener('input', function () {
         const query = this.value.toLowerCase().trim();
         const items = categoryList.querySelectorAll('.category-item');
-
         items.forEach(item => {
             const name = item.querySelector('.category-name').textContent.toLowerCase();
-            if (name.includes(query)) {
-                item.style.display = 'flex';
-            } else {
-                item.style.display = 'none';
-            }
+            item.style.display = name.includes(query) ? 'flex' : 'none';
         });
     });
 
-    // Panel close button handler
-    panelCloseBtn.addEventListener('click', function() {
-        gettingStartedPanel.style.display = 'none';
-    });
+    panelCloseBtn.addEventListener('click', () => gettingStartedPanel.style.display = 'none');
 
-    // Function to set active section
     function setActiveSection(sectionBlock) {
-        // Remove active class from all sections
-        const allSections = document.querySelectorAll('.section-block');
-        allSections.forEach(section => section.classList.remove('active'));
+        document.querySelectorAll('.section-block').forEach(section => {
+            section.classList.remove('active');
+            // Re-evaluate button visibility for ALL sections to ensure old ones are hidden
+            // We do this BEFORE adding active class to the new one, but we need to do it after removing active class
+            // Actually, we can just do it in a second pass or right here.
+        });
 
-        // Add active class to current section
         if (sectionBlock) {
             sectionBlock.classList.add('active');
             activeSection = sectionBlock.dataset.sectionName;
+
+            // Move the editing panel to be after this section
+            if (editingSectionPanel && sectionBlock.parentNode) {
+                // Insert after the section block
+                sectionBlock.parentNode.insertBefore(editingSectionPanel, sectionBlock.nextSibling);
+            }
+
             updateNextSectionButton();
         }
+
+        // Update visibility for ALL sections now that active state is settled
+        document.querySelectorAll('.section-block').forEach(section => {
+            updateGetContentsButtonVisibility(section);
+        });
     }
 
-    // Function to update "Next section" button
     function updateNextSectionButton() {
         const upNextBtn = document.querySelector('.up-next-btn');
         const upNextTitle = document.querySelector('.up-next-title');
-
         if (!upNextBtn || !upNextTitle) return;
 
-        // Find the next section that hasn't been added
         const currentIndex = sectionOrder.indexOf(activeSection);
         let nextSection = null;
-
         for (let i = currentIndex + 1; i < sectionOrder.length; i++) {
             if (!addedSections.has(sectionOrder[i])) {
                 nextSection = sectionOrder[i];
@@ -478,116 +351,121 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Function to insert suggested content into the editor
-    function handleInsertSuggestion(suggestionTitle, sectionName) {
-        // Find the active section's textarea
-        let targetTextarea;
-        let targetContainer;
+    // --- CRITICAL FEATURE: PLACEHOLDER INTERACTION & INSERTION (DESKTOP + MOBILE) ---
 
-        if (sectionName === 'Lead section') {
-            // For lead section, use the main editor textarea
-            targetTextarea = editorTextarea;
-            targetContainer = document.querySelector('#leadSectionBlock .section-content-area');
-        } else {
-            // For other sections, find the section block's textarea
-            const sectionBlocks = document.querySelectorAll('.section-block');
-            sectionBlocks.forEach(block => {
-                if (block.dataset.sectionName === sectionName) {
-                    targetTextarea = block.querySelector('.section-textarea');
-                    targetContainer = block.querySelector('.section-content-area');
-                }
-            });
+    // Helper to determine if current selection is "inside", "targeting", or "adjacent" to a placeholder
+    function getPlaceholderFromSelection(sel) {
+        if (!sel.rangeCount) return null;
+
+        const node = sel.anchorNode;
+        const offset = sel.anchorOffset;
+
+        // Case 1: Cursor is inside a text node which is inside a placeholder span
+        if (node.nodeType === 3 && node.parentElement && node.parentElement.classList.contains('placeholder')) {
+            return node.parentElement;
         }
 
-        if (!targetTextarea) {
-            console.error('Could not find textarea for section:', sectionName);
-            return;
+        // Case 2: Cursor is on the placeholder span element itself
+        if (node.nodeType === 1 && node.classList.contains('placeholder')) {
+            return node;
         }
 
-        // Get template content based on suggestion title
-        const templateContent = getTemplateContent(suggestionTitle, sectionName);
+        // Case 3: Cursor is in the parent container, right at the start boundary of the placeholder
+        if (node.nodeType === 1) {
+            const child = node.childNodes[offset];
+            if (child && child.nodeType === 1 && child.classList.contains('placeholder')) {
+                return child;
+            }
+        }
 
-        // Check if textarea is contenteditable or regular textarea
-        const isContentEditable = targetTextarea.contentEditable === 'true';
+        // Case 4: DESKTOP ARROW KEY FIX
+        // Cursor is at the very END of a text node, and the NEXT SIBLING is a placeholder.
+        // When using arrow keys, the browser often places the caret here instead of inside the span.
+        if (node.nodeType === 3 && offset === node.length) {
+            const nextSib = node.nextSibling;
+            if (nextSib && nextSib.nodeType === 1 && nextSib.classList.contains('placeholder')) {
+                return nextSib;
+            }
+        }
 
-        if (isContentEditable) {
-            // For contenteditable, insert HTML content
-            const currentContent = targetTextarea.innerHTML;
-            const prefix = currentContent && currentContent !== '' ? '<br><br>' : '';
-            targetTextarea.innerHTML = currentContent + prefix + templateContent;
+        return null;
+    }
 
-            // Initialize placeholders to track their original text
-            const placeholders = targetTextarea.querySelectorAll('.placeholder');
-            placeholders.forEach(ph => {
-                placeholderOriginalText.set(ph, ph.textContent);
-            });
+    // GLOBAL Handler for typing logic
+    document.addEventListener('beforeinput', function (e) {
+        // We only care about text insertion events
+        if (e.inputType === 'insertText' || e.inputType === 'insertCompositionText') {
+            const sel = window.getSelection();
+            if (!sel.rangeCount) return;
 
-            // Focus and position cursor at start of first placeholder
-            // Use setTimeout to ensure the cursor placement wins over default browser focus
-            setTimeout(() => {
-                targetTextarea.focus();
-                const firstPlaceholder = targetTextarea.querySelector('.placeholder');
+            // Check if we are interacting with a placeholder (including adjacency)
+            const placeholder = getPlaceholderFromSelection(sel);
 
-                if (firstPlaceholder) {
+            if (placeholder) {
+                // STOP the browser from putting text inside the gray box or before it
+                e.preventDefault();
+
+                const textToInsert = e.data;
+
+                if (textToInsert) {
+                    const newTextNode = document.createTextNode(textToInsert);
+
+                    // Replace the ENTIRE placeholder span with the new clean text node
+                    placeholder.parentNode.replaceChild(newTextNode, placeholder);
+
+                    // Set cursor position immediately after the new character
                     const range = document.createRange();
-                    range.setStart(firstPlaceholder.firstChild || firstPlaceholder, 0);
+                    range.setStartAfter(newTextNode);
                     range.collapse(true);
-                    const sel = window.getSelection();
                     sel.removeAllRanges();
                     sel.addRange(range);
                 }
-            }, 10);
-        } else {
-            // For regular textarea, strip HTML and insert plain text
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = templateContent;
-            const plainText = tempDiv.textContent || tempDiv.innerText;
+            }
+        }
+    });
 
-            const cursorPos = targetTextarea.selectionStart;
-            const textBefore = targetTextarea.value.substring(0, cursorPos);
-            const textAfter = targetTextarea.value.substring(cursorPos);
+    // Function to set cursor to the start of a node
+    function setCursorToStart(node) {
+        const range = document.createRange();
+        const sel = window.getSelection();
 
-            // Add newlines if needed
-            const prefix = textBefore && !textBefore.endsWith('\n\n') ? '\n\n' : '';
-            const suffix = textAfter && !textAfter.startsWith('\n') ? '\n' : '';
-
-            targetTextarea.value = textBefore + prefix + plainText + suffix + textAfter;
-
-            // Trigger auto-resize
-            targetTextarea.style.height = 'auto';
-            targetTextarea.style.height = targetTextarea.scrollHeight + 'px';
-
-            // Focus the textarea and set cursor position
-            targetTextarea.focus();
-            const newCursorPos = (textBefore + prefix + plainText).length;
-            targetTextarea.setSelectionRange(newCursorPos, newCursorPos);
+        // Safety check for node type to determine start container
+        if (node.nodeType === 3) { // Text node
+            range.setStart(node, 0);
+        } else { // Element node
+            range.setStart(node, 0);
         }
 
-        // Add visual indicators for [Add source] markers
-        addSourceMarkerHighlights(targetTextarea, targetContainer);
+        range.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(range);
 
-        // Track that this template has been inserted for this section
-        if (!insertedTemplates.has(sectionName)) {
-            insertedTemplates.set(sectionName, new Set());
+        // Ensure the editor has focus
+        const editor = node.nodeType === 3 ? node.parentElement.closest('[contenteditable="true"]') : node.closest('[contenteditable="true"]');
+        if (editor) editor.focus();
+    }
+
+    // GLOBAL Handler for Click/Focus
+    document.addEventListener('click', function (e) {
+        // 1. Handle "Add Source" markers
+        if (e.target.closest('.add-source-marker')) {
+            e.preventDefault();
+            e.stopPropagation();
+            openCitationDialog();
+            return;
         }
-        insertedTemplates.get(sectionName).add(suggestionTitle);
 
-        // Update the panel to show the template as added
-        updateEditingPanelContent(sectionName);
+        // 2. Handle Placeholder clicks
+        const placeholder = e.target.closest('.placeholder');
+        if (placeholder) {
+            e.preventDefault();
+            e.stopPropagation();
+            // Focus the text node inside if it exists, otherwise the span
+            setCursorToStart(placeholder.firstChild || placeholder);
+        }
+    });
 
-        // Hide the editing panel after insertion
-        editingSectionPanel.style.display = 'none';
-    }
-
-    // Function to add visual highlights and click handlers for [Add source] markers
-    function addSourceMarkerHighlights(textarea, container) {
-        // Mark textarea as having source markers
-        textarea.dataset.hasSourceMarkers = 'true';
-    }
-
-    // Function to insert verified fact into the editor
-    function handleInsertFact(fact, sectionName) {
-        // Find the active section's textarea
+    function handleInsertSuggestion(suggestionTitle, sectionName) {
         let targetTextarea;
 
         if (sectionName === 'Lead section') {
@@ -601,23 +479,55 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
-        if (!targetTextarea) {
-            console.error('Could not find textarea for section:', sectionName);
-            return;
-        }
+        if (!targetTextarea) return;
 
-        // Check if textarea is contenteditable
+        const templateContent = getTemplateContent(suggestionTitle, sectionName);
         const isContentEditable = targetTextarea.contentEditable === 'true';
 
-        if (!isContentEditable) {
-            console.error('Textarea must be contenteditable for fact insertion');
-            return;
+        if (isContentEditable) {
+            const currentContent = targetTextarea.innerHTML;
+            const prefix = currentContent && currentContent.trim() !== '' ? '<br><br>' : '';
+            // Add double break at the end to create empty line below
+            const suffix = '<br><br>';
+            targetTextarea.innerHTML = currentContent + prefix + templateContent + suffix;
+
+            // --- IMMEDIATE FOCUS LOGIC ---
+            targetTextarea.focus();
+
+            // Find the FIRST placeholder that was just added.
+            // We just grab the first valid placeholder found in the element.
+            const placeholders = targetTextarea.querySelectorAll('.placeholder');
+
+            if (placeholders.length > 0) {
+                const firstPlaceholder = placeholders[0];
+                setCursorToStart(firstPlaceholder.firstChild || firstPlaceholder);
+            }
+        } else {
+            targetTextarea.value += "\n" + templateContent.replace(/<[^>]*>/g, '') + "\n\n";
         }
 
-        // Increment citation counter
-        citationCounter++;
+        if (!insertedTemplates.has(sectionName)) insertedTemplates.set(sectionName, new Set());
+        insertedTemplates.get(sectionName).add(suggestionTitle);
 
-        // Store citation metadata for this Wikidata fact
+        updateEditingPanelContent(sectionName);
+        editingSectionPanel.style.display = 'none';
+    }
+
+    function handleInsertFact(fact, sectionName) {
+        let targetTextarea;
+        if (sectionName === 'Lead section') {
+            targetTextarea = editorTextarea;
+        } else {
+            document.querySelectorAll('.section-block').forEach(block => {
+                if (block.dataset.sectionName === sectionName) {
+                    targetTextarea = block.querySelector('.section-textarea');
+                }
+            });
+        }
+
+        if (!targetTextarea) return;
+
+        citationCounter++;
         wikidataCitations.push({
             number: citationCounter,
             label: fact.label,
@@ -625,47 +535,27 @@ document.addEventListener('DOMContentLoaded', function() {
             source: 'Wikidata'
         });
 
-        // Format the fact as a proper sentence
-        // Example: "The scientific name is panthera tigris altaica"
-        const factSentence = `The ${fact.label.toLowerCase()} is ${fact.value}`;
+        const factHTML = `<br>The ${fact.label.toLowerCase()} is ${fact.value}<sup class="citation-superscript">[${citationCounter}]</sup>`;
+        targetTextarea.innerHTML += factHTML;
 
-        // Create the HTML content with superscript citation
-        const factHTML = `<br>${factSentence}<sup class="citation-superscript">[${citationCounter}]</sup>`;
-
-        // Get current content
-        const currentContent = targetTextarea.innerHTML;
-
-        // Insert at the end (always new line)
-        targetTextarea.innerHTML = currentContent + factHTML;
-
-        // Focus the textarea
+        // Move cursor to end
         targetTextarea.focus();
-
-        // Position cursor at the end (after the inserted fact)
         const range = document.createRange();
-        const sel = window.getSelection();
         range.selectNodeContents(targetTextarea);
-        range.collapse(false); // Collapse to end
+        range.collapse(false);
+        const sel = window.getSelection();
         sel.removeAllRanges();
         sel.addRange(range);
 
-        // Track that this fact has been inserted for this section
-        if (!insertedFacts.has(sectionName)) {
-            insertedFacts.set(sectionName, new Set());
-        }
-        const factKey = `${fact.label}:${fact.value}`;
-        insertedFacts.get(sectionName).add(factKey);
+        if (!insertedFacts.has(sectionName)) insertedFacts.set(sectionName, new Set());
+        insertedFacts.get(sectionName).add(`${fact.label}:${fact.value}`);
 
-        // Update the panel to show the fact as added
         updateEditingPanelContent(sectionName);
-
-        // Don't hide panel for facts (user might want to add multiple facts)
     }
 
-    // Function to get template content based on suggestion title
     function getTemplateContent(suggestionTitle, sectionName) {
-        // Template content mapping with superscript citation markers
         const sourceMarker = '<span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="">add source</span>';
+        // Use standardized HTML spans for placeholders
         const templates = {
             'Short overview': `The <span class="placeholder">animal name</span> is a <span class="placeholder">type of animal</span> native to <span class="placeholder">broad region</span>${sourceMarker}. It is known for <span class="placeholder">key distinctive feature</span>${sourceMarker}.`,
             'Taxonomy in brief': `The <span class="placeholder">animal name</span> belongs to the <span class="placeholder">taxonomic family</span> family${sourceMarker}. It was first described by <span class="placeholder">scientist name</span> in <span class="placeholder">year</span>${sourceMarker}.`,
@@ -679,38 +569,28 @@ document.addEventListener('DOMContentLoaded', function() {
             'Social structure': `The <span class="placeholder">animal name</span> is <span class="placeholder">solitary/social</span>${sourceMarker}. <span class="placeholder">Add details about territorial behavior, group size, social hierarchy</span>.`,
             'Reproduction': `The <span class="placeholder">animal name</span> breeds <span class="placeholder">breeding season/frequency</span>${sourceMarker}. <span class="placeholder">Add details about gestation period, litter size, parental care</span>.`
         };
-
         return templates[suggestionTitle] || `<span class="placeholder">[Content for ${suggestionTitle}]</span>`;
     }
 
-    // Function to update editing panel content based on section
     function updateEditingPanelContent(sectionName) {
-        // Update section title
         const editingSectionTitle = document.querySelector('.editing-section-title');
         const displayName = sectionName === 'Lead section' ? 'Lead/Introduction' : sectionName;
         editingSectionTitle.textContent = displayName;
         currentEditingSection = displayName;
 
-        // Update suggested paragraphs
         const suggestedSection = document.querySelector('.suggested-section');
         const suggestions = sectionSuggestions[sectionName] || sectionSuggestions['Lead section'];
 
-        // Clear existing suggestions (keep the heading)
-        const existingSuggestions = suggestedSection.querySelectorAll('.suggestion-card');
-        existingSuggestions.forEach(card => card.remove());
+        // Remove old cards, keep header
+        Array.from(suggestedSection.children).forEach(child => {
+            if (child.classList.contains('suggestion-card')) child.remove();
+        });
 
-        // Add new suggestions
         suggestions.forEach(suggestion => {
             const card = document.createElement('div');
             card.className = 'suggestion-card';
-
-            // Check if this template has already been inserted for this section
-            const isInserted = insertedTemplates.has(sectionName) &&
-                              insertedTemplates.get(sectionName).has(suggestion.title);
-
-            if (isInserted) {
-                card.classList.add('suggestion-added');
-            }
+            const isInserted = insertedTemplates.has(sectionName) && insertedTemplates.get(sectionName).has(suggestion.title);
+            if (isInserted) card.classList.add('suggestion-added');
 
             card.innerHTML = `
                 <button class="add-btn-circle" aria-label="${isInserted ? 'Already added' : 'Add paragraph'}" ${isInserted ? 'disabled' : ''}>
@@ -722,38 +602,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `;
 
-            // Add click handler to insert content into editor (only if not already inserted)
             if (!isInserted) {
-                const addBtn = card.querySelector('.add-btn-circle');
-                addBtn.addEventListener('click', function() {
-                    handleInsertSuggestion(suggestion.title, sectionName);
-                });
+                card.querySelector('.add-btn-circle').addEventListener('click', () => handleInsertSuggestion(suggestion.title, sectionName));
             }
-
             suggestedSection.appendChild(card);
         });
 
-        // Update verified facts
         const verifiedFactsSection = document.querySelector('.verified-facts-section');
         const facts = sectionFacts[sectionName] || sectionFacts['Lead section'];
 
-        // Clear existing facts
-        const existingFacts = verifiedFactsSection.querySelectorAll('.fact-item');
-        existingFacts.forEach(fact => fact.remove());
+        verifiedFactsSection.innerHTML = '';
 
-        // Add new facts
         facts.forEach(fact => {
             const factItem = document.createElement('div');
             factItem.className = 'fact-item';
-
-            // Check if this fact has already been inserted for this section
             const factKey = `${fact.label}:${fact.value}`;
-            const isInserted = insertedFacts.has(sectionName) &&
-                              insertedFacts.get(sectionName).has(factKey);
-
-            if (isInserted) {
-                factItem.classList.add('fact-added');
-            }
+            const isInserted = insertedFacts.has(sectionName) && insertedFacts.get(sectionName).has(factKey);
+            if (isInserted) factItem.classList.add('fact-added');
 
             factItem.innerHTML = `
                 <div class="fact-content">
@@ -765,209 +630,142 @@ document.addEventListener('DOMContentLoaded', function() {
                 </button>
             `;
 
-            // Add click handler to insert fact into editor (only if not already inserted)
             if (!isInserted) {
-                const addBtn = factItem.querySelector('.add-btn-circle');
-                addBtn.addEventListener('click', function() {
-                    handleInsertFact(fact, sectionName);
-                });
+                factItem.querySelector('.add-btn-circle').addEventListener('click', () => handleInsertFact(fact, sectionName));
             }
-
             verifiedFactsSection.appendChild(factItem);
         });
     }
 
-    // Get suggested contents button handler - toggle the panel
-    getContentsBtn.addEventListener('click', function() {
-        if (editingSectionPanel.style.display === 'block') {
-            // If panel is already visible, hide it
+    getContentsBtn.addEventListener('click', function () {
+        if (editingSectionPanel.style.display === 'block' && activeSection === 'Lead section') {
             editingSectionPanel.style.display = 'none';
         } else {
-            // Update content for Lead section
+            // Ensure we treat the lead section as active if this button is clicked
+            const leadSection = document.getElementById('leadSectionBlock');
+            setActiveSection(leadSection);
+
             updateEditingPanelContent('Lead section');
-            // Show editing panel and hide getting started panel
             editingSectionPanel.style.display = 'block';
             gettingStartedPanel.style.display = 'none';
         }
     });
 
-    // Editing panel close button handler
-    editingPanelCloseBtn.addEventListener('click', function() {
+    editingPanelCloseBtn.addEventListener('click', function () {
         editingSectionPanel.style.display = 'none';
         gettingStartedPanel.style.display = 'none';
     });
 
-    // Editor textarea auto-resize and forward slash detection
-    editorTextarea.addEventListener('input', function() {
-        // Check if user typed forward slash
+    editorTextarea.addEventListener('input', function () {
         const text = this.textContent || '';
         if (text === '/' || text.endsWith('\n/')) {
+            const leadSection = document.getElementById('leadSectionBlock');
+            setActiveSection(leadSection);
+
             editingSectionPanel.style.display = 'block';
             gettingStartedPanel.style.display = 'none';
         }
     });
 
-    // Click on editor textarea - hide getting started panel
-    editorTextarea.addEventListener('click', function() {
+    editorTextarea.addEventListener('click', function () {
         if (gettingStartedPanel.style.display !== 'none') {
             gettingStartedPanel.style.display = 'none';
         }
     });
 
-    // View full article outline button handler
-    viewOutlineBtn.addEventListener('click', function() {
-        // Hide editing section panel and show article outline panel
+    viewOutlineBtn.addEventListener('click', function () {
         editingSectionPanel.style.display = 'none';
         articleOutlinePanel.style.display = 'block';
     });
 
-    // Article outline panel close button handler
-    outlinePanelCloseBtn.addEventListener('click', function() {
-        // Hide article outline panel and show editing section panel
+    outlinePanelCloseBtn.addEventListener('click', function () {
         articleOutlinePanel.style.display = 'none';
         editingSectionPanel.style.display = 'block';
     });
 
-    // Add custom section button handler
-    addCustomSectionBtnTrigger.addEventListener('click', function() {
+    addCustomSectionBtnTrigger.addEventListener('click', function () {
         customSectionDialog.style.display = 'flex';
-        setTimeout(() => {
-            customSectionInput.focus();
-        }, 100);
+        setTimeout(() => customSectionInput.focus(), 100);
     });
 
-    // Close dialog handlers
     function closeCustomSectionDialog() {
         customSectionDialog.style.display = 'none';
         customSectionInput.value = '';
         customSectionDescription.value = '';
     }
-
     dialogCloseBtn.addEventListener('click', closeCustomSectionDialog);
     cancelCustomSectionBtn.addEventListener('click', closeCustomSectionDialog);
 
-    // Close dialog when clicking on overlay
-    customSectionDialog.addEventListener('click', function(e) {
-        if (e.target.classList.contains('dialog-overlay')) {
-            closeCustomSectionDialog();
-        }
+    customSectionDialog.addEventListener('click', (e) => {
+        if (e.target.classList.contains('dialog-overlay')) closeCustomSectionDialog();
     });
 
-    // Add custom section submit handler
-    addCustomSectionBtn.addEventListener('click', function() {
+    addCustomSectionBtn.addEventListener('click', function () {
         const sectionName = customSectionInput.value.trim();
         const sectionDesc = customSectionDescription.value.trim();
-
         if (sectionName) {
-            // Create new section element
             const newSection = document.createElement('div');
             newSection.className = 'outline-section';
-
-            const sectionContent = document.createElement('div');
-            sectionContent.className = 'outline-section-content';
-
-            const sectionTitle = document.createElement('h3');
-            sectionTitle.className = 'outline-section-title';
-            sectionTitle.textContent = sectionName;
-
-            sectionContent.appendChild(sectionTitle);
-
-            if (sectionDesc) {
-                const sectionDescription = document.createElement('p');
-                sectionDescription.className = 'outline-section-description';
-                sectionDescription.textContent = sectionDesc;
-                sectionContent.appendChild(sectionDescription);
-            }
-
-            const addBtn = document.createElement('button');
-            addBtn.className = 'outline-add-btn';
-            addBtn.textContent = 'Add';
-
-            newSection.appendChild(sectionContent);
-            newSection.appendChild(addBtn);
-
-            // Insert before the "Add custom section" button
+            newSection.innerHTML = `
+                <div class="outline-section-content">
+                    <h3 class="outline-section-title">${sectionName}</h3>
+                    ${sectionDesc ? `<p class="outline-section-description">${sectionDesc}</p>` : ''}
+                </div>
+                <button class="outline-add-btn">Add</button>
+            `;
             outlineSections.insertBefore(newSection, addCustomSectionBtnTrigger);
 
-            // Attach click handler to the new add button
-            addBtn.addEventListener('click', function() {
+            const addBtn = newSection.querySelector('.outline-add-btn');
+            addBtn.addEventListener('click', function () {
                 handleAddSectionClick(sectionName, sectionDesc);
-                // Close the outline panel and show editing panel
                 articleOutlinePanel.style.display = 'none';
                 editingSectionPanel.style.display = 'block';
             });
-
-            // Close dialog and reset
             closeCustomSectionDialog();
         }
     });
 
-    // Enable/disable add button based on input
-    customSectionInput.addEventListener('input', function() {
-        if (this.value.trim()) {
-            addCustomSectionBtn.disabled = false;
-        } else {
-            addCustomSectionBtn.disabled = true;
-        }
+    customSectionInput.addEventListener('input', function () {
+        addCustomSectionBtn.disabled = !this.value.trim();
     });
 
-    // Function to create a section block in the editor
     function createSectionBlock(sectionName, sectionDescription) {
         const sectionBlock = document.createElement('div');
         sectionBlock.className = 'section-block';
         sectionBlock.dataset.sectionName = sectionName;
 
-        // Header row with title and remove button
-        const headerRow = document.createElement('div');
-        headerRow.className = 'section-header-row';
+        sectionBlock.innerHTML = `
+            <div class="section-header-row">
+                <h2 class="section-heading-text">${sectionName}</h2>
+                <button class="section-remove-btn" aria-label="Remove section">
+                    <img src="node_modules/@wikimedia/codex-icons/dist/images/close.svg" alt="" width="20" height="20">
+                </button>
+            </div>
+            <div class="section-content-area">
+                <div class="section-textarea" contenteditable="true" data-placeholder="${sectionPlaceholders[sectionName] || `Write about ${sectionName.toLowerCase()}...`}"></div>
+            </div>
+            <button class="section-get-contents-btn">Get suggested contents</button>
+        `;
 
-        const heading = document.createElement('h2');
-        heading.className = 'section-heading-text';
-        heading.textContent = sectionName;
+        const textarea = sectionBlock.querySelector('.section-textarea');
+        textarea.addEventListener('focus', () => setActiveSection(sectionBlock));
 
-        const removeBtn = document.createElement('button');
-        removeBtn.className = 'section-remove-btn';
-        removeBtn.setAttribute('aria-label', 'Remove section');
-        removeBtn.innerHTML = '<img src="node_modules/@wikimedia/codex-icons/dist/images/close.svg" alt="" width="20" height="20">';
-
-        headerRow.appendChild(heading);
-        headerRow.appendChild(removeBtn);
-
-        // Content area
-        const contentArea = document.createElement('div');
-        contentArea.className = 'section-content-area';
-
-        const textarea = document.createElement('div');
-        textarea.className = 'section-textarea';
-        textarea.contentEditable = 'true';
-        textarea.dataset.placeholder = sectionPlaceholders[sectionName] || `Write about ${sectionName.toLowerCase()}...`;
-
-        // Set active section on focus
-        textarea.addEventListener('focus', function() {
-            setActiveSection(sectionBlock);
+        sectionBlock.querySelector('.section-get-contents-btn').addEventListener('click', () => {
+            if (editingSectionPanel.style.display === 'block' && activeSection === sectionName) {
+                editingSectionPanel.style.display = 'none';
+            } else {
+                setActiveSection(sectionBlock);
+                updateEditingPanelContent(sectionName);
+                editingSectionPanel.style.display = 'block';
+                gettingStartedPanel.style.display = 'none';
+            }
         });
 
-        contentArea.appendChild(textarea);
+        // Conditional visibility for "Get suggested contents"
+        textarea.addEventListener('keyup', () => updateGetContentsButtonVisibility(sectionBlock));
+        textarea.addEventListener('click', () => updateGetContentsButtonVisibility(sectionBlock));
 
-        // Get suggested contents button
-        const getSuggestedBtn = document.createElement('button');
-        getSuggestedBtn.className = 'section-get-contents-btn';
-        getSuggestedBtn.textContent = 'Get suggested contents';
-
-        // Get suggested contents handler for this section
-        getSuggestedBtn.addEventListener('click', function() {
-            updateEditingPanelContent(sectionName);
-            editingSectionPanel.style.display = 'block';
-            gettingStartedPanel.style.display = 'none';
-        });
-
-        // Assemble the section
-        sectionBlock.appendChild(headerRow);
-        sectionBlock.appendChild(contentArea);
-        sectionBlock.appendChild(getSuggestedBtn);
-
-        // Remove section handler
-        removeBtn.addEventListener('click', function() {
+        sectionBlock.querySelector('.section-remove-btn').addEventListener('click', () => {
             sectionBlock.remove();
             addedSections.delete(sectionName);
             updateOutlineSectionStatus(sectionName, false);
@@ -976,7 +774,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return sectionBlock;
     }
 
-    // Function to update outline section status
     function updateOutlineSectionStatus(sectionName, isAdded) {
         const outlineSectionItems = articleOutlinePanel.querySelectorAll('.outline-section');
         outlineSectionItems.forEach(item => {
@@ -986,9 +783,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const addedBadge = item.querySelector('.outline-added-badge');
 
                 if (isAdded) {
-                    if (addBtn) {
-                        addBtn.style.display = 'none';
-                    }
+                    if (addBtn) addBtn.style.display = 'none';
                     if (!addedBadge) {
                         const badge = document.createElement('span');
                         badge.className = 'outline-added-badge';
@@ -996,493 +791,230 @@ document.addEventListener('DOMContentLoaded', function() {
                         item.appendChild(badge);
                     }
                 } else {
-                    if (addBtn) {
-                        addBtn.style.display = 'inline-flex';
-                    }
-                    if (addedBadge) {
-                        addedBadge.remove();
-                    }
+                    if (addBtn) addBtn.style.display = 'inline-flex';
+                    if (addedBadge) addedBadge.remove();
                 }
             }
         });
     }
 
-    // Handle clicking "Add" buttons in the outline panel
     function handleAddSectionClick(sectionName, sectionDescription) {
-        if (addedSections.has(sectionName)) {
-            // Already added, don't add again
-            return;
-        }
-
+        if (addedSections.has(sectionName)) return;
         const sectionBlock = createSectionBlock(sectionName, sectionDescription);
-        const articleSectionsContainer = document.getElementById('articleSections');
-
-        // Append section at the end of the container
-        articleSectionsContainer.appendChild(sectionBlock);
-
-        // Mark as added
+        document.getElementById('articleSections').appendChild(sectionBlock);
         addedSections.add(sectionName);
         updateOutlineSectionStatus(sectionName, true);
         updateNextSectionButton();
-
-        // Focus on the new section's textarea
-        setTimeout(() => {
-            sectionBlock.querySelector('.section-textarea').focus();
-        }, 100);
+        setTimeout(() => sectionBlock.querySelector('.section-textarea').focus(), 100);
     }
 
-    // "Next section" button handler
     const upNextBtn = document.querySelector('.up-next-btn');
     if (upNextBtn) {
-        upNextBtn.addEventListener('click', function() {
+        upNextBtn.addEventListener('click', function () {
             const upNextTitle = document.querySelector('.up-next-title');
             const nextSectionName = upNextTitle ? upNextTitle.textContent : null;
-
             if (nextSectionName && !addedSections.has(nextSectionName)) {
-                // Find the section description from outline
-                const outlineSectionItems = articleOutlinePanel.querySelectorAll('.outline-section');
-                let sectionDescription = '';
-
-                outlineSectionItems.forEach(item => {
-                    const titleElement = item.querySelector('.outline-section-title');
-                    if (titleElement && titleElement.textContent === nextSectionName) {
-                        const descElement = item.querySelector('.outline-section-description');
-                        sectionDescription = descElement ? descElement.textContent : '';
-                    }
-                });
-
-                // Hide the editing section panel
                 editingSectionPanel.style.display = 'none';
-
-                // Add the section
-                handleAddSectionClick(nextSectionName, sectionDescription);
+                handleAddSectionClick(nextSectionName, '');
             }
         });
     }
 
-    // Add click handlers to all outline "Add" buttons
     function attachOutlineAddButtonHandlers() {
         const outlineSectionItems = articleOutlinePanel.querySelectorAll('.outline-section');
         outlineSectionItems.forEach(item => {
             const addBtn = item.querySelector('.outline-add-btn');
             if (addBtn) {
-                addBtn.addEventListener('click', function() {
-                    const titleElement = item.querySelector('.outline-section-title');
-                    const descElement = item.querySelector('.outline-section-description');
-                    const sectionName = titleElement ? titleElement.textContent : '';
-                    const sectionDescription = descElement ? descElement.textContent : '';
-
-                    if (sectionName) {
-                        handleAddSectionClick(sectionName, sectionDescription);
-                        // Close the outline panel and show editing panel
-                        articleOutlinePanel.style.display = 'none';
-                        editingSectionPanel.style.display = 'block';
-                    }
+                addBtn.addEventListener('click', function () {
+                    const sectionName = item.querySelector('.outline-section-title').textContent;
+                    handleAddSectionClick(sectionName, '');
+                    articleOutlinePanel.style.display = 'none';
+                    editingSectionPanel.style.display = 'block';
                 });
             }
         });
     }
-
-    // Initialize outline button handlers
     attachOutlineAddButtonHandlers();
 
-    // Contenteditable doesn't need auto-resize
-    // Removed duplicate input listener
-
-    // Add focus handler to lead section textarea
-    editorTextarea.addEventListener('focus', function() {
-        const leadSectionBlock = document.getElementById('leadSectionBlock');
-        setActiveSection(leadSectionBlock);
+    editorTextarea.addEventListener('focus', function () {
+        setActiveSection(document.getElementById('leadSectionBlock'));
     });
 
-    // Mark lead section as added by default
-    addedSections.add('Lead section');
+    // Initial visibility check
+    editorTextarea.addEventListener('keyup', () => updateGetContentsButtonVisibility(document.getElementById('leadSectionBlock')));
+    editorTextarea.addEventListener('click', () => updateGetContentsButtonVisibility(document.getElementById('leadSectionBlock')));
 
-    // Initialize with lead section as active
-    const leadSectionBlock = document.getElementById('leadSectionBlock');
-    if (leadSectionBlock) {
-        setActiveSection(leadSectionBlock);
-    }
+    function updateGetContentsButtonVisibility(sectionBlock) {
+        if (!sectionBlock) return;
+        const btn = sectionBlock.querySelector('.section-get-contents-btn');
+        const textarea = sectionBlock.querySelector('.section-textarea');
+        if (!btn || !textarea) return;
 
-    // Auto-focus the textarea on load
-    setTimeout(() => {
-        articleTitle.focus();
-    }, 100);
-
-    // Helper function to create source card
-    function createSourceCard(source) {
-        const sourceCard = document.createElement('div');
-        sourceCard.className = 'source-card';
-
-        const iconMap = {
-            'article': 'article',
-            'book': 'book',
-            'globe': 'globe'
-        };
-
-        const iconName = iconMap[source.icon] || 'link';
-        const yearDisplay = source.year ? ` · ${source.year}` : '';
-        const publisher = source.publisher || '';
-
-        sourceCard.innerHTML = `
-            <div class="source-icon">
-                <img src="node_modules/@wikimedia/codex-icons/dist/images/${iconName}.svg" alt="" width="20" height="20">
-            </div>
-            <div class="source-content">
-                <div class="source-title">${source.title}</div>
-                <div class="source-meta">
-                    <span class="source-type">${source.type}</span>
-                    ${publisher ? `<span class="source-publisher"> · ${publisher}${yearDisplay}</span>` : ''}
-                </div>
-                <div class="source-actions">
-                    <a href="${source.url}" target="_blank" class="source-action-link">
-                        Visit source
-                        <img src="node_modules/@wikimedia/codex-icons/dist/images/linkExternal.svg" alt="" width="12" height="12">
-                    </a>
-                    <button class="source-action-btn">
-                        <img src="node_modules/@wikimedia/codex-icons/dist/images/add.svg" alt="" width="16" height="16">
-                        Add source
-                    </button>
-                </div>
-            </div>
-        `;
-
-        // Add click handler for "Add source" button
-        const addSourceBtn = sourceCard.querySelector('.source-action-btn');
-        addSourceBtn.addEventListener('click', function() {
-            citationDialog.style.display = 'none';
-        });
-
-        return sourceCard;
-    }
-
-    // Citation dialog functions
-    function openCitationDialog() {
-        const wikidataSources = mockWikidataSources['Siberian Tiger'] || [];
-
-        // Clear existing sources
-        citationSourcesList.innerHTML = '';
-
-        // Add user sources section if any exist
-        if (userSources.length > 0) {
-            const userSourcesHeader = document.createElement('div');
-            userSourcesHeader.className = 'sources-section-header';
-            userSourcesHeader.textContent = 'Sources you added';
-            citationSourcesList.appendChild(userSourcesHeader);
-
-            const userSourcesDescription = document.createElement('p');
-            userSourcesDescription.className = 'sources-section-description';
-            userSourcesDescription.textContent = 'At the time of article creation, these sources were added.';
-            citationSourcesList.appendChild(userSourcesDescription);
-
-            const userSourcesContainer = document.createElement('div');
-            userSourcesContainer.className = 'citation-sources-group';
-
-            userSources.forEach(source => {
-                const sourceCard = createSourceCard(source);
-                userSourcesContainer.appendChild(sourceCard);
-            });
-
-            citationSourcesList.appendChild(userSourcesContainer);
-
-            // Add "Add more sources" card after user sources
-            const addMoreSourcesCard = document.createElement('div');
-            addMoreSourcesCard.className = 'source-card add-own-source-card';
-            addMoreSourcesCard.innerHTML = `
-                <div class="source-icon">
-                    <img src="node_modules/@wikimedia/codex-icons/dist/images/add.svg" alt="" width="20" height="20">
-                </div>
-                <div class="source-content">
-                    <div class="source-title">Add more sources</div>
-                </div>
-            `;
-
-            addMoreSourcesCard.addEventListener('click', function() {
-                console.log('Add more sources clicked');
-            });
-
-            citationSourcesList.appendChild(addMoreSourcesCard);
-
-            // Add separator between user sources and Wikidata sources
-            const separator = document.createElement('div');
-            separator.className = 'sources-section-separator';
-            citationSourcesList.appendChild(separator);
-        }
-
-        // Add Wikidata sources section
-        const wikidataSourcesHeader = document.createElement('div');
-        wikidataSourcesHeader.className = 'sources-section-header';
-        wikidataSourcesHeader.textContent = 'Sources from Wikidata';
-        citationSourcesList.appendChild(wikidataSourcesHeader);
-
-        const wikidataDescription = document.createElement('p');
-        wikidataDescription.className = 'sources-section-description';
-        wikidataDescription.textContent = 'These works are cited on Wikipedia. Choose one to support your text.';
-        citationSourcesList.appendChild(wikidataDescription);
-
-        const wikidataSourcesContainer = document.createElement('div');
-        wikidataSourcesContainer.className = 'citation-sources-group';
-
-        // Populate Wikidata source cards
-        wikidataSources.forEach(source => {
-            const sourceCard = createSourceCard(source);
-            wikidataSourcesContainer.appendChild(sourceCard);
-        });
-
-        citationSourcesList.appendChild(wikidataSourcesContainer);
-
-        // If no user sources, add "Add your own source" at the end
-        if (userSources.length === 0) {
-            const addOwnSourceCard = document.createElement('div');
-            addOwnSourceCard.className = 'source-card add-own-source-card';
-            addOwnSourceCard.innerHTML = `
-                <div class="source-icon">
-                    <img src="node_modules/@wikimedia/codex-icons/dist/images/add.svg" alt="" width="20" height="20">
-                </div>
-                <div class="source-content">
-                    <div class="source-title">Add your own source...</div>
-                </div>
-            `;
-
-            addOwnSourceCard.addEventListener('click', function() {
-                console.log('Add your own source clicked');
-            });
-
-            citationSourcesList.appendChild(addOwnSourceCard);
-        }
-
-        // Blur any active contenteditable to remove cursor
-        if (document.activeElement) {
-            document.activeElement.blur();
-        }
-
-        // Show dialog
-        citationDialog.style.display = 'flex';
-    }
-
-    // Citation dialog close handler
-    citationDialogCloseBtn.addEventListener('click', function() {
-        citationDialog.style.display = 'none';
-    });
-
-    // Close dialog when clicking on overlay
-    citationDialog.addEventListener('click', function(e) {
-        if (e.target === citationDialog) {
-            citationDialog.style.display = 'none';
-        }
-    });
-
-    // REPLACED LOGIC: Handle typing inside placeholders
-    // We use 'keydown' to intercept the key before it is added to the DOM
-    document.addEventListener('keydown', function(e) {
-        // Ensure we are in a contenteditable element
-        if (!e.target.isContentEditable) return;
-
+        // Check if cursor is on a new line or at the end
         const sel = window.getSelection();
         if (!sel.rangeCount) return;
 
-        let node = sel.anchorNode;
-        // If we are on the text node, move up to the span
-        if (node.nodeType === 3) node = node.parentNode;
+        const text = textarea.innerText;
+        const isEmpty = text.trim() === '';
+        const endsWithNewline = text.endsWith('\n') || text.endsWith('\n\n');
+        const isActive = sectionBlock.classList.contains('active');
 
-        // Check if we are currently inside a placeholder
-        if (node.classList && node.classList.contains('placeholder')) {
-            // If user types a visible character (length 1), replace the placeholder
-            // (Exclude Control, Alt, Meta keys)
-            if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-                e.preventDefault(); // Stop the default character insertion
-
-                // Create a pure text node with the typed character
-                const newText = document.createTextNode(e.key);
-
-                // Replace the placeholder span with the new text node
-                node.parentNode.replaceChild(newText, node);
-
-                // Normalize to clean up adjacent text nodes
-                e.target.normalize();
-
-                // Set the cursor specifically AFTER the new character
-                try {
-                    const range = document.createRange();
-                    range.setStart(newText, 1);
-                    range.collapse(true);
-                    sel.removeAllRanges();
-                    sel.addRange(range);
-                } catch(err) {
-                    // Fallback if normalization merged nodes
-                }
-            }
+        // Show if active AND (empty OR ends with newline)
+        if (isActive && (isEmpty || endsWithNewline)) {
+            btn.style.visibility = 'visible';
+            btn.style.pointerEvents = 'auto';
+        } else {
+            btn.style.visibility = 'hidden';
+            btn.style.pointerEvents = 'none';
         }
-    });
+    }
 
-    // REPLACED LOGIC: Click handler for placeholders and source markers
-    document.addEventListener('click', function(e) {
-        // 1. Handle clicking "Add source" markers
-        if (e.target.closest('.add-source-marker')) {
-            e.preventDefault();
-            openCitationDialog();
-            return;
+    addedSections.add('Lead section');
+    setActiveSection(document.getElementById('leadSectionBlock'));
+    setTimeout(() => articleTitle.focus(), 100);
+
+    // --- SOURCES LOGIC ---
+    function createSourceCard(source, isVerified = false) {
+        const sourceCard = document.createElement('div');
+        sourceCard.className = 'source-card';
+        const iconMap = { 'article': 'article', 'book': 'book', 'globe': 'globe' };
+
+        const verifiedBadge = isVerified ?
+            `<span style="display: inline-flex; align-items: center; gap: 4px; background-color: #eaf3ff; color: #36c; font-size: 11px; font-weight: 500; padding: 2px 6px; border-radius: 2px; margin-left: 8px; vertical-align: middle;">
+                <img src="node_modules/@wikimedia/codex-icons/dist/images/check.svg" alt="" width="10" height="10"> Verified
+             </span>` : '';
+
+        sourceCard.innerHTML = `
+            <div class="source-icon"><img src="node_modules/@wikimedia/codex-icons/dist/images/${iconMap[source.icon] || 'link'}.svg" alt="" width="20" height="20"></div>
+            <div class="source-content">
+                <div class="source-title">${source.title}${verifiedBadge}</div>
+                <div class="source-meta">
+                    <span class="source-type">${source.type}</span>
+                    ${source.publisher ? `<span class="source-publisher"> · ${source.publisher}${source.year ? ` · ${source.year}` : ''}</span>` : ''}
+                </div>
+                <div class="source-actions">
+                    <a href="${source.url}" target="_blank" class="source-action-link">Visit source <img src="node_modules/@wikimedia/codex-icons/dist/images/linkExternal.svg" alt="" width="12" height="12"></a>
+                    <button class="source-action-btn"><img src="node_modules/@wikimedia/codex-icons/dist/images/add.svg" alt="" width="16" height="16"> Add source</button>
+                </div>
+            </div>
+        `;
+        sourceCard.querySelector('.source-action-btn').addEventListener('click', () => citationDialog.style.display = 'none');
+        return sourceCard;
+    }
+
+    function openCitationDialog() {
+        const wikidataSources = mockWikidataSources['Siberian Tiger'] || [];
+        citationSourcesList.innerHTML = '';
+
+        if (userSources.length > 0) {
+            citationSourcesList.innerHTML += '<div class="sources-section-header">Sources you added</div><p class="sources-section-description">At the time of article creation, these sources were added.</p>';
+            const userSourcesContainer = document.createElement('div');
+            userSourcesContainer.className = 'citation-sources-group';
+            userSources.forEach(source => userSourcesContainer.appendChild(createSourceCard(source)));
+            citationSourcesList.appendChild(userSourcesContainer);
+            citationSourcesList.innerHTML += `<div class="source-card add-own-source-card"><div class="source-icon"><img src="node_modules/@wikimedia/codex-icons/dist/images/add.svg" alt="" width="20" height="20"></div><div class="source-content"><div class="source-title">Add more sources</div></div></div><div class="sources-section-separator"></div>`;
         }
 
-        // 2. Handle clicking a placeholder
-        // If user clicks anywhere on a placeholder, force cursor to the START
-        const placeholder = e.target.closest('.placeholder');
-        if (placeholder) {
-            const range = document.createRange();
-            range.setStart(placeholder.firstChild || placeholder, 0);
-            range.collapse(true);
-            const sel = window.getSelection();
-            sel.removeAllRanges();
-            sel.addRange(range);
-        }
-    });
+        citationSourcesList.innerHTML += '<div class="sources-section-header">Community Verified Sources</div><p class="sources-section-description">Reliable sources verified by the Wikipedia community. Choose one to support your text.</p>';
+        const wikidataSourcesContainer = document.createElement('div');
+        wikidataSourcesContainer.className = 'citation-sources-group';
+        wikidataSources.forEach(source => wikidataSourcesContainer.appendChild(createSourceCard(source, true)));
+        citationSourcesList.appendChild(wikidataSourcesContainer);
 
-    // Add Sources screen functionality
-    // Handle "Add another source" button
+        if (userSources.length === 0) {
+            citationSourcesList.innerHTML += `<div class="source-card add-own-source-card"><div class="source-icon"><img src="node_modules/@wikimedia/codex-icons/dist/images/add.svg" alt="" width="20" height="20"></div><div class="source-content"><div class="source-title">Add your own source...</div></div></div>`;
+        }
+
+        if (document.activeElement) document.activeElement.blur();
+        citationDialog.style.display = 'flex';
+    }
+
+    citationDialogCloseBtn.addEventListener('click', () => citationDialog.style.display = 'none');
+    citationDialog.addEventListener('click', (e) => { if (e.target === citationDialog) citationDialog.style.display = 'none'; });
+
     const addAnotherSourceBtn = document.getElementById('addAnotherSourceBtn');
-    addAnotherSourceBtn.addEventListener('click', function() {
+    addAnotherSourceBtn.addEventListener('click', function () {
         const newRow = document.createElement('div');
         newRow.className = 'source-input-row';
         newRow.innerHTML = `
             <div class="cdx-text-input">
                 <input class="cdx-text-input__input" type="url" placeholder="Paste a URL here..." />
-            </div>
-        `;
+                <div class="verification-status" style="display: none;"></div>
+            </div>`;
         sourcesInputContainer.appendChild(newRow);
-
-        // Focus the new input
-        newRow.querySelector('.cdx-text-input__input').focus();
+        const newInput = newRow.querySelector('.cdx-text-input__input');
+        attachVerificationListeners(newInput);
+        newInput.focus();
     });
 
-    // Handle start writing button
-    const startWritingBtn = document.getElementById('startWritingBtn');
-    startWritingBtn.addEventListener('click', function() {
-        // Capture user-added sources from the input fields
+    // --- FAKE VERIFICATION LOGIC ---
+    function attachVerificationListeners(input) {
+        const container = input.closest('.cdx-text-input');
+        const statusDiv = container.querySelector('.verification-status');
+        if (!statusDiv) return;
+
+        let debounceTimer;
+
+        input.addEventListener('input', function () {
+            const url = this.value.trim().toLowerCase();
+
+            // Clear previous timer
+            clearTimeout(debounceTimer);
+
+            if (url && url.length > 5) {
+                // Show checking state immediately or after short delay?
+                // User asked for "self-run check... maybe a little bit of spinner animation"
+
+                debounceTimer = setTimeout(() => {
+                    // Show spinner
+                    statusDiv.style.display = 'flex';
+                    statusDiv.innerHTML = '<div class="verification-spinner"></div><span class="verification-text">Checking source...</span>';
+
+                    // Fake network delay
+                    setTimeout(() => {
+                        // GENERIC VERIFICATION: Verify ANY URL
+                        statusDiv.innerHTML = `
+                            <div class="verification-badge">
+                                <img src="node_modules/@wikimedia/codex-icons/dist/images/check.svg" alt="" width="12" height="12"> 
+                                Community Verified
+                            </div>`;
+                    }, 1500);
+                }, 600); // 600ms debounce before starting check
+            } else {
+                statusDiv.style.display = 'none';
+            }
+        });
+
+        // Auto-format URL on blur
+        input.addEventListener('blur', function () {
+            let val = this.value.trim();
+            if (val && !val.startsWith('http://') && !val.startsWith('https://')) {
+                this.value = 'https://' + val;
+            }
+        });
+    }
+
+    // Attach to existing inputs
+    document.querySelectorAll('.cdx-text-input__input').forEach(attachVerificationListeners);
+
+    document.getElementById('startWritingBtn').addEventListener('click', function () {
         captureUserSources();
         showScreen(3);
-        setTimeout(() => {
-            editorTextarea.focus();
-        }, 100);
+        setTimeout(() => editorTextarea.focus(), 100);
     });
 
-    // Handle skip sources button
-    skipSourcesBtn.addEventListener('click', function() {
+    skipSourcesBtn.addEventListener('click', function () {
         showScreen(3);
-        setTimeout(() => {
-            editorTextarea.focus();
-        }, 100);
+        setTimeout(() => editorTextarea.focus(), 100);
     });
 
-    // Function to capture sources from Screen 2.5
     function captureUserSources() {
         const sourceInputs = sourcesInputContainer.querySelectorAll('.cdx-text-input__input');
         sourceInputs.forEach(input => {
             const url = input.value.trim();
             if (url) {
-                // Create a source object with URL
-                userSources.push({
-                    title: url,
-                    type: 'Website',
-                    url: url,
-                    icon: 'globe'
-                });
+                userSources.push({ title: url, type: 'Website', url: url, icon: 'globe' });
             }
         });
     }
-
-    // Handle next button on add sources screen
-    nextBtn.addEventListener('click', function() {
-        if (screen25.style.display === 'block') {
-            // Collect all source URLs
-            const sourceInputs = sourcesInputContainer.querySelectorAll('.source-url-input');
-            userSources.length = 0; // Clear existing
-
-            sourceInputs.forEach(input => {
-                const url = input.value.trim();
-                if (url) {
-                    userSources.push({
-                        url: url,
-                        title: extractTitleFromURL(url),
-                        type: 'User-added source'
-                    });
-                }
-            });
-
-            showScreen(3);
-            setTimeout(() => {
-                editorTextarea.focus();
-            }, 100);
-        }
-    });
-
-    // Helper function to extract title from URL
-    function extractTitleFromURL(url) {
-        try {
-            const urlObj = new URL(url);
-            return urlObj.hostname + urlObj.pathname;
-        } catch (e) {
-            return url;
-        }
-    }
-
-    // Handle inline placeholder field behavior
-    // When clicking on a placeholder, place cursor at start for immediate typing
-    document.addEventListener('click', function(e) {
-        const placeholder = e.target.closest('.section-textarea .placeholder');
-        if (placeholder && placeholder.contentEditable === 'true') {
-            // If empty, position cursor at start
-            if (placeholder.textContent.trim() === '') {
-                e.preventDefault();
-                placeholder.focus();
-                const range = document.createRange();
-                const sel = window.getSelection();
-                range.setStart(placeholder, 0);
-                range.collapse(true);
-                sel.removeAllRanges();
-                sel.addRange(range);
-            }
-        }
-    });
-
-    // Handle Tab key navigation between placeholder fields
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Tab') {
-            const activeElement = document.activeElement;
-            if (activeElement && activeElement.classList.contains('placeholder')) {
-                const sectionTextarea = activeElement.closest('.section-textarea');
-                if (sectionTextarea) {
-                    const placeholders = Array.from(sectionTextarea.querySelectorAll('.placeholder'));
-                    const currentIndex = placeholders.indexOf(activeElement);
-
-                    if (e.shiftKey) {
-                        // Shift+Tab: go to previous placeholder
-                        if (currentIndex > 0) {
-                            e.preventDefault();
-                            placeholders[currentIndex - 1].focus();
-                        }
-                    } else {
-                        // Tab: go to next placeholder
-                        if (currentIndex < placeholders.length - 1) {
-                            e.preventDefault();
-                            placeholders[currentIndex + 1].focus();
-                        }
-                    }
-                }
-            }
-        }
-    });
-
-    // Prevent default behavior issues with contenteditable placeholder spans
-    // Ensure typing replaces placeholder hint, not appends to it
-    document.addEventListener('input', function(e) {
-        const placeholder = e.target.closest('.section-textarea .placeholder');
-        if (placeholder) {
-            // Remove any lingering placeholder hint that might get inserted as text
-            // This handles edge cases in some browsers
-            const dataPlaceholder = placeholder.getAttribute('data-placeholder');
-            if (dataPlaceholder && placeholder.textContent === dataPlaceholder) {
-                placeholder.textContent = '';
-            }
-        }
-    });
 });

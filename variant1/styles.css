@@ -407,6 +407,11 @@ body {
     width: 100%;
 }
 
+.section-block.active {
+    margin-bottom: var(--size-100);
+    /* Reduce spacing when panel is below */
+}
+
 .section-header-row {
     display: flex;
     align-items: baseline;
@@ -641,7 +646,9 @@ body {
     border: none;
     border-radius: var(--border-radius-base);
     padding: var(--size-150);
-    margin-bottom: var(--size-200);
+    margin-bottom: var(--size-400);
+    /* Match section block spacing */
+    margin-top: var(--size-0);
 }
 
 .editing-section-header {
@@ -1357,7 +1364,7 @@ body {
     }
 }
 
-@media (min-width: var(--min-width-breakpoint-tablet)) {
+@media (min-width: 640px) {
     body {
         background-color: var(--background-color-neutral-subtle);
     }
@@ -1594,18 +1601,113 @@ body {
 /* Make close button minimal and clean */
 .dialog-close-btn {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 44px;
-    height: 44px;
     border: none;
-    border-radius: var(--border-radius-circle);
-    background-color: transparent;
+    background: transparent;
+    color: var(--color-base);
     cursor: pointer;
-    transition: var(--transition-property-base) var(--transition-duration-base);
+    border-radius: var(--border-radius-base);
     flex-shrink: 0;
-    margin: -8px -8px 0 0;
 }
+
+.dialog-close-btn:hover {
+    background-color: var(--background-color-interactive-subtle);
+}
+
+.dialog-close-btn:active {
+    background-color: var(--background-color-interactive-subtle--active);
+}
+
+/* Screen 2.5: Source Input Verification Styles */
+.source-input-row {
+    margin-bottom: var(--size-100);
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-50);
+}
+
+.cdx-text-input {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.cdx-text-input__input {
+    width: 100%;
+    padding: var(--size-75) var(--size-100);
+    /* Space for icon */
+    border: var(--border-width-base) var(--border-style-base) var(--border-color-base);
+    border-radius: var(--border-radius-base);
+    font-size: var(--font-size-medium);
+    font-family: var(--font-family-system-sans);
+    color: var(--color-base);
+    background-color: var(--background-color-base);
+    outline: none;
+    transition: var(--transition-property-base) var(--transition-duration-base);
+    line-height: var(--line-height-medium);
+}
+
+.cdx-text-input__input:focus {
+    border-color: var(--border-color-progressive--focus);
+    box-shadow: inset 0 0 0 1px var(--border-color-progressive--focus);
+}
+
+.cdx-text-input__input::placeholder {
+    color: var(--color-placeholder);
+}
+
+/* Verification Status Container */
+.verification-status {
+    display: flex;
+    align-items: center;
+    min-height: 20px;
+    /* Reserve space or animate height */
+    padding-left: var(--size-50);
+    font-size: var(--font-size-small);
+    margin-top: 4px;
+}
+
+/* Spinner Animation */
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.verification-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--border-color-subtle);
+    border-top: 2px solid var(--color-progressive);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 8px;
+}
+
+.verification-text {
+    color: var(--color-subtle);
+    font-style: italic;
+}
+
+/* Verified Badge */
+.verification-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--color-success);
+    font-size: var(--font-size-small);
+    font-weight: var(--font-weight-bold);
+}
+
+.verification-badge img {
+    display: block;
+}
+
+
 
 .dialog-close-btn:hover {
     background-color: var(--background-color-interactive-subtle);
