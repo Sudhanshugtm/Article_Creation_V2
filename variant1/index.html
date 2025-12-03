@@ -107,46 +107,63 @@
 
             <!-- Screen 2.5: Add Sources (Optional) -->
             <div class="screen" id="screen25" style="display: none;">
-                <h2 class="add-sources-title" id="addSourcesTitle">Add key sources</h2>
-                <p class="add-sources-description">Share sources with reliable information about this topic. This helps
-                    reviewers and readers verify what you write.</p>
+                <div class="screen-content-scrollable">
+                    <h2 class="add-sources-title" id="addSourcesTitle">
+                        Add key sources
+                        <span id="eligibilityBadge" class="eligibility-banner" style="display: none;">
+                            ✨ High Eligibility
+                        </span>
+                    </h2>
+                    <p class="add-sources-description">Sources help reviewers and readers verify what you write.</p>
 
-                <div class="sources-input-container" id="sourcesInputContainer">
-                    <div class="source-input-row">
-                        <div class="cdx-text-input">
-                            <input class="cdx-text-input__input" type="url" placeholder="Paste a URL here..." />
-                            <div class="verification-status" style="display: none;"></div>
+                    <div class="sources-input-container" id="sourcesInputContainer">
+                        <div class="source-input-row">
+                            <div class="cdx-text-input">
+                                <input class="cdx-text-input__input" type="url" placeholder="Paste a URL here..." />
+                                <div class="verification-status" style="display: none;"></div>
+                            </div>
                         </div>
+
+                        <button
+                            class="cdx-button cdx-button--weight-quiet cdx-button--size-small add-another-source-btn"
+                            id="addAnotherSourceBtn">
+                            <span class="cdx-icon cdx-icon--medium">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20">
+                                    <path d="M11 9V4H9v5H4v2h5v5h2v-5h5V9z" />
+                                </svg>
+                            </span>
+                            <span>Add another source</span>
+                        </button>
                     </div>
-                    <div class="source-input-row">
-                        <div class="cdx-text-input">
-                            <input class="cdx-text-input__input" type="url" placeholder="Paste a URL here..." />
-                            <div class="verification-status" style="display: none;"></div>
+
+                    <div class="good-source-tip" id="goodSourceTip">
+                        <div class="good-source-tip-content">
+                            <img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="20"
+                                height="20" class="good-source-icon">
+                            <div class="good-source-text">
+                                <div class="good-source-title">Tips and suggestions</div>
+                                <div class="good-source-subtitle">Quick check what sources work and what won't</div>
+                            </div>
                         </div>
+                        <img src="node_modules/@wikimedia/codex-icons/dist/images/expand.svg" alt="" width="20"
+                            height="20" class="good-source-chevron">
                     </div>
                 </div>
 
-                <button class="cdx-button cdx-button--weight-quiet cdx-button--size-small add-another-source-btn"
-                    id="addAnotherSourceBtn">
-                    <span class="cdx-icon cdx-icon--medium">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20">
-                            <path d="M11 9V4H9v5H4v2h5v5h2v-5h5V9z" />
-                        </svg>
-                    </span>
-                    <span>Add another source</span>
-                </button>
+                <div class="sources-footer">
+                    <div class="sources-actions-container">
+                        <button
+                            class="cdx-button cdx-button--weight-primary cdx-button--action-progressive start-writing-btn"
+                            id="startWritingBtn" disabled>
+                            <span>Start writing</span>
+                        </button>
 
-                <div class="sources-actions-container">
-                    <button
-                        class="cdx-button cdx-button--weight-primary cdx-button--action-progressive start-writing-btn"
-                        id="startWritingBtn">
-                        <span>Start writing</span>
-                    </button>
-
-                    <button class="cdx-button cdx-button--weight-quiet cdx-button--action-progressive skip-sources-btn"
-                        id="skipSourcesBtn">
-                        <span>I'll add sources later</span>
-                    </button>
+                        <button
+                            class="cdx-button cdx-button--weight-quiet cdx-button--action-progressive skip-sources-btn"
+                            id="skipSourcesBtn">
+                            <span>I'll add sources later</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -161,7 +178,8 @@
                                 data-placeholder="Begin writing about Siberian tiger, or type &quot;/&quot; for article outline">
                             </div>
                         </div>
-                        <button class="section-get-contents-btn" id="getContentsBtn">Get suggested contents</button>
+                        <button class="cdx-button cdx-button--action-progressive section-get-contents-btn"
+                            id="getContentsBtn">Get suggested contents</button>
                     </div>
                 </div>
 
@@ -371,6 +389,39 @@
                     </div>
                 </div>
 
+                <!-- Yellow Pages Friction Modal -->
+                <div class="custom-section-dialog" id="yellowPagesModal" style="display: none;">
+                    <div class="dialog-overlay"></div>
+                    <div class="dialog-content">
+                        <div class="dialog-header">
+                            <h2 class="dialog-title">Wait! Wikipedia is not a directory.</h2>
+                            <button class="panel-close-btn" id="yellowPagesCloseBtn" aria-label="Close dialog">
+                                <img src="node_modules/@wikimedia/codex-icons/dist/images/close.svg" alt="" width="20"
+                                    height="20">
+                            </button>
+                        </div>
+                        <div class="dialog-body">
+                            <p style="margin-bottom: 1rem;">Just because a company exists doesn't mean it needs an
+                                article. Does this company have significant coverage in independent news sources?</p>
+                            <div class="eligibility-banner"
+                                style="background-color: var(--background-color-warning-subtle); border-color: var(--color-warning);">
+                                <div class="banner-icon">⚠️</div>
+                                <div class="banner-text">
+                                    <strong>Warning:</strong> Articles about companies are frequently deleted if they
+                                    lack independent sources.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="dialog-footer">
+                            <button class="dialog-btn dialog-btn-secondary" id="yellowPagesCancelBtn">Go back</button>
+                            <button class="dialog-btn dialog-btn-primary" id="yellowPagesProceedBtn">I have good
+                                sources</button>
+                        </div>
+                    </div>
+                </div>
+
+
+
                 <!-- Citation Dialog -->
                 <div class="dialog-overlay" id="citationDialog" style="display: none;">
                     <div class="dialog-container citation-dialog">
@@ -396,9 +447,135 @@
                 </div>
             </div>
         </main>
+
+        <!-- Keyboard Accessory Bar -->
+        <div id="keyboardAccessoryBar" class="keyboard-accessory-bar" style="display: none;">
+            <button id="prevPlaceholderBtn" class="accessory-btn" aria-label="Previous placeholder">
+                <img src="node_modules/@wikimedia/codex-icons/dist/images/previous.svg" alt="Previous" width="20"
+                    height="20">
+            </button>
+            <span class="accessory-label">Navigate Placeholders</span>
+            <button id="nextPlaceholderBtn" class="accessory-btn" aria-label="Next placeholder">
+                <img src="node_modules/@wikimedia/codex-icons/dist/images/next.svg" alt="Next" width="20" height="20">
+            </button>
+        </div>
     </div>
 
-    <script src="script.js"></script>
+    <!-- Good Sources Full Screen Modal -->
+    <div class="good-source-modal" id="goodSourceModal" style="display: none;">
+        <div class="good-source-header">
+            <button class="header-btn" id="goodSourceBackBtn" aria-label="Back">
+                <img src="node_modules/@wikimedia/codex-icons/dist/images/previous.svg" alt="" width="20" height="20">
+            </button>
+            <h1 class="header-title">Good sources</h1>
+            <div style="width: 20px;"></div> <!-- Spacer for centering -->
+        </div>
+
+        <div class="good-source-body">
+            <div class="good-source-content-container">
+                <h2 class="quick-check-heading">Quick check: Is your source...</h2>
+
+                <div class="quick-check-section">
+                    <ul class="quick-check-list fail-list">
+                        <li>
+                            <span class="cdx-icon cdx-icon--medium text-destructive">
+                                <img src="node_modules/@wikimedia/codex-icons/dist/images/close.svg" alt="No" width="20"
+                                    height="20">
+                            </span>
+                            <span class="list-text">The subject's own website?</span>
+                            <span class="check-result">Won't work</span>
+                        </li>
+                        <li>
+                            <span class="cdx-icon cdx-icon--medium text-destructive">
+                                <img src="node_modules/@wikimedia/codex-icons/dist/images/close.svg" alt="No" width="20"
+                                    height="20">
+                            </span>
+                            <span class="list-text">A press release or interview?</span>
+                            <span class="check-result">Won't work</span>
+                        </li>
+                        <li>
+                            <span class="cdx-icon cdx-icon--medium text-destructive">
+                                <img src="node_modules/@wikimedia/codex-icons/dist/images/close.svg" alt="No" width="20"
+                                    height="20">
+                            </span>
+                            <span class="list-text">Social media (LinkedIn/FB)?</span>
+                            <span class="check-result">Won't work</span>
+                        </li>
+                        <li>
+                            <span class="cdx-icon cdx-icon--medium text-destructive">
+                                <img src="node_modules/@wikimedia/codex-icons/dist/images/close.svg" alt="No" width="20"
+                                    height="20">
+                            </span>
+                            <span class="list-text">A blog without editors?</span>
+                            <span class="check-result">Won't work</span>
+                        </li>
+                        <li>
+                            <span class="cdx-icon cdx-icon--medium text-destructive">
+                                <img src="node_modules/@wikimedia/codex-icons/dist/images/close.svg" alt="No" width="20"
+                                    height="20">
+                            </span>
+                            <span class="list-text">Just a passing mention?</span>
+                            <span class="check-result">Won't work</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="quick-check-section">
+                    <h3 class="quick-check-subheading">GOOD SOURCES ARE:</h3>
+                    <ul class="quick-check-list pass-list">
+                        <li>
+                            <span class="cdx-icon cdx-icon--medium text-success">
+                                <img src="node_modules/@wikimedia/codex-icons/dist/images/check.svg" alt="Yes"
+                                    width="20" height="20">
+                            </span>
+                            <span class="list-text">Written by someone with no connection to the subject</span>
+                        </li>
+                        <li>
+                            <span class="cdx-icon cdx-icon--medium text-success">
+                                <img src="node_modules/@wikimedia/codex-icons/dist/images/check.svg" alt="Yes"
+                                    width="20" height="20">
+                            </span>
+                            <span class="list-text">Published by a reputable source with editorial standards</span>
+                        </li>
+                        <li>
+                            <span class="cdx-icon cdx-icon--medium text-success">
+                                <img src="node_modules/@wikimedia/codex-icons/dist/images/check.svg" alt="Yes"
+                                    width="20" height="20">
+                            </span>
+                            <span class="list-text">Substantial and focused on the subject, not just a mention</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="quick-check-section">
+                    <h3 class="quick-check-subheading">EXAMPLES:</h3>
+                    <div class="examples-row">
+                        <span class="cdx-icon cdx-icon--medium text-success">
+                            <img src="node_modules/@wikimedia/codex-icons/dist/images/check.svg" alt="Yes" width="20"
+                                height="20">
+                        </span>
+                        <span class="list-text">BBC, NYT, Nature, Britannica</span>
+                    </div>
+                    <div class="examples-row">
+                        <span class="cdx-icon cdx-icon--medium text-destructive">
+                            <img src="node_modules/@wikimedia/codex-icons/dist/images/close.svg" alt="No" width="20"
+                                height="20">
+                        </span>
+                        <span class="list-text">LinkedIn, Reddit, IMDB, company.com, press releases</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="good-source-footer">
+                <button
+                    class="cdx-button cdx-button--action-progressive cdx-button--weight-primary cdx-button--size-large"
+                    id="goodSourceGotItBtn">
+                    Got it
+                </button>
+            </div>
+        </div>
+
+        <script src="script.js"></script>
 </body>
 
 </html>

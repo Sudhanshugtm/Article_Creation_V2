@@ -115,14 +115,99 @@ document.addEventListener('DOMContentLoaded', function () {
         'Siberian Tiger': [
             { title: 'IUCN Red List entry - Panthera tigris altaica', type: 'Red List entry', publisher: 'IUCN', year: '2010', icon: 'article', url: 'https://www.iucnredlist.org/species/15956/5333650' },
             { title: 'Mammal Species of the World, 3rd ed.', type: 'Reference book', publisher: 'Wilson & Reeder', year: '2005', icon: 'book', url: 'https://www.departments.bucknell.edu/biology/resources/msw3/' },
-            { title: 'Encyclopedia of Life - Panthera tigris tigris', type: 'Online database', publisher: 'eol.org', year: '', icon: 'globe', url: 'https://eol.org/pages/328606' }
+            { title: 'Encyclopedia of Life - Panthera tigris tigris', type: 'Online database', publisher: 'eol.org', year: '', icon: 'globe', url: 'https://eol.org/pages/328606' },
+            { title: 'Tigers of the World: The Science, Politics and Conservation of Panthera tigris', type: 'Book', publisher: 'Elsevier', year: '2009', icon: 'book', url: 'https://books.google.com/books?id=hFqOAAAAQBAJ' },
+            { title: 'Molecular phylogeography and evolutionary history of the tiger (Panthera tigris)', type: 'Journal Article', publisher: 'Molecular Phylogenetics and Evolution', year: '2004', icon: 'article', url: 'https://doi.org/10.1016/j.ympev.2004.05.006' }
         ]
     };
 
+    // ... (existing code) ...
+
+    // --- SUGGESTED SOURCES LOGIC ---
+    let selectedSuggestedSources = [];
+
+    function renderSuggestedSources(sources) {
+        const listContainer = document.getElementById('suggestedSourcesList');
+        if (!listContainer) return;
+
+        listContainer.innerHTML = '';
+        selectedSuggestedSources = [];
+
+        sources.forEach((source, index) => {
+            const item = document.createElement('div');
+            item.className = 'suggested-source-item';
+            item.dataset.index = index;
+            item.innerHTML = `
+                <div class="source-checkbox">
+                    <img src="node_modules/@wikimedia/codex-icons/dist/images/check.svg" alt="" width="14" height="14">
+                </div>
+                <div class="suggested-source-content">
+                    <div class="suggested-source-title">${source.title}</div>
+                    <div class="suggested-source-meta">
+                        <span class="meta-tag">${source.type}</span>
+                        <span>${source.publisher}</span>
+                        ${source.year ? `<span>• ${source.year}</span>` : ''}
+                    </div>
+                </div>
+            `;
+
+            item.addEventListener('click', () => {
+                item.classList.toggle('selected');
+                if (item.classList.contains('selected')) {
+                    selectedSuggestedSources.push(source);
+                } else {
+                    selectedSuggestedSources = selectedSuggestedSources.filter(s => s.url !== source.url);
+                }
+                updateAddSelectedButton();
+            });
+
+            listContainer.appendChild(item);
+        });
+    }
+
+    function updateAddSelectedButton() {
+        const btn = document.getElementById('addSelectedSourcesBtn');
+        const gotItBtn = document.getElementById('goodSourceGotItBtn');
+        if (btn && gotItBtn) {
+            if (selectedSuggestedSources.length > 0) {
+                btn.style.display = 'block';
+                btn.textContent = `Add ${selectedSuggestedSources.length} selected source${selectedSuggestedSources.length > 1 ? 's' : ''}`;
+                gotItBtn.style.display = 'none';
+            } else {
+                btn.style.display = 'none';
+                gotItBtn.style.display = 'block';
+            }
+        }
+    }
+
+    const addSelectedSourcesBtn = document.getElementById('addSelectedSourcesBtn');
+    if (addSelectedSourcesBtn) {
+        addSelectedSourcesBtn.addEventListener('click', () => {
+            const editorTextarea = document.getElementById('editorTextarea');
+            let references = '';
+
+            selectedSuggestedSources.forEach(source => {
+                // Simple wikitext reference format
+                const refContent = `${source.title}, ${source.publisher} (${source.year || 'n.d.'}). Available at: ${source.url}`;
+                references += `<ref>${refContent}</ref> `;
+            });
+
+            if (editorTextarea) {
+                // Append references to existing content or start new
+                editorTextarea.value += (editorTextarea.value ? '\n\n' : '') + references;
+                // Trigger input event to save state if needed
+                editorTextarea.dispatchEvent(new Event('input'));
+            }
+
+            document.getElementById('goodSourceModal').style.display = 'none';
+            showScreen(3);
+        });
+    }
+
     const mockTopics = {
         'siberian tiger': [
-            { title: 'Siberian tiger', description: 'subspecies of tiger', thumbnail: 'assets/images/siberian-tiger-1-thumb.jpg' },
-            { title: 'Siberian tiger', description: 'Sculpture by Kurt Bauer in Hamburg', thumbnail: 'assets/images/siberian-tiger-2-thumb.jpg' },
+            { title: 'Siberian Tiger', description: 'subspecies of tiger', thumbnail: 'assets/images/siberian-tiger-1-thumb.jpg' },
+            { title: 'Siberian Tiger', description: 'Sculpture by Kurt Bauer in Hamburg', thumbnail: 'assets/images/siberian-tiger-2-thumb.jpg' },
             { title: 'Siberian Tiger Park', description: 'zoological park in Harbin, China', thumbnail: 'assets/images/siberian-tiger-3-thumb.jpg' },
             { title: 'Siberian Tiger Re-population Project', description: 'reestablishment of Siberian tiger populations', thumbnail: 'assets/images/siberian-tiger-4-thumb.jpg' }
         ]
@@ -141,6 +226,10 @@ document.addEventListener('DOMContentLoaded', function () {
         people: [
             { id: 'biography', name: 'Biography' }, { id: 'artist', name: 'Artist' }, { id: 'politician', name: 'Politician' },
             { id: 'athlete', name: 'Athlete' }, { id: 'scientist', name: 'Scientist' }, { id: 'writer', name: 'Writer' }
+        ],
+        organizations: [
+            { id: 'company', name: 'Company' }, { id: 'nonprofit', name: 'Non-profit' }, { id: 'school', name: 'School' },
+            { id: 'government', name: 'Government agency' }
         ]
     };
 
@@ -156,6 +245,16 @@ document.addEventListener('DOMContentLoaded', function () {
         nextBtn.style.display = 'block';
         nextBtn.classList.remove('btn-progressive');
 
+        // Handle main content scrolling
+        const mainContent = document.querySelector('.main-content');
+        if (mainContent) {
+            if (screenNum === 2.5) {
+                mainContent.classList.add('no-scroll');
+            } else {
+                mainContent.classList.remove('no-scroll');
+            }
+        }
+
         if (screenNum === 1) {
             screen1.style.display = 'block';
             headerTitle.style.display = 'block';
@@ -165,12 +264,60 @@ document.addEventListener('DOMContentLoaded', function () {
             headerTitle.style.display = 'block';
             headerTitle.textContent = 'New article';
         } else if (screenNum === 2.5) {
-            screen25.style.display = 'block';
+            screen25.style.display = 'grid';
             headerTitle.style.display = 'block';
             headerTitle.textContent = 'Add sources';
             nextBtn.style.display = 'none';
             const addSourcesTitle = document.getElementById('addSourcesTitle');
             addSourcesTitle.textContent = currentArticleTitle ? `Add key sources for "${currentArticleTitle}"` : 'Add key sources';
+
+            // Check for Suggested Sources (Siberian Tiger)
+            const goodSourceTip = document.getElementById('goodSourceTip');
+            const goodSourceTitle = goodSourceTip.querySelector('.good-source-title');
+            const goodSourceSubtitle = goodSourceTip.querySelector('.good-source-subtitle');
+            const suggestedSourcesList = document.getElementById('suggestedSourcesList');
+            const principlesList = document.querySelector('.good-source-principles-list');
+            const modalHeading = document.querySelector('.good-source-heading');
+            const modalIntro = document.querySelector('.good-source-intro');
+            const divider = document.getElementById('goodSourceDivider');
+            const suggestionsHeading = document.getElementById('suggestionsHeading');
+
+            // Default State (Always show principles)
+            if (principlesList) principlesList.style.display = 'block';
+            if (modalHeading) modalHeading.textContent = 'What makes a good source?';
+            if (modalIntro) modalIntro.textContent = 'Good sources are reliable, independent, and published. They provide evidence for the information in an article.';
+
+            if (currentArticleTitle === 'Siberian Tiger' && mockWikidataSources['Siberian Tiger']) {
+                // Update Trigger Card
+                goodSourceTip.classList.add('has-suggestions');
+                goodSourceTitle.textContent = 'Tips and suggestions';
+                goodSourceSubtitle.textContent = 'Quick check what sources work and what won\'t';
+
+                // Update Modal Content
+                if (suggestedSourcesList) {
+                    renderSuggestedSources(mockWikidataSources['Siberian Tiger']);
+                    suggestedSourcesList.style.display = 'block';
+                }
+
+                // Show Divider and Suggestions Heading
+                if (divider) divider.style.display = 'block';
+                if (suggestionsHeading) {
+                    suggestionsHeading.style.display = 'block';
+                    suggestionsHeading.textContent = `Suggestions for ${currentArticleTitle}`;
+                }
+
+            } else {
+                // Reset Trigger Card
+                goodSourceTip.classList.remove('has-suggestions');
+                goodSourceTitle.textContent = 'Tips and suggestions';
+                goodSourceSubtitle.textContent = 'Quick check what sources work and what won\'t';
+
+                // Hide Suggestions Content
+                if (suggestedSourcesList) suggestedSourcesList.style.display = 'none';
+                if (divider) divider.style.display = 'none';
+                if (suggestionsHeading) suggestionsHeading.style.display = 'none';
+            }
+
         } else if (screenNum === 3) {
             screen3.style.display = 'block';
             headerDivider.style.display = 'block';
@@ -200,6 +347,27 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function handleCategoryClick(category) {
         currentCategory = category.id;
+
+        // Check for Yellow Pages Friction (Organization -> Company)
+        if (category.id === 'company' || category.title === 'Company' || category.name === 'Company') {
+            const yellowPagesModal = document.getElementById('yellowPagesModal');
+            yellowPagesModal.style.display = 'flex';
+
+            // Handle Modal Buttons
+            document.getElementById('yellowPagesCancelBtn').onclick = () => {
+                yellowPagesModal.style.display = 'none';
+            };
+            document.getElementById('yellowPagesCloseBtn').onclick = () => {
+                yellowPagesModal.style.display = 'none';
+            };
+
+            document.getElementById('yellowPagesProceedBtn').onclick = () => {
+                yellowPagesModal.style.display = 'none';
+                showScreen(2.5); // Proceed to sources
+            };
+            return;
+        }
+
         if (categories[category.id]) {
             typeSelectionTitle.textContent = `What kind of ${category.name.toLowerCase()}?`;
             document.querySelector('.type-selection-description').textContent = `You've selected '${category.name.toLowerCase()}'. Now choose a more specific category.`;
@@ -235,6 +403,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 li.addEventListener('click', function () {
                     currentArticleTitle = topic.title;
+                    // MOCK LOGIC: If it's the tiger, show the positive signal
+                    const badge = document.getElementById('eligibilityBadge');
+                    if (topic.title.includes('Siberian tiger')) {
+                        badge.style.display = 'inline-flex';
+                        // Ensure it has the base class plus any specific styling if needed
+                        badge.className = 'eligibility-banner';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+
                     showScreen(2.5);
                 });
                 topicList.appendChild(li);
@@ -267,20 +445,55 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    nextBtn.addEventListener('click', function () {
-        if (screen25.style.display === 'block') {
-            captureUserSources();
-            showScreen(3);
-            setTimeout(() => editorTextarea.focus(), 100);
-            return;
-        }
 
-        const title = articleTitle.value.trim();
-        if (title) {
-            console.log('Article title:', title);
-            alert('Next screen coming soon! Title: ' + title);
-        } else {
-            alert('Please enter an article title');
+
+    nextBtn.addEventListener('click', function () {
+        if (screen1.style.display === 'block') {
+            const title = articleTitle.value.trim();
+            if (title) {
+                currentArticleTitle = title;
+                showTopicMatching(title);
+            }
+        } else if (screen2.style.display === 'block') {
+            // Should be handled by category selection
+        } else if (screen25.style.display === 'grid') {
+            // ELIGIBILITY CHECK: Intercept transition to editor
+            // Check if we have at least one "Green" source
+            // We need to check the inputs in #sourcesInputContainer
+            const inputs = document.querySelectorAll('.cdx-text-input__input');
+            let hasGoodSource = false;
+
+            inputs.forEach(input => {
+                const val = input.value.toLowerCase();
+                if (val.includes('bbc.com') || val.includes('nytimes.com') || val.includes('nature.com')) {
+                    hasGoodSource = true;
+                }
+            });
+
+            if (hasGoodSource) {
+                // FAST TRACK: High confidence
+                showScreen(3);
+            } else {
+                // SLOW TRACK: Show Eligibility Modal
+                const eligibilityModal = document.getElementById('eligibilityModal');
+                eligibilityModal.style.display = 'flex';
+
+                // Handle Modal Buttons
+                document.getElementById('eligibilityAddSourceBtn').onclick = () => {
+                    eligibilityModal.style.display = 'none';
+                    // Focus on the first empty input or add new one
+                    const emptyInput = Array.from(inputs).find(i => !i.value);
+                    if (emptyInput) emptyInput.focus();
+                };
+                document.getElementById('eligibilityModalCloseBtn').onclick = () => {
+                    eligibilityModal.style.display = 'none';
+                };
+
+                document.getElementById('eligibilityProceedBtn').onclick = () => {
+                    eligibilityModal.style.display = 'none';
+                    showScreen(3); // Proceed anyway
+                };
+            }
         }
     });
 
@@ -465,6 +678,144 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    // GLOBAL Handler for Keyboard Navigation (Tab to next placeholder)
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Tab') {
+            const sel = window.getSelection();
+            if (!sel.rangeCount) return;
+
+            // Only hijack tab if we are in an editor
+            const editor = sel.anchorNode.nodeType === 3
+                ? sel.anchorNode.parentElement.closest('[contenteditable="true"]')
+                : sel.anchorNode.closest('[contenteditable="true"]');
+
+            if (!editor) return;
+
+            e.preventDefault(); // Stop normal tab behavior
+
+            const placeholders = Array.from(editor.querySelectorAll('.placeholder'));
+            const anchor = sel.anchorNode;
+
+            // 1. Check if we are currently inside a placeholder
+            const currentIndex = placeholders.findIndex(p => p.contains(anchor) || p === anchor);
+
+            let nextPlaceholder;
+            if (currentIndex !== -1) {
+                // We are in a placeholder, go to next
+                nextPlaceholder = placeholders[currentIndex + 1];
+            } else {
+                // We are not in a placeholder, find first one after cursor
+                nextPlaceholder = placeholders.find(p =>
+                    (anchor.compareDocumentPosition(p) & Node.DOCUMENT_POSITION_FOLLOWING)
+                );
+            }
+
+            if (nextPlaceholder) {
+                setCursorToStart(nextPlaceholder.firstChild || nextPlaceholder);
+            }
+        }
+    });
+
+
+
+    // Double-Spacebar Navigation Logic (using input event for better mobile support)
+    let lastSpaceTime = 0;
+
+    document.addEventListener('input', function (e) {
+        // Check for space or Android's double-space-to-period conversion (". ")
+        // Also check if the input is a period that replaced a space (common in some IMEs)
+        const isSpace = e.data === ' ';
+        const isAndroidDoubleSpace = e.data === '. ';
+        const isPeriod = e.data === '.';
+
+        if (isSpace || isAndroidDoubleSpace || isPeriod) {
+            const currentTime = new Date().getTime();
+            const timeDiff = currentTime - lastSpaceTime;
+
+            // If it's a period, we only consider it a double-space action if it was very quick
+            // and likely replaced the previous space
+
+            if (timeDiff < 500) { // Increased threshold for mobile
+                const sel = window.getSelection();
+                if (!sel.rangeCount) return;
+
+                // Only hijack if in an editor
+                const editor = e.target.closest('[contenteditable="true"]');
+
+                if (!editor) return;
+
+                // We need to undo the character insertion (space or ". ")
+                // AND potentially the previous space if it was part of the gesture.
+
+                // 1. Undo the current action (reverts ". " or " ")
+                document.execCommand('undo');
+
+                // 2. Check if the character before the caret is now a space (the first tap)
+                // We need to check the text content around the caret
+                const range = sel.getRangeAt(0);
+                const startContainer = range.startContainer;
+                const startOffset = range.startOffset;
+
+                if (startContainer.nodeType === 3 && startOffset > 0) {
+                    const text = startContainer.textContent;
+                    const charBefore = text[startOffset - 1];
+
+                    if (charBefore === ' ') {
+                        // Remove the preceding space as well
+                        const deleteRange = document.createRange();
+                        deleteRange.setStart(startContainer, startOffset - 1);
+                        deleteRange.setEnd(startContainer, startOffset);
+                        deleteRange.deleteContents();
+                    }
+                }
+
+                // Find placeholders
+                const placeholders = Array.from(editor.querySelectorAll('.placeholder'));
+                const anchor = sel.anchorNode;
+
+                let nextPlaceholder;
+
+                // Check if we are currently inside a placeholder
+                const currentIndex = placeholders.findIndex(p => p.contains(anchor) || p === anchor);
+
+                if (currentIndex !== -1) {
+                    // Go to next
+                    nextPlaceholder = placeholders[currentIndex + 1];
+                } else {
+                    // Find first after cursor
+                    nextPlaceholder = placeholders.find(p =>
+                        (anchor.compareDocumentPosition(p) & Node.DOCUMENT_POSITION_FOLLOWING)
+                    );
+                }
+
+                // LOOPING LOGIC: If no next placeholder found, wrap to the first one
+                if (!nextPlaceholder && placeholders.length > 0) {
+                    nextPlaceholder = placeholders[0];
+                }
+
+                if (nextPlaceholder) {
+                    // Move to next placeholder
+                    setCursorToStart(nextPlaceholder.firstChild || nextPlaceholder);
+
+                    // Reset timer
+                    lastSpaceTime = 0;
+                } else {
+                    // If no next placeholder (and no looping? but we added looping), 
+                    // we just let the characters stay?
+                    // Or we still consume them?
+                    // If looping is active, we ALWAYS have a nextPlaceholder (unless list is empty).
+                    // If list is empty, we do nothing.
+                    lastSpaceTime = currentTime;
+                }
+            } else {
+                lastSpaceTime = currentTime;
+            }
+        } else {
+            // Reset if any other input occurs
+            lastSpaceTime = 0;
+        }
+    });
+
     function handleInsertSuggestion(suggestionTitle, sectionName) {
         let targetTextarea;
 
@@ -485,7 +836,14 @@ document.addEventListener('DOMContentLoaded', function () {
         const isContentEditable = targetTextarea.contentEditable === 'true';
 
         if (isContentEditable) {
-            const currentContent = targetTextarea.innerHTML;
+            let currentContent = targetTextarea.innerHTML;
+
+            // Remove trailing slash if present (handling potential HTML tags wrapping it)
+            // This allows the template to replace the slash command
+            if (currentContent.match(/\/\s*(?:<\/[^>]+>\s*)*$/)) {
+                currentContent = currentContent.replace(/\/\s*((?:<\/[^>]+>\s*)*)$/, '$1');
+            }
+
             const prefix = currentContent && currentContent.trim() !== '' ? '<br><br>' : '';
             // Add double break at the end to create empty line below
             const suffix = '<br><br>';
@@ -662,6 +1020,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const leadSection = document.getElementById('leadSectionBlock');
             setActiveSection(leadSection);
 
+            updateEditingPanelContent('Lead section');
             editingSectionPanel.style.display = 'block';
             gettingStartedPanel.style.display = 'none';
         }
@@ -941,7 +1300,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 <input class="cdx-text-input__input" type="url" placeholder="Paste a URL here..." />
                 <div class="verification-status" style="display: none;"></div>
             </div>`;
-        sourcesInputContainer.appendChild(newRow);
+        sourcesInputContainer.insertBefore(newRow, addAnotherSourceBtn);
         const newInput = newRow.querySelector('.cdx-text-input__input');
         attachVerificationListeners(newInput);
         newInput.focus();
@@ -958,6 +1317,10 @@ document.addEventListener('DOMContentLoaded', function () {
         input.addEventListener('input', function () {
             const url = this.value.trim().toLowerCase();
 
+            // Reset status to pending on input and update button
+            this.dataset.verificationStatus = 'pending';
+            updateStartWritingButtonState();
+
             // Clear previous timer
             clearTimeout(debounceTimer);
 
@@ -972,16 +1335,58 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     // Fake network delay
                     setTimeout(() => {
-                        // GENERIC VERIFICATION: Verify ANY URL
-                        statusDiv.innerHTML = `
-                            <div class="verification-badge">
-                                <img src="node_modules/@wikimedia/codex-icons/dist/images/check.svg" alt="" width="12" height="12"> 
-                                Community Verified
-                            </div>`;
+                        const urlLower = url.toLowerCase();
+
+                        if (urlLower.includes('linkedin.com') || urlLower.includes('facebook.com')) {
+                            // 🔴 RED STATE: The Interceptor
+                            input.classList.add('input-error');
+                            input.dataset.verificationStatus = 'invalid'; // Mark as invalid
+                            statusDiv.innerHTML = `
+                                <div class="verification-badge badge-error">
+                                    <img src="node_modules/@wikimedia/codex-icons/dist/images/alert.svg" alt="" width="12" height="12">
+                                    Non-Independent Source
+                                </div>
+                                <div class="interceptor-tooltip">
+                                    Social media profiles cannot be used to prove notability. Try finding a news article instead.
+                                </div>`;
+                        }
+                        else if (urlLower.includes('bbc.com') || urlLower.includes('nytimes.com') || urlLower.includes('nature.com')) {
+                            // 🟢 GREEN STATE: Good source - no message needed
+                            input.classList.remove('input-error');
+                            input.dataset.verificationStatus = 'valid'; // Mark as valid
+                            statusDiv.style.display = 'none';
+                            statusDiv.innerHTML = '';
+                        }
+                        else {
+                            // Unknown source - gentle note with link to guidelines
+                            input.classList.remove('input-error');
+                            input.dataset.verificationStatus = 'valid'; // Mark as valid (unknowns are allowed to proceed)
+                            statusDiv.innerHTML = `
+                                <div class="verification-badge badge-unknown">
+                                    <span class="cdx-icon cdx-icon--small">
+                                        <img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="" width="16" height="16">
+                                    </span>
+                                    <a href="#" class="guidelines-link">Check it meets the guidelines</a>
+                                </div>`;
+                            // Attach click handler to open Good Sources modal
+                            const guidelinesLink = statusDiv.querySelector('.guidelines-link');
+                            if (guidelinesLink) {
+                                guidelinesLink.addEventListener('click', (e) => {
+                                    e.preventDefault();
+                                    const goodSourceModal = document.getElementById('goodSourceModal');
+                                    if (goodSourceModal) goodSourceModal.style.display = 'flex';
+                                });
+                            }
+                        }
+                        // Update button state after verification is complete
+                        updateStartWritingButtonState();
                     }, 1500);
                 }, 600); // 600ms debounce before starting check
             } else {
                 statusDiv.style.display = 'none';
+                input.classList.remove('input-error');
+                input.dataset.verificationStatus = 'pending'; // Too short/invalid format
+                updateStartWritingButtonState();
             }
         });
 
@@ -996,6 +1401,26 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Attach to existing inputs
     document.querySelectorAll('.cdx-text-input__input').forEach(attachVerificationListeners);
+
+    // --- START WRITING BUTTON STATE MANAGEMENT ---
+    const startWritingBtn = document.getElementById('startWritingBtn');
+
+    function updateStartWritingButtonState() {
+        const sourceInputs = sourcesInputContainer.querySelectorAll('.cdx-text-input__input');
+        let hasValidSource = false;
+
+        sourceInputs.forEach(input => {
+            // Only enable if verification has completed and status is valid
+            if (input.dataset.verificationStatus === 'valid') {
+                hasValidSource = true;
+            }
+        });
+
+        startWritingBtn.disabled = !hasValidSource;
+    }
+
+    // Listen for input changes on all source fields
+    // sourcesInputContainer.addEventListener('input', updateStartWritingButtonState); // Removed global listener, handled in attachVerificationListeners
 
     document.getElementById('startWritingBtn').addEventListener('click', function () {
         captureUserSources();
@@ -1017,4 +1442,39 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
+    // --- GOOD SOURCES MODAL LOGIC ---
+    const goodSourceTip = document.getElementById('goodSourceTip');
+    const goodSourceModal = document.getElementById('goodSourceModal');
+    const goodSourceBackBtn = document.getElementById('goodSourceBackBtn');
+    const goodSourceGotItBtn = document.getElementById('goodSourceGotItBtn');
+
+    if (goodSourceTip) {
+        goodSourceTip.addEventListener('click', () => {
+            goodSourceModal.style.display = 'flex';
+        });
+    }
+
+    if (goodSourceBackBtn) {
+        goodSourceBackBtn.addEventListener('click', () => {
+            goodSourceModal.style.display = 'none';
+        });
+    }
+
+    if (goodSourceGotItBtn) {
+        goodSourceGotItBtn.addEventListener('click', () => {
+            goodSourceModal.style.display = 'none';
+        });
+    }
+
+    // Toggle Good Source Cards
+    const goodSourceCards = document.querySelectorAll('.good-source-card');
+    goodSourceCards.forEach(card => {
+        const header = card.querySelector('.good-source-card-header');
+        if (header) {
+            header.addEventListener('click', () => {
+                // Toggle current card
+                card.classList.toggle('collapsed');
+            });
+        }
+    });
 });
