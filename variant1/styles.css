@@ -1760,7 +1760,19 @@ body {
 }
 
 .sources-actions-container {
-    /* Always visible */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--size-150);
+}
+
+.skip-sources-link {
+    color: var(--color-base);
+    font-size: var(--font-size-small);
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
 }
 
 .sources-tip-icon {
@@ -1785,9 +1797,6 @@ body {
 /* Desktop alignment for action buttons */
 @media (min-width: 768px) {
     .sources-actions-container {
-        display: flex;
-        align-items: center;
-        gap: var(--size-200);
         max-width: 600px;
     }
 
