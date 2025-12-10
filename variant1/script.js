@@ -3,234 +3,6 @@
 
 document.addEventListener('DOMContentLoaded', function () {
 
-    // --- WIKIDATA & WIKIPEDIA API LAYER ---
-    const WikidataAPI = {
-        baseUrl: 'https://www.wikidata.org/w/api.php',
-
-        // Step A: Search entities by label/alias
-        async searchEntities(query, language = 'en', limit = 7) {
-            const params = new URLSearchParams({
-                action: 'wbsearchentities',
-                search: query,
-                language: language,
-                limit: limit.toString(),
-                format: 'json',
-                origin: '*'
-            });
-
-            try {
-                const response = await fetch(`${this.baseUrl}?${params}`);
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const data = await response.json();
-                return { success: true, results: data.search || [] };
-            } catch (error) {
-                console.error('Wikidata search error:', error);
-                return { success: false, error: error.message, results: [] };
-            }
-        },
-
-        // Step C: Get entity details (sitelinks, P31 claims)
-        async getEntityDetails(qid) {
-            const params = new URLSearchParams({
-                action: 'wbgetentities',
-                ids: qid,
-                props: 'sitelinks|claims|labels|descriptions',
-                sitefilter: 'enwiki',
-                format: 'json',
-                origin: '*'
-            });
-
-            try {
-                const response = await fetch(`${this.baseUrl}?${params}`);
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const data = await response.json();
-                const entity = data.entities?.[qid];
-                if (!entity) return { success: false, error: 'Entity not found' };
-
-                // Extract P31 (instance of) values
-                const p31Claims = entity.claims?.P31 || [];
-                const instanceOf = p31Claims.map(claim =>
-                    claim.mainsnak?.datavalue?.value?.id
-                ).filter(Boolean);
-
-                // Check for enwiki sitelink
-                const enwikiTitle = entity.sitelinks?.enwiki?.title || null;
-
-                return {
-                    success: true,
-                    qid: qid,
-                    label: entity.labels?.en?.value || qid,
-                    description: entity.descriptions?.en?.value || '',
-                    enwikiTitle: enwikiTitle,
-                    instanceOf: instanceOf,
-                    hasLiveArticle: !!enwikiTitle
-                };
-            } catch (error) {
-                console.error('Wikidata entity fetch error:', error);
-                return { success: false, error: error.message };
-            }
-        }
-    };
-
-    const WikipediaAPI = {
-        baseUrl: 'https://en.wikipedia.org/w/api.php',
-        restBaseUrl: 'https://en.wikipedia.org/api/rest_v1',
-
-        // Fetch thumbnails for multiple titles at once
-        async getThumbnails(titles, size = 80) {
-            if (!titles || titles.length === 0) return {};
-
-            const params = new URLSearchParams({
-                action: 'query',
-                titles: titles.join('|'),
-                prop: 'pageimages',
-                pithumbsize: size.toString(),
-                format: 'json',
-                origin: '*'
-            });
-
-            try {
-                const response = await fetch(`${this.baseUrl}?${params}`);
-                if (!response.ok) return {};
-                const data = await response.json();
-                const pages = data.query?.pages || {};
-
-                // Map titles to thumbnails
-                const thumbnails = {};
-                Object.values(pages).forEach(page => {
-                    if (page.thumbnail?.source) {
-                        thumbnails[page.title] = page.thumbnail.source;
-                    }
-                });
-                return thumbnails;
-            } catch (error) {
-                console.error('Wikipedia thumbnail fetch error:', error);
-                return {};
-            }
-        },
-
-        // Fetch a single thumbnail using REST API (higher quality)
-        async getThumbnailREST(title, size = 80) {
-            try {
-                const encodedTitle = encodeURIComponent(title.replace(/ /g, '_'));
-                const response = await fetch(
-                    `${this.restBaseUrl}/page/summary/${encodedTitle}`,
-                    { headers: { 'Accept': 'application/json' } }
-                );
-                if (!response.ok) return null;
-                const data = await response.json();
-                return data.thumbnail?.source || null;
-            } catch (error) {
-                return null;
-            }
-        },
-
-        // Step D: Check if draft exists
-        async checkDraftExists(title) {
-            const draftTitle = `Draft:${title}`;
-            const params = new URLSearchParams({
-                action: 'query',
-                titles: draftTitle,
-                format: 'json',
-                origin: '*'
-            });
-
-            try {
-                const response = await fetch(`${this.baseUrl}?${params}`);
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const data = await response.json();
-                const pages = data.query?.pages || {};
-                const pageId = Object.keys(pages)[0];
-
-                // If pageId is -1, the draft doesn't exist
-                const exists = pageId && pageId !== '-1' && !pages[pageId].missing;
-
-                return {
-                    success: true,
-                    exists: exists,
-                    draftTitle: draftTitle,
-                    pageId: exists ? pageId : null
-                };
-            } catch (error) {
-                console.error('Wikipedia draft check error:', error);
-                return { success: false, error: error.message, exists: false };
-            }
-        },
-
-        // Check if mainspace article exists
-        async checkArticleExists(title) {
-            const params = new URLSearchParams({
-                action: 'query',
-                titles: title,
-                format: 'json',
-                origin: '*'
-            });
-
-            try {
-                const response = await fetch(`${this.baseUrl}?${params}`);
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const data = await response.json();
-                const pages = data.query?.pages || {};
-                const pageId = Object.keys(pages)[0];
-
-                const exists = pageId && pageId !== '-1' && !pages[pageId].missing;
-
-                return {
-                    success: true,
-                    exists: exists,
-                    title: title,
-                    pageId: exists ? pageId : null
-                };
-            } catch (error) {
-                console.error('Wikipedia article check error:', error);
-                return { success: false, error: error.message, exists: false };
-            }
-        }
-    };
-
-    // Step B: Keyword inference patterns (fallback when Wikidata returns 0 results)
-    const KeywordInference = {
-        patterns: {
-            company: /(LLC|Inc\.?|Corp\.?|Ltd\.?|Group|Holdings|GmbH|S\.A\.|PLC|Co\.|Company|Enterprises?|Solutions?|Technologies?|Services?)$/i,
-            person: /^(Dr\.?|Prof\.?|Mr\.?|Mrs\.?|Ms\.?|Sir|Dame|Lord|Lady)\s/i
-        },
-
-        analyze(title) {
-            if (this.patterns.company.test(title)) {
-                return { taxonomy: 'COMPANY', route: 'coi', confidence: 'inferred' };
-            }
-            if (this.patterns.person.test(title)) {
-                return { taxonomy: 'BIO', route: 'sandbox', confidence: 'inferred' };
-            }
-            return { taxonomy: 'GENERAL', route: 'notability', confidence: 'none' };
-        }
-    };
-
-    // Taxonomy mapping: Wikidata Q-IDs to routes
-    const TaxonomyMapping = {
-        // P31 (instance of) value mappings
-        'Q5': { taxonomy: 'BIO', route: 'sandbox', label: 'Person' },           // Human
-        'Q16521': { taxonomy: 'SPECIES', route: 'species', label: 'Species' },  // Taxon
-        'Q4830453': { taxonomy: 'COMPANY', route: 'coi', label: 'Business' },   // Business
-        'Q43229': { taxonomy: 'COMPANY', route: 'coi', label: 'Organization' }, // Organization
-        'Q1190554': { taxonomy: 'EVENT', route: 'event', label: 'Event' },      // Occurrence
-        'Q1656682': { taxonomy: 'EVENT', route: 'event', label: 'Event' },      // Event
-        'Q7889': { taxonomy: 'CREATIVE', route: 'standard', label: 'Video game' },
-        'Q11424': { taxonomy: 'CREATIVE', route: 'standard', label: 'Film' },
-        'Q7725634': { taxonomy: 'CREATIVE', route: 'standard', label: 'Literary work' },
-        'Q482994': { taxonomy: 'CREATIVE', route: 'standard', label: 'Album' },
-
-        // Get taxonomy from P31 values array
-        getTaxonomy(instanceOfArray) {
-            for (const qid of instanceOfArray) {
-                if (this[qid]) {
-                    return this[qid];
-                }
-            }
-            return { taxonomy: 'GENERAL', route: 'standard', label: 'General' };
-        }
-    };
-
     // --- ELEMENT REFERENCES ---
     const articleTitle = document.getElementById('articleTitle');
     const closeBtn = document.getElementById('closeBtn');
@@ -241,31 +13,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const screen1 = document.getElementById('screen1');
     const screen2 = document.getElementById('screen2');
     const screen25 = document.getElementById('screen25');
-    const screen275 = document.getElementById('screen275');
     const screen3 = document.getElementById('screen3');
-
-    // Gate modal elements
-    const gateModal = document.getElementById('gateModal');
-    const gateModalIcon = document.getElementById('gateModalIcon');
-    const gateModalHeader = document.getElementById('gateModalHeader');
-    const gateModalBody = document.getElementById('gateModalBody');
-    const gateBLPOptions = document.getElementById('gateBLPOptions');
-    const gateCOIOptions = document.getElementById('gateCOIOptions');
-    const gateExpansionSuggestion = document.getElementById('gateExpansionSuggestion');
-    const gateInfoBox = document.getElementById('gateInfoBox');
-    const gateInfoText = document.getElementById('gateInfoText');
-    const gatePrimaryBtn = document.getElementById('gatePrimaryBtn');
-    const gateSecondaryBtn = document.getElementById('gateSecondaryBtn');
-
-    // Flag to track if user is creating a new topic (vs selecting existing)
-    let isNewTopic = false;
-
-    // Guidance screen elements
-    const advisoryLabel = document.getElementById('advisoryLabel');
-    const advisoryText = document.getElementById('advisoryText');
-    const wikitextContent = document.getElementById('wikitextContent');
-    const copyWikitextBtn = document.getElementById('copyWikitextBtn');
-    const guidanceContinueBtn = document.getElementById('guidanceContinueBtn');
     const sourcesInputContainer = document.getElementById('sourcesInputContainer');
     const skipSourcesBtn = document.getElementById('skipSourcesBtn');
     const typeSelectionTitle = document.getElementById('typeSelectionTitle');
@@ -274,10 +22,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const editorTextarea = document.getElementById('editorTextarea');
     const panelCloseBtn = document.getElementById('panelCloseBtn');
     const gettingStartedPanel = document.getElementById('gettingStartedPanel');
-    // COMMENTED OUT: Templates/suggestions feature
-    // const getContentsBtn = document.getElementById('getContentsBtn');
-    // const editingSectionPanel = document.getElementById('editingSectionPanel');
-    // const editingPanelCloseBtn = document.getElementById('editingPanelCloseBtn');
+    const getContentsBtn = document.getElementById('getContentsBtn');
+    const editingSectionPanel = document.getElementById('editingSectionPanel');
+    const editingPanelCloseBtn = document.getElementById('editingPanelCloseBtn');
     const articleOutlinePanel = document.getElementById('articleOutlinePanel');
     const outlinePanelCloseBtn = document.getElementById('outlinePanelCloseBtn');
     const viewOutlineBtn = document.querySelector('.view-outline-btn');
@@ -310,12 +57,6 @@ document.addEventListener('DOMContentLoaded', function () {
     let citationCounter = 0;
     const wikidataCitations = []; // Added missing initialization
 
-    // New state for Wikidata-driven flow
-    let selectedEntity = null;        // The Q-item selected by user
-    let entityTaxonomy = null;        // Taxonomy determined from P31
-    let lastSearchResults = [];       // Cache of search results for disambiguation
-    let isApiAvailable = true;        // Flag for API availability (graceful degradation)
-
     // --- DATA (Mocks) ---
     const sectionOrder = ['Lead section', 'Characteristics', 'Distribution and habitat', 'Ecology and behaviour'];
 
@@ -324,159 +65,6 @@ document.addEventListener('DOMContentLoaded', function () {
         'Characteristics': 'Describe the physical traits and appearance of the Siberian tiger...',
         'Distribution and habitat': 'Explain where the Siberian tiger lives and its environment...',
         'Ecology and behaviour': 'Describe the diet, activity and social behaviour of the Siberian tiger...'
-    };
-
-    // Dynamic guidance content for each category
-    const categoryGuidance = {
-        'Person': {
-            advisoryLabel: 'Tip for biographies:',
-            advisoryText: 'Write about what makes this person notable to the world—not just their job history. Use news articles or books as sources, and keep your own opinions out.',
-            wikitext: `'''{{subst:REVISIONUSER}}''' (born [[Date of birth|DD Month YYYY]]) is a [[Nationality]] [[Occupation]].
-
-==Early Life and Education==
-* Born in [[City, Country]].
-* Attended [[University Name]], graduating in [[Year]].
-
-==Career==
-* Known for [[Notable Achievement 1]] and [[Notable Achievement 2]].
-* In [[Year]], [[Event]].
-
-==References==
-{{reflist}}
-
-[[Category: Living people]]
-[[Category: [Occupation] from [Country]]]`
-        },
-        'Place': {
-            advisoryLabel: 'Tip for places:',
-            advisoryText: 'Describe what makes this place interesting or important. Skip the travel-brochure language—stick to facts from official or published sources.',
-            wikitext: `'''[Place Name]''' is a [[Type of place]] located in [[Region/Country]].
-
-==Geography==
-* Located at [[coordinates]].
-* [Describe terrain, climate, notable features].
-
-==History==
-* Founded/established in [[Year]].
-* [Key historical events].
-
-==Demographics==
-* Population: [number] (as of [year]).
-
-==References==
-{{reflist}}
-
-[[Category: [Type] in [Country]]]`
-        },
-        'Event': {
-            advisoryLabel: 'Tip for events:',
-            advisoryText: 'Focus on events that had real impact and were covered by multiple sources over time—not just a single news mention.',
-            wikitext: `The '''[Event Name]''' was a [[Type of event]] that occurred on [[Date]] in [[Location]].
-
-==Background==
-* [Context leading to the event].
-
-==The Event==
-* [Description of what happened].
-* [Key participants or factors].
-
-==Aftermath==
-* [Consequences and lasting impact].
-
-==References==
-{{reflist}}
-
-[[Category: [Year] events]]
-[[Category: Events in [Location]]]`
-        },
-        'Organization': {
-            advisoryLabel: 'Tip for organizations:',
-            advisoryText: 'Keep it factual, not promotional. If you have a connection to this organization, mention it. Marketing-style writing often leads to deletion.',
-            wikitext: `'''[Organization Name]''' is a [[Type of organization]] based in [[Location]], founded in [[Year]].
-
-==History==
-* Founded by [[Founder(s)]] in [[Year]].
-* [Key milestones].
-
-==Operations==
-* [What the organization does].
-* [Scope and reach].
-
-==Reception==
-* [Third-party coverage and analysis].
-
-==References==
-{{reflist}}
-
-[[Category: Organizations established in [Year]]]
-[[Category: [Type] based in [Country]]]`
-        },
-        'Creative Work': {
-            advisoryLabel: 'Tip for creative works:',
-            advisoryText: 'Go beyond just the plot—include how critics and audiences received it. Use reviews and articles from independent sources.',
-            wikitext: `'''[Title]''' is a [[Year]] [[Type of work]] by [[Creator/Author]].
-
-==Synopsis==
-* [Brief plot/content summary].
-
-==Production/Development==
-* [How it was created].
-* [Key contributors].
-
-==Reception==
-* [Critical reviews and ratings].
-* [Awards and recognition].
-
-==References==
-{{reflist}}
-
-[[Category: [Year] [type]]]
-[[Category: Works by [Creator]]]`
-        },
-        'Species': {
-            advisoryLabel: 'Tip for species:',
-            advisoryText: 'Use scientific sources like journals or museum records. Describe what is known from research—avoid guesses or personal theories.',
-            wikitext: `'''[Species name]''' is a [[Type of organism]] in the family [[Family name]].
-
-==Taxonomy==
-* First described by [[Scientist]] in [[Year]].
-* Classification: [[Kingdom]] > [[Phylum]] > [[Class]] > [[Order]] > [[Family]].
-
-==Description==
-* [Physical characteristics].
-* [Size and distinguishing features].
-
-==Distribution and habitat==
-* Found in [[Geographic range]].
-* Prefers [[habitat type]].
-
-==References==
-{{reflist}}
-
-[[Category: [Taxonomic group]]]`
-        },
-        'Concept': {
-            advisoryLabel: 'Tip for concepts:',
-            advisoryText: 'Explain the idea using established sources. Present different viewpoints fairly and avoid adding your own interpretations.',
-            wikitext: `'''[Concept Name]''' is a [[Field/domain]] concept that refers to [[Brief definition]].
-
-==Definition==
-* [Detailed explanation].
-* [Key characteristics].
-
-==History==
-* First introduced by [[Person/source]] in [[Year]].
-* [Evolution of the concept].
-
-==Applications==
-* [How the concept is used].
-* [Examples].
-
-==References==
-{{reflist}}
-
-[[Category: [Field] concepts]]`
-        }
     };
 
     const sectionSuggestions = {
@@ -500,141 +88,6 @@ document.addEventListener('DOMContentLoaded', function () {
             { title: 'Reproduction', description: 'Breeding patterns and life cycle.' }
         ]
     };
-
-    // Gate configuration for different category types
-    const gateConfig = {
-        sandbox: {
-            icon: `<svg viewBox="0 0 24 24" fill="none" stroke="#E67700" stroke-width="2">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            </svg>`,
-            header: 'High-sensitivity topic detected',
-            body: 'Is this person currently living?',
-            infoText: 'Biographies of living people have strict sourcing requirements to protect subjects from harm.',
-            primaryText: 'Use Sandbox',
-            secondaryText: 'Read Policy'
-        },
-        coi: {
-            icon: `<svg viewBox="0 0 24 24" fill="none" stroke="#3366CC" stroke-width="2">
-                <path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 0C1.46 6.7 1.33 10.28 4 13l8 8 8-8c2.67-2.72 2.54-6.3.42-8.42z"/>
-                <path d="M12 5.5V12M8 9h8"/>
-            </svg>`,
-            header: 'Conflict of Interest Check',
-            body: 'Do you have a connection to this organization?',
-            infoText: '',
-            primaryText: 'Continue',
-            secondaryText: 'Cancel'
-        },
-        expansion: {
-            icon: `<svg viewBox="0 0 24 24" fill="none" stroke="#72777D" stroke-width="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-                <line x1="9" y1="15" x2="15" y2="15"/>
-            </svg>`,
-            header: 'Topic flagged: Too narrow',
-            body: 'This might work better as a section in an existing article.',
-            infoText: '',
-            primaryText: 'Add to existing',
-            secondaryText: 'Create anyway'
-        }
-    };
-
-    // Demo titles that trigger the Expansion Pivot gate
-    const narrowTopicTriggers = [
-        { pattern: /tony.*tiger/i, article: 'Siberian Tiger', section: 'In Captivity' },
-        { pattern: /knut.*bear/i, article: 'Polar Bear', section: 'In Captivity' },
-        { pattern: /harambe/i, article: 'Western Lowland Gorilla', section: 'In Captivity' }
-    ];
-
-    // Determine which gate to show based on category and title
-    function getGateType(category, title) {
-        // Check for narrow topic triggers first (demo purposes)
-        for (const trigger of narrowTopicTriggers) {
-            if (trigger.pattern.test(title)) {
-                return { type: 'expansion', article: trigger.article, section: trigger.section };
-            }
-        }
-
-        // Check category-based gates (match actual category IDs from the categories object)
-        const personCategories = ['people', 'biography', 'artist', 'politician', 'athlete', 'scientist', 'writer'];
-        const orgCategories = ['organizations', 'company', 'nonprofit', 'school', 'government'];
-
-        if (personCategories.includes(category)) {
-            return { type: 'sandbox' };
-        }
-
-        if (orgCategories.includes(category)) {
-            return { type: 'coi' };
-        }
-
-        return null; // No gate needed
-    }
-
-    // Show the appropriate gate modal
-    function showGate(gateType, extraData = {}) {
-        const config = gateConfig[gateType];
-        if (!config) return;
-
-        // Set content
-        gateModalIcon.innerHTML = config.icon;
-        gateModalHeader.textContent = config.header;
-        gateModalBody.textContent = config.body;
-        gatePrimaryBtn.textContent = config.primaryText;
-        gateSecondaryBtn.textContent = config.secondaryText;
-
-        // Hide all interactive sections
-        gateBLPOptions.style.display = 'none';
-        gateCOIOptions.style.display = 'none';
-        gateExpansionSuggestion.style.display = 'none';
-        gateInfoBox.style.display = 'none';
-
-        // Show appropriate interactive section
-        if (gateType === 'sandbox') {
-            gateBLPOptions.style.display = 'flex';
-            gateInfoBox.style.display = 'block';
-            gateInfoText.textContent = config.infoText;
-            // Reset radio buttons
-            document.querySelectorAll('input[name="blpStatus"]').forEach(r => r.checked = false);
-        } else if (gateType === 'coi') {
-            gateCOIOptions.style.display = 'flex';
-            // Reset checkboxes
-            document.querySelectorAll('input[name="coiStatus"]').forEach(c => c.checked = false);
-        } else if (gateType === 'expansion') {
-            gateExpansionSuggestion.style.display = 'block';
-            document.getElementById('expansionArticle').textContent = extraData.article || 'Existing Article';
-            document.getElementById('expansionSection').textContent = extraData.section || 'Related Section';
-        }
-
-        // Store gate type for button handlers
-        gateModal.dataset.gateType = gateType;
-
-        // Show modal
-        gateModal.style.display = 'flex';
-    }
-
-    // Hide gate modal
-    function hideGate() {
-        gateModal.style.display = 'none';
-    }
-
-    // Process gate result and proceed
-    function processGateAndProceed(gateType) {
-        if (gateType === 'sandbox') {
-            const selected = document.querySelector('input[name="blpStatus"]:checked');
-            if (selected && (selected.value === 'living' || selected.value === 'unsure')) {
-                // Route to sandbox/draft mode (for now, just proceed with a flag)
-                console.log('Routing to sandbox for living person');
-            }
-        } else if (gateType === 'coi') {
-            const checked = document.querySelectorAll('input[name="coiStatus"]:checked');
-            const hasConnection = Array.from(checked).some(c => c.value !== 'none');
-            if (hasConnection) {
-                console.log('User disclosed COI:', Array.from(checked).map(c => c.value));
-            }
-        }
-
-        hideGate();
-        showScreen(2.5);
-    }
 
     const sectionFacts = {
         'Lead section': [
@@ -747,7 +200,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             document.getElementById('goodSourceModal').style.display = 'none';
-            showScreen(275); // Go to guidance screen first
+            showScreen(3);
         });
     }
 
@@ -785,7 +238,6 @@ document.addEventListener('DOMContentLoaded', function () {
         screen1.style.display = 'none';
         screen2.style.display = 'none';
         screen25.style.display = 'none';
-        screen275.style.display = 'none';
         screen3.style.display = 'none';
         headerTitle.style.display = 'none';
         headerDivider.style.display = 'none';
@@ -815,8 +267,7 @@ document.addEventListener('DOMContentLoaded', function () {
             screen25.style.display = 'grid';
             headerTitle.style.display = 'block';
             headerTitle.textContent = 'Add sources';
-            nextBtn.style.display = 'block';
-            nextBtn.disabled = true;
+            nextBtn.style.display = 'none';
             const addSourcesTitle = document.getElementById('addSourcesTitle');
             addSourcesTitle.textContent = currentArticleTitle ? `Add key sources for "${currentArticleTitle}"` : 'Add key sources';
 
@@ -867,12 +318,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (suggestionsHeading) suggestionsHeading.style.display = 'none';
             }
 
-        } else if (screenNum === 275) {
-            screen275.style.display = 'block';
-            headerTitle.style.display = 'block';
-            headerTitle.textContent = 'New Article Guidance';
-            nextBtn.style.display = 'none';
-            updateGuidanceContent();
         } else if (screenNum === 3) {
             screen3.style.display = 'block';
             headerDivider.style.display = 'block';
@@ -885,44 +330,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 editor.innerHTML = '';
             }
         }
-    }
-
-    // Update guidance screen content based on selected category
-    function updateGuidanceContent() {
-        // Get the root category from currentCategory (e.g., "Person" from "Politician" or "Actor")
-        let rootCategory = currentCategory;
-
-        // Map subcategories to their root categories
-        const subcategoryToRoot = {
-            // Person subcategories
-            'Politician': 'Person', 'Actor': 'Person', 'Musician': 'Person', 'Athlete': 'Person',
-            'Scientist': 'Person', 'Business person': 'Person', 'Writer': 'Person',
-            // Place subcategories
-            'City': 'Place', 'Country': 'Place', 'Building': 'Place', 'Natural landmark': 'Place',
-            // Organization subcategories
-            'Company': 'Organization', 'Non-profit': 'Organization', 'School': 'Organization',
-            'Government agency': 'Organization',
-            // Creative Work subcategories
-            'Film': 'Creative Work', 'Book': 'Creative Work', 'Album': 'Creative Work',
-            'Video game': 'Creative Work', 'TV series': 'Creative Work'
-        };
-
-        if (subcategoryToRoot[currentCategory]) {
-            rootCategory = subcategoryToRoot[currentCategory];
-        }
-
-        const guidance = categoryGuidance[rootCategory] || categoryGuidance['Concept'];
-
-        // Update the advisory card
-        advisoryLabel.textContent = guidance.advisoryLabel;
-        advisoryText.textContent = guidance.advisoryText;
-
-        // Update the wikitext content
-        wikitextContent.textContent = guidance.wikitext;
-
-        // Reset copy button state
-        copyWikitextBtn.classList.remove('copied');
-        copyWikitextBtn.querySelector('span').textContent = 'COPY';
     }
 
     function renderCategories(categoryKey) {
@@ -956,14 +363,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
             document.getElementById('yellowPagesProceedBtn').onclick = () => {
                 yellowPagesModal.style.display = 'none';
-                // Check for gate after yellow pages
-                if (isNewTopic) {
-                    const gateInfo = getGateType(category.id, currentArticleTitle);
-                    if (gateInfo) {
-                        showGate(gateInfo.type, gateInfo);
-                        return;
-                    }
-                }
                 showScreen(2.5); // Proceed to sources
             };
             return;
@@ -974,14 +373,6 @@ document.addEventListener('DOMContentLoaded', function () {
             document.querySelector('.type-selection-description').textContent = `You've selected '${category.name.toLowerCase()}'. Now choose a more specific category.`;
             renderCategories(category.id);
         } else {
-            // Leaf category selected - check if we need to show a gate
-            if (isNewTopic) {
-                const gateInfo = getGateType(category.id, currentArticleTitle);
-                if (gateInfo) {
-                    showGate(gateInfo.type, gateInfo);
-                    return;
-                }
-            }
             showScreen(2.5);
         }
     }
@@ -991,271 +382,45 @@ document.addEventListener('DOMContentLoaded', function () {
         this.style.height = this.scrollHeight + 'px';
     }
 
-    // Main topic matching function - uses real Wikidata API
-    async function showTopicMatching(query) {
-        topicList.innerHTML = '';
-        lastSearchResults = [];
-
-        // Show loading indicator
-        topicList.innerHTML = '<li class="topic-item topic-loading"><div class="topic-content"><div class="topic-description">Searching Wikidata...</div></div></li>';
-        topicMatching.style.display = 'block';
-
-        // Call Wikidata API
-        const searchResult = await WikidataAPI.searchEntities(query);
-
+    function showTopicMatching(query) {
+        const normalizedQuery = query.toLowerCase().trim();
+        const topics = mockTopics[normalizedQuery] || [];
         topicList.innerHTML = '';
 
-        if (!searchResult.success) {
-            // API failed - fall back to keyword inference
-            isApiAvailable = false;
-            console.warn('Wikidata API unavailable, using keyword inference fallback');
-            const inference = KeywordInference.analyze(query);
-            showKeywordInferenceFallback(query, inference);
-            return;
-        }
+        if (topics.length > 0) {
+            topics.forEach(topic => {
+                const li = document.createElement('li');
+                li.className = 'topic-item';
 
-        isApiAvailable = true;
-        lastSearchResults = searchResult.results;
+                const thumbSrc = topic.thumbnail || '';
+                const thumbHtml = thumbSrc ? `<img src="${thumbSrc}" alt="${topic.title}" class="topic-thumbnail" onerror="this.replaceWith(document.createElement('div').className='topic-thumbnail')">` : '<div class="topic-thumbnail"></div>';
 
-        if (searchResult.results.length === 0) {
-            // ZERO MATCHES - Step B: Keyword Inference
-            const inference = KeywordInference.analyze(query);
-            showKeywordInferenceFallback(query, inference);
-            return;
-        }
+                li.innerHTML = `${thumbHtml}
+                                <div class="topic-content">
+                                    <div class="topic-title">${topic.title}</div>
+                                    <div class="topic-description">${topic.description}</div>
+                                </div>`;
 
-        // Fetch thumbnails from Wikipedia for all results (non-blocking)
-        const titles = searchResult.results.map(r => r.label);
-        const thumbnailsPromise = WikipediaAPI.getThumbnails(titles, 80);
+                li.addEventListener('click', function () {
+                    currentArticleTitle = topic.title;
+                    // MOCK LOGIC: If it's the tiger, show the positive signal
+                    const badge = document.getElementById('eligibilityBadge');
+                    if (topic.title.includes('Siberian tiger')) {
+                        badge.style.display = 'inline-flex';
+                        // Ensure it has the base class plus any specific styling if needed
+                        badge.className = 'eligibility-banner';
+                    } else {
+                        badge.style.display = 'none';
+                    }
 
-        // Render results from Wikidata immediately with placeholder
-        searchResult.results.forEach((result, index) => {
-            const li = document.createElement('li');
-            li.className = 'topic-item';
-            li.dataset.resultIndex = index;
-            li.dataset.qid = result.id; // Store QID for internal use only
-
-            // Start with placeholder, will be replaced when thumbnails load
-            li.innerHTML = `<div class="topic-thumbnail wikidata-icon" data-label="${result.label}"><span>W</span></div>
-                            <div class="topic-content">
-                                <div class="topic-title">${result.label}</div>
-                                <div class="topic-description">${result.description || 'No description available'}</div>
-                            </div>
-                            <div class="topic-arrow">
-                                <img src="node_modules/@wikimedia/codex-icons/dist/images/next.svg" alt="" width="16" height="16">
-                            </div>`;
-
-            li.addEventListener('click', async function () {
-                await handleEntitySelection(result);
+                    showScreen(2.5);
+                });
+                topicList.appendChild(li);
             });
-            topicList.appendChild(li);
-        });
-
-        // Always show topic matching section so "Topic not listed" button is accessible
-        topicMatching.style.display = 'block';
-
-        // Update thumbnails when they load (non-blocking enhancement)
-        thumbnailsPromise.then(thumbnails => {
-            Object.entries(thumbnails).forEach(([title, thumbUrl]) => {
-                const thumbEl = topicList.querySelector(`.topic-thumbnail[data-label="${title}"]`);
-                if (thumbEl && thumbUrl) {
-                    thumbEl.innerHTML = `<img src="${thumbUrl}" alt="${title}" class="topic-thumb-img" onerror="this.parentElement.innerHTML='<span>W</span>'; this.parentElement.classList.add('wikidata-icon');">`;
-                    thumbEl.classList.remove('wikidata-icon');
-                }
-            });
-        });
-    }
-
-    // Handle when user selects a Wikidata entity
-    async function handleEntitySelection(entity) {
-        currentArticleTitle = entity.label;
-        selectedEntity = entity;
-        isNewTopic = false;
-
-        // Show loading state
-        const badge = document.getElementById('eligibilityBadge');
-        badge.style.display = 'none';
-
-        // Step C: Get entity details (sitelinks, P31)
-        const details = await WikidataAPI.getEntityDetails(entity.id);
-
-        if (!details.success) {
-            // API error - proceed with manual category selection
-            console.warn('Could not fetch entity details, proceeding with manual flow');
-            showScreen(2);
-            return;
-        }
-
-        // Check for LIVE DUPLICATE (enwiki article exists)
-        if (details.hasLiveArticle) {
-            showLiveDuplicateModal(details.enwikiTitle);
-            return;
-        }
-
-        // Step D: Check for existing draft
-        const draftCheck = await WikipediaAPI.checkDraftExists(entity.label);
-        if (draftCheck.exists) {
-            showDraftExistsModal(draftCheck.draftTitle);
-            return;
-        }
-
-        // TRUE CONTENT GAP - Determine taxonomy from P31
-        entityTaxonomy = TaxonomyMapping.getTaxonomy(details.instanceOf);
-        console.log('Entity taxonomy:', entityTaxonomy);
-
-        // Show eligibility badge for known taxonomies
-        if (entityTaxonomy.taxonomy !== 'GENERAL') {
-            badge.style.display = 'inline-flex';
-            badge.textContent = `${entityTaxonomy.label} detected`;
-            badge.className = 'eligibility-banner';
-        }
-
-        // Route based on taxonomy
-        if (entityTaxonomy.route === 'sandbox') {
-            // BLP route - show BLP gate
-            showGate('sandbox');
-        } else if (entityTaxonomy.route === 'coi') {
-            // Business/Org route - show COI gate
-            showGate('coi');
+            topicMatching.style.display = 'block';
         } else {
-            // Standard route - proceed to sources
-            showScreen(2.5);
+            topicMatching.style.display = 'none';
         }
-    }
-
-    // Show fallback UI when Wikidata returns no results or API fails
-    function showKeywordInferenceFallback(query, inference) {
-        const li = document.createElement('li');
-        li.className = 'topic-item topic-no-match';
-
-        let inferenceText = '';
-        if (inference.taxonomy === 'COMPANY') {
-            inferenceText = '<span class="inference-badge inference-company">Looks like a company name</span>';
-        } else if (inference.taxonomy === 'BIO') {
-            inferenceText = '<span class="inference-badge inference-person">Looks like a person\'s name</span>';
-        }
-
-        li.innerHTML = `<div class="topic-thumbnail no-match-icon">
-                            <img src="node_modules/@wikimedia/codex-icons/dist/images/search.svg" alt="" width="24" height="24">
-                        </div>
-                        <div class="topic-content">
-                            <div class="topic-title">No existing topic found</div>
-                            <div class="topic-description">
-                                "${query}" isn't in Wikidata yet. You can create a new article if noteworthy.
-                                ${inferenceText}
-                            </div>
-                        </div>`;
-
-        topicList.appendChild(li);
-
-        // Store the inference for use when "Topic not listed" is clicked
-        topicList.dataset.inferredTaxonomy = inference.taxonomy;
-        topicList.dataset.inferredRoute = inference.route;
-
-        topicMatching.style.display = 'block';
-    }
-
-    // Show modal when a live Wikipedia article already exists
-    function showLiveDuplicateModal(articleTitle) {
-        const modal = document.getElementById('liveDuplicateModal');
-        if (!modal) {
-            // Create modal if it doesn't exist
-            createDuplicateModals();
-        }
-
-        const modalEl = document.getElementById('liveDuplicateModal');
-        const titleEl = document.getElementById('liveDuplicateTitle');
-        const linkEl = document.getElementById('liveDuplicateLink');
-
-        if (titleEl) titleEl.textContent = articleTitle;
-        if (linkEl) linkEl.href = `https://en.wikipedia.org/wiki/${encodeURIComponent(articleTitle)}`;
-
-        modalEl.style.display = 'flex';
-    }
-
-    // Show modal when a draft already exists
-    function showDraftExistsModal(draftTitle) {
-        const modal = document.getElementById('draftExistsModal');
-        if (!modal) {
-            createDuplicateModals();
-        }
-
-        const modalEl = document.getElementById('draftExistsModal');
-        const titleEl = document.getElementById('draftExistsTitle');
-        const linkEl = document.getElementById('draftExistsLink');
-
-        if (titleEl) titleEl.textContent = draftTitle;
-        if (linkEl) linkEl.href = `https://en.wikipedia.org/wiki/${encodeURIComponent(draftTitle)}`;
-
-        modalEl.style.display = 'flex';
-    }
-
-    // Create duplicate/draft modals dynamically
-    function createDuplicateModals() {
-        // Live Duplicate Modal
-        const liveDuplicateHTML = `
-            <div id="liveDuplicateModal" class="modal-overlay" style="display: none;">
-                <div class="modal-content duplicate-modal">
-                    <button class="modal-close-btn" id="liveDuplicateCloseBtn">
-                        <img src="node_modules/@wikimedia/codex-icons/dist/images/close.svg" alt="Close" width="20" height="20">
-                    </button>
-                    <div class="modal-icon modal-icon-info">
-                        <img src="node_modules/@wikimedia/codex-icons/dist/images/article.svg" alt="" width="32" height="32">
-                    </div>
-                    <h2 class="modal-title">Article Already Exists</h2>
-                    <p class="modal-description">
-                        An article for "<span id="liveDuplicateTitle"></span>" already exists on Wikipedia.
-                    </p>
-                    <div class="modal-actions">
-                        <a id="liveDuplicateLink" href="#" target="_blank" class="btn btn-primary">
-                            View Article
-                            <img src="node_modules/@wikimedia/codex-icons/dist/images/linkExternal.svg" alt="" width="14" height="14">
-                        </a>
-                        <button class="btn btn-secondary" id="liveDuplicateCancelBtn">Choose Different Topic</button>
-                    </div>
-                </div>
-            </div>`;
-
-        // Draft Exists Modal
-        const draftExistsHTML = `
-            <div id="draftExistsModal" class="modal-overlay" style="display: none;">
-                <div class="modal-content duplicate-modal">
-                    <button class="modal-close-btn" id="draftExistsCloseBtn">
-                        <img src="node_modules/@wikimedia/codex-icons/dist/images/close.svg" alt="Close" width="20" height="20">
-                    </button>
-                    <div class="modal-icon modal-icon-warning">
-                        <img src="node_modules/@wikimedia/codex-icons/dist/images/edit.svg" alt="" width="32" height="32">
-                    </div>
-                    <h2 class="modal-title">Draft Already Exists</h2>
-                    <p class="modal-description">
-                        A draft for "<span id="draftExistsTitle"></span>" is already in progress.
-                    </p>
-                    <div class="modal-actions">
-                        <a id="draftExistsLink" href="#" target="_blank" class="btn btn-primary">
-                            Edit Existing Draft
-                            <img src="node_modules/@wikimedia/codex-icons/dist/images/linkExternal.svg" alt="" width="14" height="14">
-                        </a>
-                        <button class="btn btn-secondary" id="draftExistsCancelBtn">Choose Different Topic</button>
-                    </div>
-                </div>
-            </div>`;
-
-        document.body.insertAdjacentHTML('beforeend', liveDuplicateHTML);
-        document.body.insertAdjacentHTML('beforeend', draftExistsHTML);
-
-        // Attach event listeners
-        document.getElementById('liveDuplicateCloseBtn').addEventListener('click', () => {
-            document.getElementById('liveDuplicateModal').style.display = 'none';
-        });
-        document.getElementById('liveDuplicateCancelBtn').addEventListener('click', () => {
-            document.getElementById('liveDuplicateModal').style.display = 'none';
-        });
-        document.getElementById('draftExistsCloseBtn').addEventListener('click', () => {
-            document.getElementById('draftExistsModal').style.display = 'none';
-        });
-        document.getElementById('draftExistsCancelBtn').addEventListener('click', () => {
-            document.getElementById('draftExistsModal').style.display = 'none';
-        });
     }
 
     // --- EVENT LISTENERS: NAVIGATION & SETUP ---
@@ -1306,9 +471,8 @@ document.addEventListener('DOMContentLoaded', function () {
             });
 
             if (hasGoodSource) {
-                // FAST TRACK: High confidence - go to guidance screen first
-                captureUserSources();
-                showScreen(275);
+                // FAST TRACK: High confidence
+                showScreen(3);
             } else {
                 // SLOW TRACK: Show Eligibility Modal
                 const eligibilityModal = document.getElementById('eligibilityModal');
@@ -1327,8 +491,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 document.getElementById('eligibilityProceedBtn').onclick = () => {
                     eligibilityModal.style.display = 'none';
-                    captureUserSources();
-                    showScreen(275); // Proceed to guidance screen
+                    showScreen(3); // Proceed anyway
                 };
             }
         }
@@ -1336,38 +499,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     topicNotListedBtn.addEventListener('click', function () {
         currentArticleTitle = articleTitle.value.trim();
-        isNewTopic = true; // User is creating a new topic
-        selectedEntity = null; // No Wikidata entity selected
-
-        // Check if we have inferred taxonomy from keyword analysis
-        const inferredTaxonomy = topicList.dataset.inferredTaxonomy;
-        const inferredRoute = topicList.dataset.inferredRoute;
-
-        if (inferredTaxonomy && inferredRoute && inferredRoute !== 'notability') {
-            // Use the inferred taxonomy to route directly to appropriate gate
-            entityTaxonomy = {
-                taxonomy: inferredTaxonomy,
-                route: inferredRoute,
-                label: inferredTaxonomy === 'COMPANY' ? 'Organization' : 'Person',
-                confidence: 'inferred'
-            };
-
-            if (inferredRoute === 'coi') {
-                showGate('coi');
-            } else if (inferredRoute === 'sandbox') {
-                showGate('sandbox');
-            } else {
-                // Fallback to category selection
-                typeSelectionTitle.textContent = `What is "${currentArticleTitle}" about?`;
-                renderCategories('root');
-                showScreen(2);
-            }
-        } else {
-            // No inference available - use manual category selection
-            typeSelectionTitle.textContent = `What is "${currentArticleTitle}" about?`;
-            renderCategories('root');
-            showScreen(2);
-        }
+        typeSelectionTitle.textContent = `What is "${currentArticleTitle}" about?`;
+        renderCategories('root');
+        showScreen(2);
     });
 
     typeSearchInput.addEventListener('input', function () {
@@ -1393,20 +527,19 @@ document.addEventListener('DOMContentLoaded', function () {
             sectionBlock.classList.add('active');
             activeSection = sectionBlock.dataset.sectionName;
 
-            // COMMENTED OUT: Templates/suggestions feature
             // Move the editing panel to be after this section
-            // if (editingSectionPanel && sectionBlock.parentNode) {
-            //     // Insert after the section block
-            //     sectionBlock.parentNode.insertBefore(editingSectionPanel, sectionBlock.nextSibling);
-            // }
+            if (editingSectionPanel && sectionBlock.parentNode) {
+                // Insert after the section block
+                sectionBlock.parentNode.insertBefore(editingSectionPanel, sectionBlock.nextSibling);
+            }
 
             updateNextSectionButton();
         }
 
-        // COMMENTED OUT: Templates/suggestions feature - Update visibility for ALL sections
-        // document.querySelectorAll('.section-block').forEach(section => {
-        //     updateGetContentsButtonVisibility(section);
-        // });
+        // Update visibility for ALL sections now that active state is settled
+        document.querySelectorAll('.section-block').forEach(section => {
+            updateGetContentsButtonVisibility(section);
+        });
     }
 
     function updateNextSectionButton() {
@@ -1683,220 +816,215 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // COMMENTED OUT: Templates/suggestions feature - handleInsertSuggestion function
-    // function handleInsertSuggestion(suggestionTitle, sectionName) {
-    //     let targetTextarea;
+    function handleInsertSuggestion(suggestionTitle, sectionName) {
+        let targetTextarea;
 
-    //     if (sectionName === 'Lead section') {
-    //         targetTextarea = editorTextarea;
-    //     } else {
-    //         const sectionBlocks = document.querySelectorAll('.section-block');
-    //         sectionBlocks.forEach(block => {
-    //             if (block.dataset.sectionName === sectionName) {
-    //                 targetTextarea = block.querySelector('.section-textarea');
-    //             }
-    //         });
-    //     }
+        if (sectionName === 'Lead section') {
+            targetTextarea = editorTextarea;
+        } else {
+            const sectionBlocks = document.querySelectorAll('.section-block');
+            sectionBlocks.forEach(block => {
+                if (block.dataset.sectionName === sectionName) {
+                    targetTextarea = block.querySelector('.section-textarea');
+                }
+            });
+        }
 
-    //     if (!targetTextarea) return;
+        if (!targetTextarea) return;
 
-    //     const templateContent = getTemplateContent(suggestionTitle, sectionName);
-    //     const isContentEditable = targetTextarea.contentEditable === 'true';
+        const templateContent = getTemplateContent(suggestionTitle, sectionName);
+        const isContentEditable = targetTextarea.contentEditable === 'true';
 
-    //     if (isContentEditable) {
-    //         let currentContent = targetTextarea.innerHTML;
+        if (isContentEditable) {
+            let currentContent = targetTextarea.innerHTML;
 
-    //         // Remove trailing slash if present (handling potential HTML tags wrapping it)
-    //         // This allows the template to replace the slash command
-    //         if (currentContent.match(/\/\s*(?:<\/[^>]+>\s*)*$/)) {
-    //             currentContent = currentContent.replace(/\/\s*((?:<\/[^>]+>\s*)*)$/, '$1');
-    //         }
+            // Remove trailing slash if present (handling potential HTML tags wrapping it)
+            // This allows the template to replace the slash command
+            if (currentContent.match(/\/\s*(?:<\/[^>]+>\s*)*$/)) {
+                currentContent = currentContent.replace(/\/\s*((?:<\/[^>]+>\s*)*)$/, '$1');
+            }
 
-    //         const prefix = currentContent && currentContent.trim() !== '' ? '<br><br>' : '';
-    //         // Add double break at the end to create empty line below
-    //         const suffix = '<br><br>';
-    //         targetTextarea.innerHTML = currentContent + prefix + templateContent + suffix;
+            const prefix = currentContent && currentContent.trim() !== '' ? '<br><br>' : '';
+            // Add double break at the end to create empty line below
+            const suffix = '<br><br>';
+            targetTextarea.innerHTML = currentContent + prefix + templateContent + suffix;
 
-    //         // --- IMMEDIATE FOCUS LOGIC ---
-    //         targetTextarea.focus();
+            // --- IMMEDIATE FOCUS LOGIC ---
+            targetTextarea.focus();
 
-    //         // Find the FIRST placeholder that was just added.
-    //         // We just grab the first valid placeholder found in the element.
-    //         const placeholders = targetTextarea.querySelectorAll('.placeholder');
+            // Find the FIRST placeholder that was just added.
+            // We just grab the first valid placeholder found in the element.
+            const placeholders = targetTextarea.querySelectorAll('.placeholder');
 
-    //         if (placeholders.length > 0) {
-    //             const firstPlaceholder = placeholders[0];
-    //             setCursorToStart(firstPlaceholder.firstChild || firstPlaceholder);
-    //         }
-    //     } else {
-    //         targetTextarea.value += "\n" + templateContent.replace(/<[^>]*>/g, '') + "\n\n";
-    //     }
+            if (placeholders.length > 0) {
+                const firstPlaceholder = placeholders[0];
+                setCursorToStart(firstPlaceholder.firstChild || firstPlaceholder);
+            }
+        } else {
+            targetTextarea.value += "\n" + templateContent.replace(/<[^>]*>/g, '') + "\n\n";
+        }
 
-    //     if (!insertedTemplates.has(sectionName)) insertedTemplates.set(sectionName, new Set());
-    //     insertedTemplates.get(sectionName).add(suggestionTitle);
+        if (!insertedTemplates.has(sectionName)) insertedTemplates.set(sectionName, new Set());
+        insertedTemplates.get(sectionName).add(suggestionTitle);
 
-    //     updateEditingPanelContent(sectionName);
-    //     editingSectionPanel.style.display = 'none';
-    // }
+        updateEditingPanelContent(sectionName);
+        editingSectionPanel.style.display = 'none';
+    }
 
-    // COMMENTED OUT: Templates/suggestions feature - handleInsertFact function
-    // function handleInsertFact(fact, sectionName) {
-    //     let targetTextarea;
-    //     if (sectionName === 'Lead section') {
-    //         targetTextarea = editorTextarea;
-    //     } else {
-    //         document.querySelectorAll('.section-block').forEach(block => {
-    //             if (block.dataset.sectionName === sectionName) {
-    //                 targetTextarea = block.querySelector('.section-textarea');
-    //             }
-    //         });
-    //     }
+    function handleInsertFact(fact, sectionName) {
+        let targetTextarea;
+        if (sectionName === 'Lead section') {
+            targetTextarea = editorTextarea;
+        } else {
+            document.querySelectorAll('.section-block').forEach(block => {
+                if (block.dataset.sectionName === sectionName) {
+                    targetTextarea = block.querySelector('.section-textarea');
+                }
+            });
+        }
 
-    //     if (!targetTextarea) return;
+        if (!targetTextarea) return;
 
-    //     citationCounter++;
-    //     wikidataCitations.push({
-    //         number: citationCounter,
-    //         label: fact.label,
-    //         value: fact.value,
-    //         source: 'Wikidata'
-    //     });
+        citationCounter++;
+        wikidataCitations.push({
+            number: citationCounter,
+            label: fact.label,
+            value: fact.value,
+            source: 'Wikidata'
+        });
 
-    //     const factHTML = `<br>The ${fact.label.toLowerCase()} is ${fact.value}<sup class="citation-superscript">[${citationCounter}]</sup>`;
-    //     targetTextarea.innerHTML += factHTML;
+        const factHTML = `<br>The ${fact.label.toLowerCase()} is ${fact.value}<sup class="citation-superscript">[${citationCounter}]</sup>`;
+        targetTextarea.innerHTML += factHTML;
 
-    //     // Move cursor to end
-    //     targetTextarea.focus();
-    //     const range = document.createRange();
-    //     range.selectNodeContents(targetTextarea);
-    //     range.collapse(false);
-    //     const sel = window.getSelection();
-    //     sel.removeAllRanges();
-    //     sel.addRange(range);
+        // Move cursor to end
+        targetTextarea.focus();
+        const range = document.createRange();
+        range.selectNodeContents(targetTextarea);
+        range.collapse(false);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
 
-    //     if (!insertedFacts.has(sectionName)) insertedFacts.set(sectionName, new Set());
-    //     insertedFacts.get(sectionName).add(`${fact.label}:${fact.value}`);
+        if (!insertedFacts.has(sectionName)) insertedFacts.set(sectionName, new Set());
+        insertedFacts.get(sectionName).add(`${fact.label}:${fact.value}`);
 
-    //     updateEditingPanelContent(sectionName);
-    // }
+        updateEditingPanelContent(sectionName);
+    }
 
-    // COMMENTED OUT: Templates/suggestions feature - getTemplateContent function
-    // function getTemplateContent(suggestionTitle, sectionName) {
-    //     const sourceMarker = '<span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="">add source</span>';
-    //     // Use standardized HTML spans for placeholders
-    //     const templates = {
-    //         'Short overview': `The <span class="placeholder">animal name</span> is a <span class="placeholder">type of animal</span> native to <span class="placeholder">broad region</span>${sourceMarker}. It is known for <span class="placeholder">key distinctive feature</span>${sourceMarker}.`,
-    //         'Taxonomy in brief': `The <span class="placeholder">animal name</span> belongs to the <span class="placeholder">taxonomic family</span> family${sourceMarker}. It was first described by <span class="placeholder">scientist name</span> in <span class="placeholder">year</span>${sourceMarker}.`,
-    //         'Physical description': `The <span class="placeholder">animal name</span> has <span class="placeholder">describe physical appearance</span>${sourceMarker}. <span class="placeholder">Add details about coloration, body structure, notable features</span>.`,
-    //         'Size and weight': `Adult <span class="placeholder">animal name</span> typically measure <span class="placeholder">length range</span> in length and weigh <span class="placeholder">weight range</span>${sourceMarker}. <span class="placeholder">Add information about sexual dimorphism if applicable</span>.`,
-    //         'Coat and coloration': `The <span class="placeholder">animal name</span> has <span class="placeholder">describe coat type and color</span>${sourceMarker}. <span class="placeholder">Add details about seasonal variations, regional differences, or distinctive markings</span>.`,
-    //         'Geographic range': `The <span class="placeholder">animal name</span> is found in <span class="placeholder">list countries/regions</span>${sourceMarker}. <span class="placeholder">Add details about historical vs current range</span>.`,
-    //         'Habitat preferences': `The <span class="placeholder">animal name</span> inhabits <span class="placeholder">describe habitat types</span>${sourceMarker}. <span class="placeholder">Add details about elevation range, vegetation types, climate preferences</span>.`,
-    //         'Population estimates': `Current population estimates suggest <span class="placeholder">number</span> individuals in the wild${sourceMarker}. <span class="placeholder">Add information about population trends and conservation status</span>.`,
-    //         'Diet and hunting': `The <span class="placeholder">animal name</span> primarily feeds on <span class="placeholder">list prey species</span>${sourceMarker}. <span class="placeholder">Add details about hunting strategies, feeding behavior</span>.`,
-    //         'Social structure': `The <span class="placeholder">animal name</span> is <span class="placeholder">solitary/social</span>${sourceMarker}. <span class="placeholder">Add details about territorial behavior, group size, social hierarchy</span>.`,
-    //         'Reproduction': `The <span class="placeholder">animal name</span> breeds <span class="placeholder">breeding season/frequency</span>${sourceMarker}. <span class="placeholder">Add details about gestation period, litter size, parental care</span>.`
-    //     };
-    //     return templates[suggestionTitle] || `<span class="placeholder">[Content for ${suggestionTitle}]</span>`;
-    // }
+    function getTemplateContent(suggestionTitle, sectionName) {
+        const sourceMarker = '<span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="">add source</span>';
+        // Use standardized HTML spans for placeholders
+        const templates = {
+            'Short overview': `The <span class="placeholder">animal name</span> is a <span class="placeholder">type of animal</span> native to <span class="placeholder">broad region</span>${sourceMarker}. It is known for <span class="placeholder">key distinctive feature</span>${sourceMarker}.`,
+            'Taxonomy in brief': `The <span class="placeholder">animal name</span> belongs to the <span class="placeholder">taxonomic family</span> family${sourceMarker}. It was first described by <span class="placeholder">scientist name</span> in <span class="placeholder">year</span>${sourceMarker}.`,
+            'Physical description': `The <span class="placeholder">animal name</span> has <span class="placeholder">describe physical appearance</span>${sourceMarker}. <span class="placeholder">Add details about coloration, body structure, notable features</span>.`,
+            'Size and weight': `Adult <span class="placeholder">animal name</span> typically measure <span class="placeholder">length range</span> in length and weigh <span class="placeholder">weight range</span>${sourceMarker}. <span class="placeholder">Add information about sexual dimorphism if applicable</span>.`,
+            'Coat and coloration': `The <span class="placeholder">animal name</span> has <span class="placeholder">describe coat type and color</span>${sourceMarker}. <span class="placeholder">Add details about seasonal variations, regional differences, or distinctive markings</span>.`,
+            'Geographic range': `The <span class="placeholder">animal name</span> is found in <span class="placeholder">list countries/regions</span>${sourceMarker}. <span class="placeholder">Add details about historical vs current range</span>.`,
+            'Habitat preferences': `The <span class="placeholder">animal name</span> inhabits <span class="placeholder">describe habitat types</span>${sourceMarker}. <span class="placeholder">Add details about elevation range, vegetation types, climate preferences</span>.`,
+            'Population estimates': `Current population estimates suggest <span class="placeholder">number</span> individuals in the wild${sourceMarker}. <span class="placeholder">Add information about population trends and conservation status</span>.`,
+            'Diet and hunting': `The <span class="placeholder">animal name</span> primarily feeds on <span class="placeholder">list prey species</span>${sourceMarker}. <span class="placeholder">Add details about hunting strategies, feeding behavior</span>.`,
+            'Social structure': `The <span class="placeholder">animal name</span> is <span class="placeholder">solitary/social</span>${sourceMarker}. <span class="placeholder">Add details about territorial behavior, group size, social hierarchy</span>.`,
+            'Reproduction': `The <span class="placeholder">animal name</span> breeds <span class="placeholder">breeding season/frequency</span>${sourceMarker}. <span class="placeholder">Add details about gestation period, litter size, parental care</span>.`
+        };
+        return templates[suggestionTitle] || `<span class="placeholder">[Content for ${suggestionTitle}]</span>`;
+    }
 
-    // COMMENTED OUT: Templates/suggestions feature - updateEditingPanelContent function
-    // function updateEditingPanelContent(sectionName) {
-    //     const editingSectionTitle = document.querySelector('.editing-section-title');
-    //     const displayName = sectionName === 'Lead section' ? 'Lead/Introduction' : sectionName;
-    //     editingSectionTitle.textContent = displayName;
-    //     currentEditingSection = displayName;
+    function updateEditingPanelContent(sectionName) {
+        const editingSectionTitle = document.querySelector('.editing-section-title');
+        const displayName = sectionName === 'Lead section' ? 'Lead/Introduction' : sectionName;
+        editingSectionTitle.textContent = displayName;
+        currentEditingSection = displayName;
 
-    //     const suggestedSection = document.querySelector('.suggested-section');
-    //     const suggestions = sectionSuggestions[sectionName] || sectionSuggestions['Lead section'];
+        const suggestedSection = document.querySelector('.suggested-section');
+        const suggestions = sectionSuggestions[sectionName] || sectionSuggestions['Lead section'];
 
-    //     // Remove old cards, keep header
-    //     Array.from(suggestedSection.children).forEach(child => {
-    //         if (child.classList.contains('suggestion-card')) child.remove();
-    //     });
+        // Remove old cards, keep header
+        Array.from(suggestedSection.children).forEach(child => {
+            if (child.classList.contains('suggestion-card')) child.remove();
+        });
 
-    //     suggestions.forEach(suggestion => {
-    //         const card = document.createElement('div');
-    //         card.className = 'suggestion-card';
-    //         const isInserted = insertedTemplates.has(sectionName) && insertedTemplates.get(sectionName).has(suggestion.title);
-    //         if (isInserted) card.classList.add('suggestion-added');
+        suggestions.forEach(suggestion => {
+            const card = document.createElement('div');
+            card.className = 'suggestion-card';
+            const isInserted = insertedTemplates.has(sectionName) && insertedTemplates.get(sectionName).has(suggestion.title);
+            if (isInserted) card.classList.add('suggestion-added');
 
-    //         card.innerHTML = `
-    //             <button class="add-btn-circle" aria-label="${isInserted ? 'Already added' : 'Add paragraph'}" ${isInserted ? 'disabled' : ''}>
-    //                 <img src="node_modules/@wikimedia/codex-icons/dist/images/${isInserted ? 'check.svg' : 'add.svg'}" alt="" width="16" height="16">
-    //             </button>
-    //             <div class="suggestion-content">
-    //                 <div class="suggestion-title">${suggestion.title}</div>
-    //                 <div class="suggestion-description">${suggestion.description}</div>
-    //             </div>
-    //         `;
+            card.innerHTML = `
+                <button class="add-btn-circle" aria-label="${isInserted ? 'Already added' : 'Add paragraph'}" ${isInserted ? 'disabled' : ''}>
+                    <img src="node_modules/@wikimedia/codex-icons/dist/images/${isInserted ? 'check.svg' : 'add.svg'}" alt="" width="16" height="16">
+                </button>
+                <div class="suggestion-content">
+                    <div class="suggestion-title">${suggestion.title}</div>
+                    <div class="suggestion-description">${suggestion.description}</div>
+                </div>
+            `;
 
-    //         if (!isInserted) {
-    //             card.querySelector('.add-btn-circle').addEventListener('click', () => handleInsertSuggestion(suggestion.title, sectionName));
-    //         }
-    //         suggestedSection.appendChild(card);
-    //     });
+            if (!isInserted) {
+                card.querySelector('.add-btn-circle').addEventListener('click', () => handleInsertSuggestion(suggestion.title, sectionName));
+            }
+            suggestedSection.appendChild(card);
+        });
 
-    //     const verifiedFactsSection = document.querySelector('.verified-facts-section');
-    //     const facts = sectionFacts[sectionName] || sectionFacts['Lead section'];
+        const verifiedFactsSection = document.querySelector('.verified-facts-section');
+        const facts = sectionFacts[sectionName] || sectionFacts['Lead section'];
 
-    //     verifiedFactsSection.innerHTML = '';
+        verifiedFactsSection.innerHTML = '';
 
-    //     facts.forEach(fact => {
-    //         const factItem = document.createElement('div');
-    //         factItem.className = 'fact-item';
-    //         const factKey = `${fact.label}:${fact.value}`;
-    //         const isInserted = insertedFacts.has(sectionName) && insertedFacts.get(sectionName).has(factKey);
-    //         if (isInserted) factItem.classList.add('fact-added');
+        facts.forEach(fact => {
+            const factItem = document.createElement('div');
+            factItem.className = 'fact-item';
+            const factKey = `${fact.label}:${fact.value}`;
+            const isInserted = insertedFacts.has(sectionName) && insertedFacts.get(sectionName).has(factKey);
+            if (isInserted) factItem.classList.add('fact-added');
 
-    //         factItem.innerHTML = `
-    //             <div class="fact-content">
-    //                 <div class="fact-label">${fact.label}</div>
-    //                 <div class="fact-value">${fact.value}</div>
-    //             </div>
-    //             <button class="add-btn-circle" aria-label="${isInserted ? 'Already added' : 'Add fact'}" ${isInserted ? 'disabled' : ''}>
-    //                 <img src="node_modules/@wikimedia/codex-icons/dist/images/${isInserted ? 'check.svg' : 'add.svg'}" alt="" width="16" height="16">
-    //             </button>
-    //         `;
+            factItem.innerHTML = `
+                <div class="fact-content">
+                    <div class="fact-label">${fact.label}</div>
+                    <div class="fact-value">${fact.value}</div>
+                </div>
+                <button class="add-btn-circle" aria-label="${isInserted ? 'Already added' : 'Add fact'}" ${isInserted ? 'disabled' : ''}>
+                    <img src="node_modules/@wikimedia/codex-icons/dist/images/${isInserted ? 'check.svg' : 'add.svg'}" alt="" width="16" height="16">
+                </button>
+            `;
 
-    //         if (!isInserted) {
-    //             factItem.querySelector('.add-btn-circle').addEventListener('click', () => handleInsertFact(fact, sectionName));
-    //         }
-    //         verifiedFactsSection.appendChild(factItem);
-    //     });
-    // }
+            if (!isInserted) {
+                factItem.querySelector('.add-btn-circle').addEventListener('click', () => handleInsertFact(fact, sectionName));
+            }
+            verifiedFactsSection.appendChild(factItem);
+        });
+    }
 
-    // COMMENTED OUT: Templates/suggestions feature
-    // getContentsBtn.addEventListener('click', function () {
-    //     if (editingSectionPanel.style.display === 'block' && activeSection === 'Lead section') {
-    //         editingSectionPanel.style.display = 'none';
-    //     } else {
-    //         // Ensure we treat the lead section as active if this button is clicked
-    //         const leadSection = document.getElementById('leadSectionBlock');
-    //         setActiveSection(leadSection);
+    getContentsBtn.addEventListener('click', function () {
+        if (editingSectionPanel.style.display === 'block' && activeSection === 'Lead section') {
+            editingSectionPanel.style.display = 'none';
+        } else {
+            // Ensure we treat the lead section as active if this button is clicked
+            const leadSection = document.getElementById('leadSectionBlock');
+            setActiveSection(leadSection);
 
-    //         updateEditingPanelContent('Lead section');
-    //         editingSectionPanel.style.display = 'block';
-    //         gettingStartedPanel.style.display = 'none';
-    //     }
-    // });
+            updateEditingPanelContent('Lead section');
+            editingSectionPanel.style.display = 'block';
+            gettingStartedPanel.style.display = 'none';
+        }
+    });
 
-    // editingPanelCloseBtn.addEventListener('click', function () {
-    //     editingSectionPanel.style.display = 'none';
-    //     gettingStartedPanel.style.display = 'none';
-    // });
+    editingPanelCloseBtn.addEventListener('click', function () {
+        editingSectionPanel.style.display = 'none';
+        gettingStartedPanel.style.display = 'none';
+    });
 
-    // editorTextarea.addEventListener('input', function () {
-    //     const text = this.textContent || '';
-    //     if (text === '/' || text.endsWith('\n/')) {
-    //         const leadSection = document.getElementById('leadSectionBlock');
-    //         setActiveSection(leadSection);
+    editorTextarea.addEventListener('input', function () {
+        const text = this.textContent || '';
+        if (text === '/' || text.endsWith('\n/')) {
+            const leadSection = document.getElementById('leadSectionBlock');
+            setActiveSection(leadSection);
 
-    //         updateEditingPanelContent('Lead section');
-    //         editingSectionPanel.style.display = 'block';
-    //         gettingStartedPanel.style.display = 'none';
-    //     }
-    // });
+            updateEditingPanelContent('Lead section');
+            editingSectionPanel.style.display = 'block';
+            gettingStartedPanel.style.display = 'none';
+        }
+    });
 
     editorTextarea.addEventListener('click', function () {
         if (gettingStartedPanel.style.display !== 'none') {
@@ -1904,16 +1032,15 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // COMMENTED OUT: Templates/suggestions feature
-    // viewOutlineBtn.addEventListener('click', function () {
-    //     editingSectionPanel.style.display = 'none';
-    //     articleOutlinePanel.style.display = 'block';
-    // });
+    viewOutlineBtn.addEventListener('click', function () {
+        editingSectionPanel.style.display = 'none';
+        articleOutlinePanel.style.display = 'block';
+    });
 
-    // outlinePanelCloseBtn.addEventListener('click', function () {
-    //     articleOutlinePanel.style.display = 'none';
-    //     editingSectionPanel.style.display = 'block';
-    // });
+    outlinePanelCloseBtn.addEventListener('click', function () {
+        articleOutlinePanel.style.display = 'none';
+        editingSectionPanel.style.display = 'block';
+    });
 
     addCustomSectionBtnTrigger.addEventListener('click', function () {
         customSectionDialog.style.display = 'flex';
@@ -1951,8 +1078,7 @@ document.addEventListener('DOMContentLoaded', function () {
             addBtn.addEventListener('click', function () {
                 handleAddSectionClick(sectionName, sectionDesc);
                 articleOutlinePanel.style.display = 'none';
-                // COMMENTED OUT: Templates/suggestions feature
-                // editingSectionPanel.style.display = 'block';
+                editingSectionPanel.style.display = 'block';
             });
             closeCustomSectionDialog();
         }
@@ -1977,28 +1103,26 @@ document.addEventListener('DOMContentLoaded', function () {
             <div class="section-content-area">
                 <div class="section-textarea" contenteditable="true" data-placeholder="${sectionPlaceholders[sectionName] || `Write about ${sectionName.toLowerCase()}...`}"></div>
             </div>
+            <button class="section-get-contents-btn">Get suggested contents</button>
         `;
-        // COMMENTED OUT: Templates/suggestions feature
-        // <button class="section-get-contents-btn">Get suggested contents</button>
 
         const textarea = sectionBlock.querySelector('.section-textarea');
         textarea.addEventListener('focus', () => setActiveSection(sectionBlock));
 
-        // COMMENTED OUT: Templates/suggestions feature
-        // sectionBlock.querySelector('.section-get-contents-btn').addEventListener('click', () => {
-        //     if (editingSectionPanel.style.display === 'block' && activeSection === sectionName) {
-        //         editingSectionPanel.style.display = 'none';
-        //     } else {
-        //         setActiveSection(sectionBlock);
-        //         updateEditingPanelContent(sectionName);
-        //         editingSectionPanel.style.display = 'block';
-        //         gettingStartedPanel.style.display = 'none';
-        //     }
-        // });
+        sectionBlock.querySelector('.section-get-contents-btn').addEventListener('click', () => {
+            if (editingSectionPanel.style.display === 'block' && activeSection === sectionName) {
+                editingSectionPanel.style.display = 'none';
+            } else {
+                setActiveSection(sectionBlock);
+                updateEditingPanelContent(sectionName);
+                editingSectionPanel.style.display = 'block';
+                gettingStartedPanel.style.display = 'none';
+            }
+        });
 
-        // COMMENTED OUT: Templates/suggestions feature - Conditional visibility for "Get suggested contents"
-        // textarea.addEventListener('keyup', () => updateGetContentsButtonVisibility(sectionBlock));
-        // textarea.addEventListener('click', () => updateGetContentsButtonVisibility(sectionBlock));
+        // Conditional visibility for "Get suggested contents"
+        textarea.addEventListener('keyup', () => updateGetContentsButtonVisibility(sectionBlock));
+        textarea.addEventListener('click', () => updateGetContentsButtonVisibility(sectionBlock));
 
         sectionBlock.querySelector('.section-remove-btn').addEventListener('click', () => {
             sectionBlock.remove();
@@ -2043,18 +1167,17 @@ document.addEventListener('DOMContentLoaded', function () {
         setTimeout(() => sectionBlock.querySelector('.section-textarea').focus(), 100);
     }
 
-    // COMMENTED OUT: Templates/suggestions feature - upNextBtn is part of editing panel
-    // const upNextBtn = document.querySelector('.up-next-btn');
-    // if (upNextBtn) {
-    //     upNextBtn.addEventListener('click', function () {
-    //         const upNextTitle = document.querySelector('.up-next-title');
-    //         const nextSectionName = upNextTitle ? upNextTitle.textContent : null;
-    //         if (nextSectionName && !addedSections.has(nextSectionName)) {
-    //             editingSectionPanel.style.display = 'none';
-    //             handleAddSectionClick(nextSectionName, '');
-    //         }
-    //     });
-    // }
+    const upNextBtn = document.querySelector('.up-next-btn');
+    if (upNextBtn) {
+        upNextBtn.addEventListener('click', function () {
+            const upNextTitle = document.querySelector('.up-next-title');
+            const nextSectionName = upNextTitle ? upNextTitle.textContent : null;
+            if (nextSectionName && !addedSections.has(nextSectionName)) {
+                editingSectionPanel.style.display = 'none';
+                handleAddSectionClick(nextSectionName, '');
+            }
+        });
+    }
 
     function attachOutlineAddButtonHandlers() {
         const outlineSectionItems = articleOutlinePanel.querySelectorAll('.outline-section');
@@ -2065,8 +1188,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     const sectionName = item.querySelector('.outline-section-title').textContent;
                     handleAddSectionClick(sectionName, '');
                     articleOutlinePanel.style.display = 'none';
-                    // COMMENTED OUT: Templates/suggestions feature
-                    // editingSectionPanel.style.display = 'block';
+                    editingSectionPanel.style.display = 'block';
                 });
             }
         });
@@ -2077,35 +1199,34 @@ document.addEventListener('DOMContentLoaded', function () {
         setActiveSection(document.getElementById('leadSectionBlock'));
     });
 
-    // COMMENTED OUT: Templates/suggestions feature - Initial visibility check
-    // editorTextarea.addEventListener('keyup', () => updateGetContentsButtonVisibility(document.getElementById('leadSectionBlock')));
-    // editorTextarea.addEventListener('click', () => updateGetContentsButtonVisibility(document.getElementById('leadSectionBlock')));
+    // Initial visibility check
+    editorTextarea.addEventListener('keyup', () => updateGetContentsButtonVisibility(document.getElementById('leadSectionBlock')));
+    editorTextarea.addEventListener('click', () => updateGetContentsButtonVisibility(document.getElementById('leadSectionBlock')));
 
-    // COMMENTED OUT: Templates/suggestions feature - updateGetContentsButtonVisibility function
-    // function updateGetContentsButtonVisibility(sectionBlock) {
-    //     if (!sectionBlock) return;
-    //     const btn = sectionBlock.querySelector('.section-get-contents-btn');
-    //     const textarea = sectionBlock.querySelector('.section-textarea');
-    //     if (!btn || !textarea) return;
+    function updateGetContentsButtonVisibility(sectionBlock) {
+        if (!sectionBlock) return;
+        const btn = sectionBlock.querySelector('.section-get-contents-btn');
+        const textarea = sectionBlock.querySelector('.section-textarea');
+        if (!btn || !textarea) return;
 
-    //     // Check if cursor is on a new line or at the end
-    //     const sel = window.getSelection();
-    //     if (!sel.rangeCount) return;
+        // Check if cursor is on a new line or at the end
+        const sel = window.getSelection();
+        if (!sel.rangeCount) return;
 
-    //     const text = textarea.innerText;
-    //     const isEmpty = text.trim() === '';
-    //     const endsWithNewline = text.endsWith('\n') || text.endsWith('\n\n');
-    //     const isActive = sectionBlock.classList.contains('active');
+        const text = textarea.innerText;
+        const isEmpty = text.trim() === '';
+        const endsWithNewline = text.endsWith('\n') || text.endsWith('\n\n');
+        const isActive = sectionBlock.classList.contains('active');
 
-    //     // Show if active AND (empty OR ends with newline)
-    //     if (isActive && (isEmpty || endsWithNewline)) {
-    //         btn.style.visibility = 'visible';
-    //         btn.style.pointerEvents = 'auto';
-    //     } else {
-    //         btn.style.visibility = 'hidden';
-    //         btn.style.pointerEvents = 'none';
-    //     }
-    // }
+        // Show if active AND (empty OR ends with newline)
+        if (isActive && (isEmpty || endsWithNewline)) {
+            btn.style.visibility = 'visible';
+            btn.style.pointerEvents = 'auto';
+        } else {
+            btn.style.visibility = 'hidden';
+            btn.style.pointerEvents = 'none';
+        }
+    }
 
     addedSections.add('Lead section');
     setActiveSection(document.getElementById('leadSectionBlock'));
@@ -2198,7 +1319,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Reset status to pending on input and update button
             this.dataset.verificationStatus = 'pending';
-            updateSourcesNextButtonState();
+            updateStartWritingButtonState();
 
             // Clear previous timer
             clearTimeout(debounceTimer);
@@ -2258,14 +1379,14 @@ document.addEventListener('DOMContentLoaded', function () {
                             }
                         }
                         // Update button state after verification is complete
-                        updateSourcesNextButtonState();
+                        updateStartWritingButtonState();
                     }, 1500);
                 }, 600); // 600ms debounce before starting check
             } else {
                 statusDiv.style.display = 'none';
                 input.classList.remove('input-error');
                 input.dataset.verificationStatus = 'pending'; // Too short/invalid format
-                updateSourcesNextButtonState();
+                updateStartWritingButtonState();
             }
         });
 
@@ -2281,8 +1402,10 @@ document.addEventListener('DOMContentLoaded', function () {
     // Attach to existing inputs
     document.querySelectorAll('.cdx-text-input__input').forEach(attachVerificationListeners);
 
-    // --- NEXT BUTTON STATE MANAGEMENT FOR SOURCES SCREEN ---
-    function updateSourcesNextButtonState() {
+    // --- START WRITING BUTTON STATE MANAGEMENT ---
+    const startWritingBtn = document.getElementById('startWritingBtn');
+
+    function updateStartWritingButtonState() {
         const sourceInputs = sourcesInputContainer.querySelectorAll('.cdx-text-input__input');
         let hasValidSource = false;
 
@@ -2293,65 +1416,21 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
-        // Enable/disable header next button based on valid sources
-        nextBtn.disabled = !hasValidSource;
+        startWritingBtn.disabled = !hasValidSource;
     }
 
     // Listen for input changes on all source fields
-    // sourcesInputContainer.addEventListener('input', updateSourcesNextButtonState); // Removed global listener, handled in attachVerificationListeners
+    // sourcesInputContainer.addEventListener('input', updateStartWritingButtonState); // Removed global listener, handled in attachVerificationListeners
 
-    // Continue button on sources screen
-    document.getElementById('sourcesContinueBtn').addEventListener('click', function () {
+    document.getElementById('startWritingBtn').addEventListener('click', function () {
         captureUserSources();
-        showScreen(275); // Go to guidance screen
-    });
-
-    skipSourcesBtn.addEventListener('click', function () {
-        showScreen(275); // Go to guidance screen first
-    });
-
-    // Guidance screen continue button
-    guidanceContinueBtn.addEventListener('click', function () {
         showScreen(3);
         setTimeout(() => editorTextarea.focus(), 100);
     });
 
-    // Copy wikitext to clipboard
-    copyWikitextBtn.addEventListener('click', function () {
-        const wikitext = wikitextContent.textContent;
-
-        navigator.clipboard.writeText(wikitext).then(() => {
-            // Success feedback
-            copyWikitextBtn.classList.add('copied');
-            copyWikitextBtn.querySelector('span').textContent = 'COPIED!';
-
-            // Reset after 2 seconds
-            setTimeout(() => {
-                copyWikitextBtn.classList.remove('copied');
-                copyWikitextBtn.querySelector('span').textContent = 'COPY';
-            }, 2000);
-        }).catch(err => {
-            console.error('Failed to copy text: ', err);
-            // Fallback for older browsers
-            const textArea = document.createElement('textarea');
-            textArea.value = wikitext;
-            textArea.style.position = 'fixed';
-            textArea.style.left = '-999999px';
-            document.body.appendChild(textArea);
-            textArea.select();
-            try {
-                document.execCommand('copy');
-                copyWikitextBtn.classList.add('copied');
-                copyWikitextBtn.querySelector('span').textContent = 'COPIED!';
-                setTimeout(() => {
-                    copyWikitextBtn.classList.remove('copied');
-                    copyWikitextBtn.querySelector('span').textContent = 'COPY';
-                }, 2000);
-            } catch (e) {
-                console.error('Fallback copy failed: ', e);
-            }
-            document.body.removeChild(textArea);
-        });
+    skipSourcesBtn.addEventListener('click', function () {
+        showScreen(3);
+        setTimeout(() => editorTextarea.focus(), 100);
     });
 
     function captureUserSources() {
@@ -2384,39 +1463,6 @@ document.addEventListener('DOMContentLoaded', function () {
     if (goodSourceGotItBtn) {
         goodSourceGotItBtn.addEventListener('click', () => {
             goodSourceModal.style.display = 'none';
-        });
-    }
-
-    // --- GATE MODAL EVENT LISTENERS ---
-    if (gatePrimaryBtn) {
-        gatePrimaryBtn.addEventListener('click', () => {
-            const gateType = gateModal.dataset.gateType;
-            processGateAndProceed(gateType);
-        });
-    }
-
-    if (gateSecondaryBtn) {
-        gateSecondaryBtn.addEventListener('click', () => {
-            const gateType = gateModal.dataset.gateType;
-            if (gateType === 'expansion') {
-                // "Create anyway" - proceed without redirect
-                hideGate();
-                showScreen(2.5);
-            } else if (gateType === 'sandbox') {
-                // "Read Policy" - open BLP policy in new tab
-                window.open('https://en.wikipedia.org/wiki/Wikipedia:Biographies_of_living_persons', '_blank');
-            } else if (gateType === 'coi') {
-                // "Cancel" - go back
-                hideGate();
-            }
-        });
-    }
-
-    // Close gate modal on overlay click
-    const gateModalOverlay = document.querySelector('.gate-modal-overlay');
-    if (gateModalOverlay) {
-        gateModalOverlay.addEventListener('click', () => {
-            hideGate();
         });
     }
 

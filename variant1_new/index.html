@@ -153,15 +153,64 @@
                 <div class="sources-footer">
                     <div class="sources-actions-container">
                         <button
-                            class="cdx-button cdx-button--weight-primary cdx-button--action-progressive start-writing-btn"
-                            id="startWritingBtn" disabled>
-                            <span>Start writing</span>
+                            class="cdx-button cdx-button--weight-primary cdx-button--action-progressive"
+                            id="sourcesContinueBtn">
+                            <span>Continue</span>
                         </button>
 
-                        <button
-                            class="cdx-button cdx-button--weight-quiet cdx-button--action-progressive skip-sources-btn"
-                            id="skipSourcesBtn">
-                            <span>I'll add sources later</span>
+                        <span class="skip-sources-link" id="skipSourcesBtn">I'll add sources later</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 2.75: Dynamic Guidance -->
+            <div class="screen" id="screen275" style="display: none;">
+                <div class="guidance-screen">
+                    <!-- Advisory Card -->
+                    <div class="advisory-card" id="advisoryCard">
+                        <div class="advisory-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <path d="M12 2L1 21h22L12 2z" fill="#E67700" stroke="#E67700" stroke-width="2"/>
+                                <path d="M12 9v5M12 16v2" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                        </div>
+                        <div class="advisory-content">
+                            <span class="advisory-label" id="advisoryLabel">Tip for biographies:</span>
+                            <span class="advisory-text" id="advisoryText">Write about what makes this person notable to the world—not just their job history. Use news articles or books as sources, and keep your own opinions out.</span>
+                        </div>
+                    </div>
+
+                    <!-- Starter Article Outline -->
+                    <div class="starter-outline-card">
+                        <h2 class="starter-outline-title">Starter Article Outline (Raw Wikitext)</h2>
+                        <div class="wikitext-block" id="wikitextBlock">
+                            <pre id="wikitextContent">'''{{subst:REVISIONUSER}}''' (born [[Date of birth|DD Month YYYY]]) is a [[Nationality]] [[Occupation]].
+
+==Early Life and Education==
+* Born in [[City, Country]].
+* Attended [[University Name]], graduating in [[Year]].
+
+==Career==
+* Known for [[Notable Achievement 1]] and [[Notable Achievement 2]].
+* In [[Year]], [[Event]].
+
+==References==
+{{reflist}}
+
+[[Category: Living people]]
+[[Category: [Occupation] from [Country]]]</pre>
+                        </div>
+                        <button class="copy-btn" id="copyWikitextBtn">
+                            <img src="node_modules/@wikimedia/codex-icons/dist/images/copy.svg" alt="" width="16" height="16">
+                            <span>COPY</span>
+                        </button>
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="guidance-footer">
+                        <button class="cdx-button cdx-button--weight-primary cdx-button--action-progressive guidance-continue-btn"
+                            id="guidanceContinueBtn">
+                            <span>Proceed to Visual Editor</span>
                         </button>
                     </div>
                 </div>
@@ -178,12 +227,14 @@
                                 data-placeholder="Begin writing about Siberian tiger, or type &quot;/&quot; for article outline">
                             </div>
                         </div>
+                        <!-- COMMENTED OUT: Templates/suggestions feature
                         <button class="cdx-button cdx-button--action-progressive section-get-contents-btn"
                             id="getContentsBtn">Get suggested contents</button>
+                        -->
                     </div>
                 </div>
 
-                <!-- Editing Section Panel -->
+                <!-- COMMENTED OUT: Editing Section Panel with templates/suggestions
                 <div class="editing-section-panel" id="editingSectionPanel" style="display: none;">
                     <div class="editing-section-header">
                         <div class="editing-section-label">EDITING SECTION</div>
@@ -198,7 +249,6 @@
                         <span class="current-badge">current</span>
                     </div>
 
-                    <!-- Suggested Paragraphs -->
                     <div class="suggested-section">
                         <h3 class="section-heading">SUGGESTED PARAGRAPHS</h3>
 
@@ -225,7 +275,6 @@
                         </div>
                     </div>
 
-                    <!-- Verified Facts -->
                     <h3 class="section-heading">COMMUNITY VERIFIED FACTS</h3>
 
                     <div class="verified-facts-section">
@@ -252,7 +301,6 @@
                         </div>
                     </div>
 
-                    <!-- Next Section Button -->
                     <button class="up-next-btn">
                         <div class="up-next-content">
                             <div class="up-next-label">Next section</div>
@@ -262,13 +310,13 @@
                             height="20" class="up-next-icon">
                     </button>
 
-                    <!-- View Full Outline Button -->
                     <button class="view-outline-btn">
                         <img src="node_modules/@wikimedia/codex-icons/dist/images/listBullet.svg" alt="" width="20"
                             height="20">
                         <span>View full article outline</span>
                     </button>
                 </div>
+                -->
 
                 <!-- Getting Started Panel -->
                 <div class="getting-started-panel" id="gettingStartedPanel">
@@ -574,6 +622,81 @@
                 </button>
             </div>
         </div>
+    </div>
+
+    <!-- Topic Gate Modal -->
+    <div class="gate-modal" id="gateModal" style="display: none;">
+        <div class="gate-modal-overlay"></div>
+        <div class="gate-modal-content">
+            <div class="gate-modal-icon" id="gateModalIcon">
+                <!-- Icon inserted dynamically -->
+            </div>
+            <h2 class="gate-modal-header" id="gateModalHeader">Gate Header</h2>
+            <p class="gate-modal-body" id="gateModalBody">Gate body text goes here.</p>
+
+            <!-- Dynamic content area (changes based on gate type) -->
+            <div class="gate-modal-interactive" id="gateModalInteractive">
+                <!-- For Sandbox Gate: Living person radio buttons -->
+                <div class="gate-blp-options" id="gateBLPOptions" style="display: none;">
+                    <label class="gate-radio-option">
+                        <input type="radio" name="blpStatus" value="living">
+                        <span>Yes, living</span>
+                    </label>
+                    <label class="gate-radio-option">
+                        <input type="radio" name="blpStatus" value="deceased">
+                        <span>No, deceased</span>
+                    </label>
+                    <label class="gate-radio-option">
+                        <input type="radio" name="blpStatus" value="unsure">
+                        <span>Not sure</span>
+                    </label>
+                </div>
+
+                <!-- For COI Gate: Conflict of interest checkboxes -->
+                <div class="gate-coi-options" id="gateCOIOptions" style="display: none;">
+                    <label class="gate-checkbox-option">
+                        <input type="checkbox" name="coiStatus" value="employee">
+                        <span>Employee</span>
+                    </label>
+                    <label class="gate-checkbox-option">
+                        <input type="checkbox" name="coiStatus" value="founder">
+                        <span>Founder</span>
+                    </label>
+                    <label class="gate-checkbox-option">
+                        <input type="checkbox" name="coiStatus" value="paid">
+                        <span>Paid representative</span>
+                    </label>
+                    <label class="gate-checkbox-option">
+                        <input type="checkbox" name="coiStatus" value="none">
+                        <span>No connection</span>
+                    </label>
+                </div>
+
+                <!-- For Expansion Pivot: Suggestion card -->
+                <div class="gate-expansion-suggestion" id="gateExpansionSuggestion" style="display: none;">
+                    <div class="expansion-suggestion-card">
+                        <span class="expansion-suggestion-label">Add to:</span>
+                        <span class="expansion-suggestion-article" id="expansionArticle">Siberian Tiger</span>
+                        <span class="expansion-suggestion-section">→ "<span id="expansionSection">In Captivity</span>" section</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info box (shown for BLP warning) -->
+            <div class="gate-info-box" id="gateInfoBox" style="display: none;">
+                <p id="gateInfoText">Additional information appears here.</p>
+            </div>
+
+            <div class="gate-modal-actions">
+                <button class="cdx-button cdx-button--weight-primary cdx-button--action-progressive" id="gatePrimaryBtn">
+                    Primary Action
+                </button>
+                <button class="cdx-button cdx-button--weight-quiet" id="gateSecondaryBtn">
+                    Secondary Action
+                </button>
+            </div>
+        </div>
+    </div>
 
         <script src="script.js"></script>
 </body>
