@@ -2150,12 +2150,6 @@ body {
     overflow-y: auto;
 }
 
-.guidance-title {
-    font-size: var(--font-size-xx-large);
-    font-weight: var(--font-weight-bold);
-    color: var(--color-base);
-    margin: 0 0 var(--size-200) 0;
-}
 
 /* Advisory Card */
 .advisory-card {
