@@ -22,9 +22,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const editorTextarea = document.getElementById('editorTextarea');
     const panelCloseBtn = document.getElementById('panelCloseBtn');
     const gettingStartedPanel = document.getElementById('gettingStartedPanel');
-    const getContentsBtn = document.getElementById('getContentsBtn');
-    const editingSectionPanel = document.getElementById('editingSectionPanel');
-    const editingPanelCloseBtn = document.getElementById('editingPanelCloseBtn');
+    // COMMENTED OUT: Templates/suggestions feature
+    // const getContentsBtn = document.getElementById('getContentsBtn');
+    // const editingSectionPanel = document.getElementById('editingSectionPanel');
+    // const editingPanelCloseBtn = document.getElementById('editingPanelCloseBtn');
     const articleOutlinePanel = document.getElementById('articleOutlinePanel');
     const outlinePanelCloseBtn = document.getElementById('outlinePanelCloseBtn');
     const viewOutlineBtn = document.querySelector('.view-outline-btn');
@@ -527,19 +528,20 @@ document.addEventListener('DOMContentLoaded', function () {
             sectionBlock.classList.add('active');
             activeSection = sectionBlock.dataset.sectionName;
 
+            // COMMENTED OUT: Templates/suggestions feature
             // Move the editing panel to be after this section
-            if (editingSectionPanel && sectionBlock.parentNode) {
-                // Insert after the section block
-                sectionBlock.parentNode.insertBefore(editingSectionPanel, sectionBlock.nextSibling);
-            }
+            // if (editingSectionPanel && sectionBlock.parentNode) {
+            //     // Insert after the section block
+            //     sectionBlock.parentNode.insertBefore(editingSectionPanel, sectionBlock.nextSibling);
+            // }
 
             updateNextSectionButton();
         }
 
-        // Update visibility for ALL sections now that active state is settled
-        document.querySelectorAll('.section-block').forEach(section => {
-            updateGetContentsButtonVisibility(section);
-        });
+        // COMMENTED OUT: Templates/suggestions feature - Update visibility for ALL sections
+        // document.querySelectorAll('.section-block').forEach(section => {
+        //     updateGetContentsButtonVisibility(section);
+        // });
     }
 
     function updateNextSectionButton() {
@@ -816,215 +818,220 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    function handleInsertSuggestion(suggestionTitle, sectionName) {
-        let targetTextarea;
+    // COMMENTED OUT: Templates/suggestions feature - handleInsertSuggestion function
+    // function handleInsertSuggestion(suggestionTitle, sectionName) {
+    //     let targetTextarea;
 
-        if (sectionName === 'Lead section') {
-            targetTextarea = editorTextarea;
-        } else {
-            const sectionBlocks = document.querySelectorAll('.section-block');
-            sectionBlocks.forEach(block => {
-                if (block.dataset.sectionName === sectionName) {
-                    targetTextarea = block.querySelector('.section-textarea');
-                }
-            });
-        }
+    //     if (sectionName === 'Lead section') {
+    //         targetTextarea = editorTextarea;
+    //     } else {
+    //         const sectionBlocks = document.querySelectorAll('.section-block');
+    //         sectionBlocks.forEach(block => {
+    //             if (block.dataset.sectionName === sectionName) {
+    //                 targetTextarea = block.querySelector('.section-textarea');
+    //             }
+    //         });
+    //     }
 
-        if (!targetTextarea) return;
+    //     if (!targetTextarea) return;
 
-        const templateContent = getTemplateContent(suggestionTitle, sectionName);
-        const isContentEditable = targetTextarea.contentEditable === 'true';
+    //     const templateContent = getTemplateContent(suggestionTitle, sectionName);
+    //     const isContentEditable = targetTextarea.contentEditable === 'true';
 
-        if (isContentEditable) {
-            let currentContent = targetTextarea.innerHTML;
+    //     if (isContentEditable) {
+    //         let currentContent = targetTextarea.innerHTML;
 
-            // Remove trailing slash if present (handling potential HTML tags wrapping it)
-            // This allows the template to replace the slash command
-            if (currentContent.match(/\/\s*(?:<\/[^>]+>\s*)*$/)) {
-                currentContent = currentContent.replace(/\/\s*((?:<\/[^>]+>\s*)*)$/, '$1');
-            }
+    //         // Remove trailing slash if present (handling potential HTML tags wrapping it)
+    //         // This allows the template to replace the slash command
+    //         if (currentContent.match(/\/\s*(?:<\/[^>]+>\s*)*$/)) {
+    //             currentContent = currentContent.replace(/\/\s*((?:<\/[^>]+>\s*)*)$/, '$1');
+    //         }
 
-            const prefix = currentContent && currentContent.trim() !== '' ? '<br><br>' : '';
-            // Add double break at the end to create empty line below
-            const suffix = '<br><br>';
-            targetTextarea.innerHTML = currentContent + prefix + templateContent + suffix;
+    //         const prefix = currentContent && currentContent.trim() !== '' ? '<br><br>' : '';
+    //         // Add double break at the end to create empty line below
+    //         const suffix = '<br><br>';
+    //         targetTextarea.innerHTML = currentContent + prefix + templateContent + suffix;
 
-            // --- IMMEDIATE FOCUS LOGIC ---
-            targetTextarea.focus();
+    //         // --- IMMEDIATE FOCUS LOGIC ---
+    //         targetTextarea.focus();
 
-            // Find the FIRST placeholder that was just added.
-            // We just grab the first valid placeholder found in the element.
-            const placeholders = targetTextarea.querySelectorAll('.placeholder');
+    //         // Find the FIRST placeholder that was just added.
+    //         // We just grab the first valid placeholder found in the element.
+    //         const placeholders = targetTextarea.querySelectorAll('.placeholder');
 
-            if (placeholders.length > 0) {
-                const firstPlaceholder = placeholders[0];
-                setCursorToStart(firstPlaceholder.firstChild || firstPlaceholder);
-            }
-        } else {
-            targetTextarea.value += "\n" + templateContent.replace(/<[^>]*>/g, '') + "\n\n";
-        }
+    //         if (placeholders.length > 0) {
+    //             const firstPlaceholder = placeholders[0];
+    //             setCursorToStart(firstPlaceholder.firstChild || firstPlaceholder);
+    //         }
+    //     } else {
+    //         targetTextarea.value += "\n" + templateContent.replace(/<[^>]*>/g, '') + "\n\n";
+    //     }
 
-        if (!insertedTemplates.has(sectionName)) insertedTemplates.set(sectionName, new Set());
-        insertedTemplates.get(sectionName).add(suggestionTitle);
+    //     if (!insertedTemplates.has(sectionName)) insertedTemplates.set(sectionName, new Set());
+    //     insertedTemplates.get(sectionName).add(suggestionTitle);
 
-        updateEditingPanelContent(sectionName);
-        editingSectionPanel.style.display = 'none';
-    }
+    //     updateEditingPanelContent(sectionName);
+    //     editingSectionPanel.style.display = 'none';
+    // }
 
-    function handleInsertFact(fact, sectionName) {
-        let targetTextarea;
-        if (sectionName === 'Lead section') {
-            targetTextarea = editorTextarea;
-        } else {
-            document.querySelectorAll('.section-block').forEach(block => {
-                if (block.dataset.sectionName === sectionName) {
-                    targetTextarea = block.querySelector('.section-textarea');
-                }
-            });
-        }
+    // COMMENTED OUT: Templates/suggestions feature - handleInsertFact function
+    // function handleInsertFact(fact, sectionName) {
+    //     let targetTextarea;
+    //     if (sectionName === 'Lead section') {
+    //         targetTextarea = editorTextarea;
+    //     } else {
+    //         document.querySelectorAll('.section-block').forEach(block => {
+    //             if (block.dataset.sectionName === sectionName) {
+    //                 targetTextarea = block.querySelector('.section-textarea');
+    //             }
+    //         });
+    //     }
 
-        if (!targetTextarea) return;
+    //     if (!targetTextarea) return;
 
-        citationCounter++;
-        wikidataCitations.push({
-            number: citationCounter,
-            label: fact.label,
-            value: fact.value,
-            source: 'Wikidata'
-        });
+    //     citationCounter++;
+    //     wikidataCitations.push({
+    //         number: citationCounter,
+    //         label: fact.label,
+    //         value: fact.value,
+    //         source: 'Wikidata'
+    //     });
 
-        const factHTML = `<br>The ${fact.label.toLowerCase()} is ${fact.value}<sup class="citation-superscript">[${citationCounter}]</sup>`;
-        targetTextarea.innerHTML += factHTML;
+    //     const factHTML = `<br>The ${fact.label.toLowerCase()} is ${fact.value}<sup class="citation-superscript">[${citationCounter}]</sup>`;
+    //     targetTextarea.innerHTML += factHTML;
 
-        // Move cursor to end
-        targetTextarea.focus();
-        const range = document.createRange();
-        range.selectNodeContents(targetTextarea);
-        range.collapse(false);
-        const sel = window.getSelection();
-        sel.removeAllRanges();
-        sel.addRange(range);
+    //     // Move cursor to end
+    //     targetTextarea.focus();
+    //     const range = document.createRange();
+    //     range.selectNodeContents(targetTextarea);
+    //     range.collapse(false);
+    //     const sel = window.getSelection();
+    //     sel.removeAllRanges();
+    //     sel.addRange(range);
 
-        if (!insertedFacts.has(sectionName)) insertedFacts.set(sectionName, new Set());
-        insertedFacts.get(sectionName).add(`${fact.label}:${fact.value}`);
+    //     if (!insertedFacts.has(sectionName)) insertedFacts.set(sectionName, new Set());
+    //     insertedFacts.get(sectionName).add(`${fact.label}:${fact.value}`);
 
-        updateEditingPanelContent(sectionName);
-    }
+    //     updateEditingPanelContent(sectionName);
+    // }
 
-    function getTemplateContent(suggestionTitle, sectionName) {
-        const sourceMarker = '<span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="">add source</span>';
-        // Use standardized HTML spans for placeholders
-        const templates = {
-            'Short overview': `The <span class="placeholder">animal name</span> is a <span class="placeholder">type of animal</span> native to <span class="placeholder">broad region</span>${sourceMarker}. It is known for <span class="placeholder">key distinctive feature</span>${sourceMarker}.`,
-            'Taxonomy in brief': `The <span class="placeholder">animal name</span> belongs to the <span class="placeholder">taxonomic family</span> family${sourceMarker}. It was first described by <span class="placeholder">scientist name</span> in <span class="placeholder">year</span>${sourceMarker}.`,
-            'Physical description': `The <span class="placeholder">animal name</span> has <span class="placeholder">describe physical appearance</span>${sourceMarker}. <span class="placeholder">Add details about coloration, body structure, notable features</span>.`,
-            'Size and weight': `Adult <span class="placeholder">animal name</span> typically measure <span class="placeholder">length range</span> in length and weigh <span class="placeholder">weight range</span>${sourceMarker}. <span class="placeholder">Add information about sexual dimorphism if applicable</span>.`,
-            'Coat and coloration': `The <span class="placeholder">animal name</span> has <span class="placeholder">describe coat type and color</span>${sourceMarker}. <span class="placeholder">Add details about seasonal variations, regional differences, or distinctive markings</span>.`,
-            'Geographic range': `The <span class="placeholder">animal name</span> is found in <span class="placeholder">list countries/regions</span>${sourceMarker}. <span class="placeholder">Add details about historical vs current range</span>.`,
-            'Habitat preferences': `The <span class="placeholder">animal name</span> inhabits <span class="placeholder">describe habitat types</span>${sourceMarker}. <span class="placeholder">Add details about elevation range, vegetation types, climate preferences</span>.`,
-            'Population estimates': `Current population estimates suggest <span class="placeholder">number</span> individuals in the wild${sourceMarker}. <span class="placeholder">Add information about population trends and conservation status</span>.`,
-            'Diet and hunting': `The <span class="placeholder">animal name</span> primarily feeds on <span class="placeholder">list prey species</span>${sourceMarker}. <span class="placeholder">Add details about hunting strategies, feeding behavior</span>.`,
-            'Social structure': `The <span class="placeholder">animal name</span> is <span class="placeholder">solitary/social</span>${sourceMarker}. <span class="placeholder">Add details about territorial behavior, group size, social hierarchy</span>.`,
-            'Reproduction': `The <span class="placeholder">animal name</span> breeds <span class="placeholder">breeding season/frequency</span>${sourceMarker}. <span class="placeholder">Add details about gestation period, litter size, parental care</span>.`
-        };
-        return templates[suggestionTitle] || `<span class="placeholder">[Content for ${suggestionTitle}]</span>`;
-    }
+    // COMMENTED OUT: Templates/suggestions feature - getTemplateContent function
+    // function getTemplateContent(suggestionTitle, sectionName) {
+    //     const sourceMarker = '<span class="add-source-marker"><img src="node_modules/@wikimedia/codex-icons/dist/images/reference.svg" alt="">add source</span>';
+    //     // Use standardized HTML spans for placeholders
+    //     const templates = {
+    //         'Short overview': `The <span class="placeholder">animal name</span> is a <span class="placeholder">type of animal</span> native to <span class="placeholder">broad region</span>${sourceMarker}. It is known for <span class="placeholder">key distinctive feature</span>${sourceMarker}.`,
+    //         'Taxonomy in brief': `The <span class="placeholder">animal name</span> belongs to the <span class="placeholder">taxonomic family</span> family${sourceMarker}. It was first described by <span class="placeholder">scientist name</span> in <span class="placeholder">year</span>${sourceMarker}.`,
+    //         'Physical description': `The <span class="placeholder">animal name</span> has <span class="placeholder">describe physical appearance</span>${sourceMarker}. <span class="placeholder">Add details about coloration, body structure, notable features</span>.`,
+    //         'Size and weight': `Adult <span class="placeholder">animal name</span> typically measure <span class="placeholder">length range</span> in length and weigh <span class="placeholder">weight range</span>${sourceMarker}. <span class="placeholder">Add information about sexual dimorphism if applicable</span>.`,
+    //         'Coat and coloration': `The <span class="placeholder">animal name</span> has <span class="placeholder">describe coat type and color</span>${sourceMarker}. <span class="placeholder">Add details about seasonal variations, regional differences, or distinctive markings</span>.`,
+    //         'Geographic range': `The <span class="placeholder">animal name</span> is found in <span class="placeholder">list countries/regions</span>${sourceMarker}. <span class="placeholder">Add details about historical vs current range</span>.`,
+    //         'Habitat preferences': `The <span class="placeholder">animal name</span> inhabits <span class="placeholder">describe habitat types</span>${sourceMarker}. <span class="placeholder">Add details about elevation range, vegetation types, climate preferences</span>.`,
+    //         'Population estimates': `Current population estimates suggest <span class="placeholder">number</span> individuals in the wild${sourceMarker}. <span class="placeholder">Add information about population trends and conservation status</span>.`,
+    //         'Diet and hunting': `The <span class="placeholder">animal name</span> primarily feeds on <span class="placeholder">list prey species</span>${sourceMarker}. <span class="placeholder">Add details about hunting strategies, feeding behavior</span>.`,
+    //         'Social structure': `The <span class="placeholder">animal name</span> is <span class="placeholder">solitary/social</span>${sourceMarker}. <span class="placeholder">Add details about territorial behavior, group size, social hierarchy</span>.`,
+    //         'Reproduction': `The <span class="placeholder">animal name</span> breeds <span class="placeholder">breeding season/frequency</span>${sourceMarker}. <span class="placeholder">Add details about gestation period, litter size, parental care</span>.`
+    //     };
+    //     return templates[suggestionTitle] || `<span class="placeholder">[Content for ${suggestionTitle}]</span>`;
+    // }
 
-    function updateEditingPanelContent(sectionName) {
-        const editingSectionTitle = document.querySelector('.editing-section-title');
-        const displayName = sectionName === 'Lead section' ? 'Lead/Introduction' : sectionName;
-        editingSectionTitle.textContent = displayName;
-        currentEditingSection = displayName;
+    // COMMENTED OUT: Templates/suggestions feature - updateEditingPanelContent function
+    // function updateEditingPanelContent(sectionName) {
+    //     const editingSectionTitle = document.querySelector('.editing-section-title');
+    //     const displayName = sectionName === 'Lead section' ? 'Lead/Introduction' : sectionName;
+    //     editingSectionTitle.textContent = displayName;
+    //     currentEditingSection = displayName;
 
-        const suggestedSection = document.querySelector('.suggested-section');
-        const suggestions = sectionSuggestions[sectionName] || sectionSuggestions['Lead section'];
+    //     const suggestedSection = document.querySelector('.suggested-section');
+    //     const suggestions = sectionSuggestions[sectionName] || sectionSuggestions['Lead section'];
 
-        // Remove old cards, keep header
-        Array.from(suggestedSection.children).forEach(child => {
-            if (child.classList.contains('suggestion-card')) child.remove();
-        });
+    //     // Remove old cards, keep header
+    //     Array.from(suggestedSection.children).forEach(child => {
+    //         if (child.classList.contains('suggestion-card')) child.remove();
+    //     });
 
-        suggestions.forEach(suggestion => {
-            const card = document.createElement('div');
-            card.className = 'suggestion-card';
-            const isInserted = insertedTemplates.has(sectionName) && insertedTemplates.get(sectionName).has(suggestion.title);
-            if (isInserted) card.classList.add('suggestion-added');
+    //     suggestions.forEach(suggestion => {
+    //         const card = document.createElement('div');
+    //         card.className = 'suggestion-card';
+    //         const isInserted = insertedTemplates.has(sectionName) && insertedTemplates.get(sectionName).has(suggestion.title);
+    //         if (isInserted) card.classList.add('suggestion-added');
 
-            card.innerHTML = `
-                <button class="add-btn-circle" aria-label="${isInserted ? 'Already added' : 'Add paragraph'}" ${isInserted ? 'disabled' : ''}>
-                    <img src="node_modules/@wikimedia/codex-icons/dist/images/${isInserted ? 'check.svg' : 'add.svg'}" alt="" width="16" height="16">
-                </button>
-                <div class="suggestion-content">
-                    <div class="suggestion-title">${suggestion.title}</div>
-                    <div class="suggestion-description">${suggestion.description}</div>
-                </div>
-            `;
+    //         card.innerHTML = `
+    //             <button class="add-btn-circle" aria-label="${isInserted ? 'Already added' : 'Add paragraph'}" ${isInserted ? 'disabled' : ''}>
+    //                 <img src="node_modules/@wikimedia/codex-icons/dist/images/${isInserted ? 'check.svg' : 'add.svg'}" alt="" width="16" height="16">
+    //             </button>
+    //             <div class="suggestion-content">
+    //                 <div class="suggestion-title">${suggestion.title}</div>
+    //                 <div class="suggestion-description">${suggestion.description}</div>
+    //             </div>
+    //         `;
 
-            if (!isInserted) {
-                card.querySelector('.add-btn-circle').addEventListener('click', () => handleInsertSuggestion(suggestion.title, sectionName));
-            }
-            suggestedSection.appendChild(card);
-        });
+    //         if (!isInserted) {
+    //             card.querySelector('.add-btn-circle').addEventListener('click', () => handleInsertSuggestion(suggestion.title, sectionName));
+    //         }
+    //         suggestedSection.appendChild(card);
+    //     });
 
-        const verifiedFactsSection = document.querySelector('.verified-facts-section');
-        const facts = sectionFacts[sectionName] || sectionFacts['Lead section'];
+    //     const verifiedFactsSection = document.querySelector('.verified-facts-section');
+    //     const facts = sectionFacts[sectionName] || sectionFacts['Lead section'];
 
-        verifiedFactsSection.innerHTML = '';
+    //     verifiedFactsSection.innerHTML = '';
 
-        facts.forEach(fact => {
-            const factItem = document.createElement('div');
-            factItem.className = 'fact-item';
-            const factKey = `${fact.label}:${fact.value}`;
-            const isInserted = insertedFacts.has(sectionName) && insertedFacts.get(sectionName).has(factKey);
-            if (isInserted) factItem.classList.add('fact-added');
+    //     facts.forEach(fact => {
+    //         const factItem = document.createElement('div');
+    //         factItem.className = 'fact-item';
+    //         const factKey = `${fact.label}:${fact.value}`;
+    //         const isInserted = insertedFacts.has(sectionName) && insertedFacts.get(sectionName).has(factKey);
+    //         if (isInserted) factItem.classList.add('fact-added');
 
-            factItem.innerHTML = `
-                <div class="fact-content">
-                    <div class="fact-label">${fact.label}</div>
-                    <div class="fact-value">${fact.value}</div>
-                </div>
-                <button class="add-btn-circle" aria-label="${isInserted ? 'Already added' : 'Add fact'}" ${isInserted ? 'disabled' : ''}>
-                    <img src="node_modules/@wikimedia/codex-icons/dist/images/${isInserted ? 'check.svg' : 'add.svg'}" alt="" width="16" height="16">
-                </button>
-            `;
+    //         factItem.innerHTML = `
+    //             <div class="fact-content">
+    //                 <div class="fact-label">${fact.label}</div>
+    //                 <div class="fact-value">${fact.value}</div>
+    //             </div>
+    //             <button class="add-btn-circle" aria-label="${isInserted ? 'Already added' : 'Add fact'}" ${isInserted ? 'disabled' : ''}>
+    //                 <img src="node_modules/@wikimedia/codex-icons/dist/images/${isInserted ? 'check.svg' : 'add.svg'}" alt="" width="16" height="16">
+    //             </button>
+    //         `;
 
-            if (!isInserted) {
-                factItem.querySelector('.add-btn-circle').addEventListener('click', () => handleInsertFact(fact, sectionName));
-            }
-            verifiedFactsSection.appendChild(factItem);
-        });
-    }
+    //         if (!isInserted) {
+    //             factItem.querySelector('.add-btn-circle').addEventListener('click', () => handleInsertFact(fact, sectionName));
+    //         }
+    //         verifiedFactsSection.appendChild(factItem);
+    //     });
+    // }
 
-    getContentsBtn.addEventListener('click', function () {
-        if (editingSectionPanel.style.display === 'block' && activeSection === 'Lead section') {
-            editingSectionPanel.style.display = 'none';
-        } else {
-            // Ensure we treat the lead section as active if this button is clicked
-            const leadSection = document.getElementById('leadSectionBlock');
-            setActiveSection(leadSection);
+    // COMMENTED OUT: Templates/suggestions feature
+    // getContentsBtn.addEventListener('click', function () {
+    //     if (editingSectionPanel.style.display === 'block' && activeSection === 'Lead section') {
+    //         editingSectionPanel.style.display = 'none';
+    //     } else {
+    //         // Ensure we treat the lead section as active if this button is clicked
+    //         const leadSection = document.getElementById('leadSectionBlock');
+    //         setActiveSection(leadSection);
 
-            updateEditingPanelContent('Lead section');
-            editingSectionPanel.style.display = 'block';
-            gettingStartedPanel.style.display = 'none';
-        }
-    });
+    //         updateEditingPanelContent('Lead section');
+    //         editingSectionPanel.style.display = 'block';
+    //         gettingStartedPanel.style.display = 'none';
+    //     }
+    // });
 
-    editingPanelCloseBtn.addEventListener('click', function () {
-        editingSectionPanel.style.display = 'none';
-        gettingStartedPanel.style.display = 'none';
-    });
+    // editingPanelCloseBtn.addEventListener('click', function () {
+    //     editingSectionPanel.style.display = 'none';
+    //     gettingStartedPanel.style.display = 'none';
+    // });
 
-    editorTextarea.addEventListener('input', function () {
-        const text = this.textContent || '';
-        if (text === '/' || text.endsWith('\n/')) {
-            const leadSection = document.getElementById('leadSectionBlock');
-            setActiveSection(leadSection);
+    // editorTextarea.addEventListener('input', function () {
+    //     const text = this.textContent || '';
+    //     if (text === '/' || text.endsWith('\n/')) {
+    //         const leadSection = document.getElementById('leadSectionBlock');
+    //         setActiveSection(leadSection);
 
-            updateEditingPanelContent('Lead section');
-            editingSectionPanel.style.display = 'block';
-            gettingStartedPanel.style.display = 'none';
-        }
-    });
+    //         updateEditingPanelContent('Lead section');
+    //         editingSectionPanel.style.display = 'block';
+    //         gettingStartedPanel.style.display = 'none';
+    //     }
+    // });
 
     editorTextarea.addEventListener('click', function () {
         if (gettingStartedPanel.style.display !== 'none') {
@@ -1032,15 +1039,16 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    viewOutlineBtn.addEventListener('click', function () {
-        editingSectionPanel.style.display = 'none';
-        articleOutlinePanel.style.display = 'block';
-    });
+    // COMMENTED OUT: Templates/suggestions feature
+    // viewOutlineBtn.addEventListener('click', function () {
+    //     editingSectionPanel.style.display = 'none';
+    //     articleOutlinePanel.style.display = 'block';
+    // });
 
-    outlinePanelCloseBtn.addEventListener('click', function () {
-        articleOutlinePanel.style.display = 'none';
-        editingSectionPanel.style.display = 'block';
-    });
+    // outlinePanelCloseBtn.addEventListener('click', function () {
+    //     articleOutlinePanel.style.display = 'none';
+    //     editingSectionPanel.style.display = 'block';
+    // });
 
     addCustomSectionBtnTrigger.addEventListener('click', function () {
         customSectionDialog.style.display = 'flex';
@@ -1078,7 +1086,8 @@ document.addEventListener('DOMContentLoaded', function () {
             addBtn.addEventListener('click', function () {
                 handleAddSectionClick(sectionName, sectionDesc);
                 articleOutlinePanel.style.display = 'none';
-                editingSectionPanel.style.display = 'block';
+                // COMMENTED OUT: Templates/suggestions feature
+                // editingSectionPanel.style.display = 'block';
             });
             closeCustomSectionDialog();
         }
@@ -1103,26 +1112,28 @@ document.addEventListener('DOMContentLoaded', function () {
             <div class="section-content-area">
                 <div class="section-textarea" contenteditable="true" data-placeholder="${sectionPlaceholders[sectionName] || `Write about ${sectionName.toLowerCase()}...`}"></div>
             </div>
-            <button class="section-get-contents-btn">Get suggested contents</button>
         `;
+        // COMMENTED OUT: Templates/suggestions feature
+        // <button class="section-get-contents-btn">Get suggested contents</button>
 
         const textarea = sectionBlock.querySelector('.section-textarea');
         textarea.addEventListener('focus', () => setActiveSection(sectionBlock));
 
-        sectionBlock.querySelector('.section-get-contents-btn').addEventListener('click', () => {
-            if (editingSectionPanel.style.display === 'block' && activeSection === sectionName) {
-                editingSectionPanel.style.display = 'none';
-            } else {
-                setActiveSection(sectionBlock);
-                updateEditingPanelContent(sectionName);
-                editingSectionPanel.style.display = 'block';
-                gettingStartedPanel.style.display = 'none';
-            }
-        });
+        // COMMENTED OUT: Templates/suggestions feature
+        // sectionBlock.querySelector('.section-get-contents-btn').addEventListener('click', () => {
+        //     if (editingSectionPanel.style.display === 'block' && activeSection === sectionName) {
+        //         editingSectionPanel.style.display = 'none';
+        //     } else {
+        //         setActiveSection(sectionBlock);
+        //         updateEditingPanelContent(sectionName);
+        //         editingSectionPanel.style.display = 'block';
+        //         gettingStartedPanel.style.display = 'none';
+        //     }
+        // });
 
-        // Conditional visibility for "Get suggested contents"
-        textarea.addEventListener('keyup', () => updateGetContentsButtonVisibility(sectionBlock));
-        textarea.addEventListener('click', () => updateGetContentsButtonVisibility(sectionBlock));
+        // COMMENTED OUT: Templates/suggestions feature - Conditional visibility for "Get suggested contents"
+        // textarea.addEventListener('keyup', () => updateGetContentsButtonVisibility(sectionBlock));
+        // textarea.addEventListener('click', () => updateGetContentsButtonVisibility(sectionBlock));
 
         sectionBlock.querySelector('.section-remove-btn').addEventListener('click', () => {
             sectionBlock.remove();
@@ -1167,17 +1178,18 @@ document.addEventListener('DOMContentLoaded', function () {
         setTimeout(() => sectionBlock.querySelector('.section-textarea').focus(), 100);
     }
 
-    const upNextBtn = document.querySelector('.up-next-btn');
-    if (upNextBtn) {
-        upNextBtn.addEventListener('click', function () {
-            const upNextTitle = document.querySelector('.up-next-title');
-            const nextSectionName = upNextTitle ? upNextTitle.textContent : null;
-            if (nextSectionName && !addedSections.has(nextSectionName)) {
-                editingSectionPanel.style.display = 'none';
-                handleAddSectionClick(nextSectionName, '');
-            }
-        });
-    }
+    // COMMENTED OUT: Templates/suggestions feature - upNextBtn is part of editing panel
+    // const upNextBtn = document.querySelector('.up-next-btn');
+    // if (upNextBtn) {
+    //     upNextBtn.addEventListener('click', function () {
+    //         const upNextTitle = document.querySelector('.up-next-title');
+    //         const nextSectionName = upNextTitle ? upNextTitle.textContent : null;
+    //         if (nextSectionName && !addedSections.has(nextSectionName)) {
+    //             editingSectionPanel.style.display = 'none';
+    //             handleAddSectionClick(nextSectionName, '');
+    //         }
+    //     });
+    // }
 
     function attachOutlineAddButtonHandlers() {
         const outlineSectionItems = articleOutlinePanel.querySelectorAll('.outline-section');
@@ -1188,7 +1200,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     const sectionName = item.querySelector('.outline-section-title').textContent;
                     handleAddSectionClick(sectionName, '');
                     articleOutlinePanel.style.display = 'none';
-                    editingSectionPanel.style.display = 'block';
+                    // COMMENTED OUT: Templates/suggestions feature
+                    // editingSectionPanel.style.display = 'block';
                 });
             }
         });
@@ -1199,34 +1212,35 @@ document.addEventListener('DOMContentLoaded', function () {
         setActiveSection(document.getElementById('leadSectionBlock'));
     });
 
-    // Initial visibility check
-    editorTextarea.addEventListener('keyup', () => updateGetContentsButtonVisibility(document.getElementById('leadSectionBlock')));
-    editorTextarea.addEventListener('click', () => updateGetContentsButtonVisibility(document.getElementById('leadSectionBlock')));
+    // COMMENTED OUT: Templates/suggestions feature - Initial visibility check
+    // editorTextarea.addEventListener('keyup', () => updateGetContentsButtonVisibility(document.getElementById('leadSectionBlock')));
+    // editorTextarea.addEventListener('click', () => updateGetContentsButtonVisibility(document.getElementById('leadSectionBlock')));
 
-    function updateGetContentsButtonVisibility(sectionBlock) {
-        if (!sectionBlock) return;
-        const btn = sectionBlock.querySelector('.section-get-contents-btn');
-        const textarea = sectionBlock.querySelector('.section-textarea');
-        if (!btn || !textarea) return;
+    // COMMENTED OUT: Templates/suggestions feature - updateGetContentsButtonVisibility function
+    // function updateGetContentsButtonVisibility(sectionBlock) {
+    //     if (!sectionBlock) return;
+    //     const btn = sectionBlock.querySelector('.section-get-contents-btn');
+    //     const textarea = sectionBlock.querySelector('.section-textarea');
+    //     if (!btn || !textarea) return;
 
-        // Check if cursor is on a new line or at the end
-        const sel = window.getSelection();
-        if (!sel.rangeCount) return;
+    //     // Check if cursor is on a new line or at the end
+    //     const sel = window.getSelection();
+    //     if (!sel.rangeCount) return;
 
-        const text = textarea.innerText;
-        const isEmpty = text.trim() === '';
-        const endsWithNewline = text.endsWith('\n') || text.endsWith('\n\n');
-        const isActive = sectionBlock.classList.contains('active');
+    //     const text = textarea.innerText;
+    //     const isEmpty = text.trim() === '';
+    //     const endsWithNewline = text.endsWith('\n') || text.endsWith('\n\n');
+    //     const isActive = sectionBlock.classList.contains('active');
 
-        // Show if active AND (empty OR ends with newline)
-        if (isActive && (isEmpty || endsWithNewline)) {
-            btn.style.visibility = 'visible';
-            btn.style.pointerEvents = 'auto';
-        } else {
-            btn.style.visibility = 'hidden';
-            btn.style.pointerEvents = 'none';
-        }
-    }
+    //     // Show if active AND (empty OR ends with newline)
+    //     if (isActive && (isEmpty || endsWithNewline)) {
+    //         btn.style.visibility = 'visible';
+    //         btn.style.pointerEvents = 'auto';
+    //     } else {
+    //         btn.style.visibility = 'hidden';
+    //         btn.style.pointerEvents = 'none';
+    //     }
+    // }
 
     addedSections.add('Lead section');
     setActiveSection(document.getElementById('leadSectionBlock'));
