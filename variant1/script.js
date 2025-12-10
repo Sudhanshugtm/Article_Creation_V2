@@ -430,7 +430,8 @@ document.addEventListener('DOMContentLoaded', function () {
             screen25.style.display = 'grid';
             headerTitle.style.display = 'block';
             headerTitle.textContent = 'Add sources';
-            nextBtn.style.display = 'none';
+            nextBtn.style.display = 'block';
+            nextBtn.disabled = true;
             const addSourcesTitle = document.getElementById('addSourcesTitle');
             addSourcesTitle.textContent = currentArticleTitle ? `Add key sources for "${currentArticleTitle}"` : 'Add key sources';
 
@@ -679,6 +680,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (hasGoodSource) {
                 // FAST TRACK: High confidence - go to guidance screen first
+                captureUserSources();
                 showScreen(275);
             } else {
                 // SLOW TRACK: Show Eligibility Modal
@@ -698,6 +700,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 document.getElementById('eligibilityProceedBtn').onclick = () => {
                     eligibilityModal.style.display = 'none';
+                    captureUserSources();
                     showScreen(275); // Proceed to guidance screen
                 };
             }
@@ -1539,7 +1542,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Reset status to pending on input and update button
             this.dataset.verificationStatus = 'pending';
-            updateStartWritingButtonState();
+            updateSourcesNextButtonState();
 
             // Clear previous timer
             clearTimeout(debounceTimer);
@@ -1599,14 +1602,14 @@ document.addEventListener('DOMContentLoaded', function () {
                             }
                         }
                         // Update button state after verification is complete
-                        updateStartWritingButtonState();
+                        updateSourcesNextButtonState();
                     }, 1500);
                 }, 600); // 600ms debounce before starting check
             } else {
                 statusDiv.style.display = 'none';
                 input.classList.remove('input-error');
                 input.dataset.verificationStatus = 'pending'; // Too short/invalid format
-                updateStartWritingButtonState();
+                updateSourcesNextButtonState();
             }
         });
 
@@ -1622,10 +1625,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // Attach to existing inputs
     document.querySelectorAll('.cdx-text-input__input').forEach(attachVerificationListeners);
 
-    // --- START WRITING BUTTON STATE MANAGEMENT ---
-    const startWritingBtn = document.getElementById('startWritingBtn');
-
-    function updateStartWritingButtonState() {
+    // --- NEXT BUTTON STATE MANAGEMENT FOR SOURCES SCREEN ---
+    function updateSourcesNextButtonState() {
         const sourceInputs = sourcesInputContainer.querySelectorAll('.cdx-text-input__input');
         let hasValidSource = false;
 
@@ -1636,16 +1637,12 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
-        startWritingBtn.disabled = !hasValidSource;
+        // Enable/disable header next button based on valid sources
+        nextBtn.disabled = !hasValidSource;
     }
 
     // Listen for input changes on all source fields
-    // sourcesInputContainer.addEventListener('input', updateStartWritingButtonState); // Removed global listener, handled in attachVerificationListeners
-
-    document.getElementById('startWritingBtn').addEventListener('click', function () {
-        captureUserSources();
-        showScreen(275); // Go to guidance screen first
-    });
+    // sourcesInputContainer.addEventListener('input', updateSourcesNextButtonState); // Removed global listener, handled in attachVerificationListeners
 
     skipSourcesBtn.addEventListener('click', function () {
         showScreen(275); // Go to guidance screen first
