@@ -623,6 +623,80 @@
             </div>
         </div>
 
+    <!-- Topic Gate Modal -->
+    <div class="gate-modal" id="gateModal" style="display: none;">
+        <div class="gate-modal-overlay"></div>
+        <div class="gate-modal-content">
+            <div class="gate-modal-icon" id="gateModalIcon">
+                <!-- Icon inserted dynamically -->
+            </div>
+            <h2 class="gate-modal-header" id="gateModalHeader">Gate Header</h2>
+            <p class="gate-modal-body" id="gateModalBody">Gate body text goes here.</p>
+
+            <!-- Dynamic content area (changes based on gate type) -->
+            <div class="gate-modal-interactive" id="gateModalInteractive">
+                <!-- For Sandbox Gate: Living person radio buttons -->
+                <div class="gate-blp-options" id="gateBLPOptions" style="display: none;">
+                    <label class="gate-radio-option">
+                        <input type="radio" name="blpStatus" value="living">
+                        <span>Yes, living</span>
+                    </label>
+                    <label class="gate-radio-option">
+                        <input type="radio" name="blpStatus" value="deceased">
+                        <span>No, deceased</span>
+                    </label>
+                    <label class="gate-radio-option">
+                        <input type="radio" name="blpStatus" value="unsure">
+                        <span>Not sure</span>
+                    </label>
+                </div>
+
+                <!-- For COI Gate: Conflict of interest checkboxes -->
+                <div class="gate-coi-options" id="gateCOIOptions" style="display: none;">
+                    <label class="gate-checkbox-option">
+                        <input type="checkbox" name="coiStatus" value="employee">
+                        <span>Employee</span>
+                    </label>
+                    <label class="gate-checkbox-option">
+                        <input type="checkbox" name="coiStatus" value="founder">
+                        <span>Founder</span>
+                    </label>
+                    <label class="gate-checkbox-option">
+                        <input type="checkbox" name="coiStatus" value="paid">
+                        <span>Paid representative</span>
+                    </label>
+                    <label class="gate-checkbox-option">
+                        <input type="checkbox" name="coiStatus" value="none">
+                        <span>No connection</span>
+                    </label>
+                </div>
+
+                <!-- For Expansion Pivot: Suggestion card -->
+                <div class="gate-expansion-suggestion" id="gateExpansionSuggestion" style="display: none;">
+                    <div class="expansion-suggestion-card">
+                        <span class="expansion-suggestion-label">Add to:</span>
+                        <span class="expansion-suggestion-article" id="expansionArticle">Siberian Tiger</span>
+                        <span class="expansion-suggestion-section">→ "<span id="expansionSection">In Captivity</span>" section</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info box (shown for BLP warning) -->
+            <div class="gate-info-box" id="gateInfoBox" style="display: none;">
+                <p id="gateInfoText">Additional information appears here.</p>
+            </div>
+
+            <div class="gate-modal-actions">
+                <button class="cdx-button cdx-button--weight-primary cdx-button--action-progressive" id="gatePrimaryBtn">
+                    Primary Action
+                </button>
+                <button class="cdx-button cdx-button--weight-quiet" id="gateSecondaryBtn">
+                    Secondary Action
+                </button>
+            </div>
+        </div>
+    </div>
+
         <script src="script.js"></script>
 </body>
 

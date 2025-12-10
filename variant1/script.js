@@ -16,6 +16,22 @@ document.addEventListener('DOMContentLoaded', function () {
     const screen275 = document.getElementById('screen275');
     const screen3 = document.getElementById('screen3');
 
+    // Gate modal elements
+    const gateModal = document.getElementById('gateModal');
+    const gateModalIcon = document.getElementById('gateModalIcon');
+    const gateModalHeader = document.getElementById('gateModalHeader');
+    const gateModalBody = document.getElementById('gateModalBody');
+    const gateBLPOptions = document.getElementById('gateBLPOptions');
+    const gateCOIOptions = document.getElementById('gateCOIOptions');
+    const gateExpansionSuggestion = document.getElementById('gateExpansionSuggestion');
+    const gateInfoBox = document.getElementById('gateInfoBox');
+    const gateInfoText = document.getElementById('gateInfoText');
+    const gatePrimaryBtn = document.getElementById('gatePrimaryBtn');
+    const gateSecondaryBtn = document.getElementById('gateSecondaryBtn');
+
+    // Flag to track if user is creating a new topic (vs selecting existing)
+    let isNewTopic = false;
+
     // Guidance screen elements
     const advisoryLabel = document.getElementById('advisoryLabel');
     const advisoryText = document.getElementById('advisoryText');
@@ -250,6 +266,141 @@ document.addEventListener('DOMContentLoaded', function () {
             { title: 'Reproduction', description: 'Breeding patterns and life cycle.' }
         ]
     };
+
+    // Gate configuration for different category types
+    const gateConfig = {
+        sandbox: {
+            icon: `<svg viewBox="0 0 24 24" fill="none" stroke="#E67700" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>`,
+            header: 'High-sensitivity topic detected',
+            body: 'Is this person currently living?',
+            infoText: 'Biographies of living people have strict sourcing requirements to protect subjects from harm.',
+            primaryText: 'Use Sandbox',
+            secondaryText: 'Read Policy'
+        },
+        coi: {
+            icon: `<svg viewBox="0 0 24 24" fill="none" stroke="#3366CC" stroke-width="2">
+                <path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 0C1.46 6.7 1.33 10.28 4 13l8 8 8-8c2.67-2.72 2.54-6.3.42-8.42z"/>
+                <path d="M12 5.5V12M8 9h8"/>
+            </svg>`,
+            header: 'Conflict of Interest Check',
+            body: 'Do you have a connection to this organization?',
+            infoText: '',
+            primaryText: 'Continue',
+            secondaryText: 'Cancel'
+        },
+        expansion: {
+            icon: `<svg viewBox="0 0 24 24" fill="none" stroke="#72777D" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="9" y1="15" x2="15" y2="15"/>
+            </svg>`,
+            header: 'Topic flagged: Too narrow',
+            body: 'This might work better as a section in an existing article.',
+            infoText: '',
+            primaryText: 'Add to existing',
+            secondaryText: 'Create anyway'
+        }
+    };
+
+    // Demo titles that trigger the Expansion Pivot gate
+    const narrowTopicTriggers = [
+        { pattern: /tony.*tiger/i, article: 'Siberian Tiger', section: 'In Captivity' },
+        { pattern: /knut.*bear/i, article: 'Polar Bear', section: 'In Captivity' },
+        { pattern: /harambe/i, article: 'Western Lowland Gorilla', section: 'In Captivity' }
+    ];
+
+    // Determine which gate to show based on category and title
+    function getGateType(category, title) {
+        // Check for narrow topic triggers first (demo purposes)
+        for (const trigger of narrowTopicTriggers) {
+            if (trigger.pattern.test(title)) {
+                return { type: 'expansion', article: trigger.article, section: trigger.section };
+            }
+        }
+
+        // Check category-based gates (match actual category IDs from the categories object)
+        const personCategories = ['people', 'biography', 'artist', 'politician', 'athlete', 'scientist', 'writer'];
+        const orgCategories = ['organizations', 'company', 'nonprofit', 'school', 'government'];
+
+        if (personCategories.includes(category)) {
+            return { type: 'sandbox' };
+        }
+
+        if (orgCategories.includes(category)) {
+            return { type: 'coi' };
+        }
+
+        return null; // No gate needed
+    }
+
+    // Show the appropriate gate modal
+    function showGate(gateType, extraData = {}) {
+        const config = gateConfig[gateType];
+        if (!config) return;
+
+        // Set content
+        gateModalIcon.innerHTML = config.icon;
+        gateModalHeader.textContent = config.header;
+        gateModalBody.textContent = config.body;
+        gatePrimaryBtn.textContent = config.primaryText;
+        gateSecondaryBtn.textContent = config.secondaryText;
+
+        // Hide all interactive sections
+        gateBLPOptions.style.display = 'none';
+        gateCOIOptions.style.display = 'none';
+        gateExpansionSuggestion.style.display = 'none';
+        gateInfoBox.style.display = 'none';
+
+        // Show appropriate interactive section
+        if (gateType === 'sandbox') {
+            gateBLPOptions.style.display = 'flex';
+            gateInfoBox.style.display = 'block';
+            gateInfoText.textContent = config.infoText;
+            // Reset radio buttons
+            document.querySelectorAll('input[name="blpStatus"]').forEach(r => r.checked = false);
+        } else if (gateType === 'coi') {
+            gateCOIOptions.style.display = 'flex';
+            // Reset checkboxes
+            document.querySelectorAll('input[name="coiStatus"]').forEach(c => c.checked = false);
+        } else if (gateType === 'expansion') {
+            gateExpansionSuggestion.style.display = 'block';
+            document.getElementById('expansionArticle').textContent = extraData.article || 'Existing Article';
+            document.getElementById('expansionSection').textContent = extraData.section || 'Related Section';
+        }
+
+        // Store gate type for button handlers
+        gateModal.dataset.gateType = gateType;
+
+        // Show modal
+        gateModal.style.display = 'flex';
+    }
+
+    // Hide gate modal
+    function hideGate() {
+        gateModal.style.display = 'none';
+    }
+
+    // Process gate result and proceed
+    function processGateAndProceed(gateType) {
+        if (gateType === 'sandbox') {
+            const selected = document.querySelector('input[name="blpStatus"]:checked');
+            if (selected && (selected.value === 'living' || selected.value === 'unsure')) {
+                // Route to sandbox/draft mode (for now, just proceed with a flag)
+                console.log('Routing to sandbox for living person');
+            }
+        } else if (gateType === 'coi') {
+            const checked = document.querySelectorAll('input[name="coiStatus"]:checked');
+            const hasConnection = Array.from(checked).some(c => c.value !== 'none');
+            if (hasConnection) {
+                console.log('User disclosed COI:', Array.from(checked).map(c => c.value));
+            }
+        }
+
+        hideGate();
+        showScreen(2.5);
+    }
 
     const sectionFacts = {
         'Lead section': [
@@ -571,6 +722,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
             document.getElementById('yellowPagesProceedBtn').onclick = () => {
                 yellowPagesModal.style.display = 'none';
+                // Check for gate after yellow pages
+                if (isNewTopic) {
+                    const gateInfo = getGateType(category.id, currentArticleTitle);
+                    if (gateInfo) {
+                        showGate(gateInfo.type, gateInfo);
+                        return;
+                    }
+                }
                 showScreen(2.5); // Proceed to sources
             };
             return;
@@ -581,6 +740,14 @@ document.addEventListener('DOMContentLoaded', function () {
             document.querySelector('.type-selection-description').textContent = `You've selected '${category.name.toLowerCase()}'. Now choose a more specific category.`;
             renderCategories(category.id);
         } else {
+            // Leaf category selected - check if we need to show a gate
+            if (isNewTopic) {
+                const gateInfo = getGateType(category.id, currentArticleTitle);
+                if (gateInfo) {
+                    showGate(gateInfo.type, gateInfo);
+                    return;
+                }
+            }
             showScreen(2.5);
         }
     }
@@ -611,6 +778,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 li.addEventListener('click', function () {
                     currentArticleTitle = topic.title;
+                    isNewTopic = false; // User selected an existing topic
                     // MOCK LOGIC: If it's the tiger, show the positive signal
                     const badge = document.getElementById('eligibilityBadge');
                     if (topic.title.includes('Siberian tiger')) {
@@ -709,6 +877,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     topicNotListedBtn.addEventListener('click', function () {
         currentArticleTitle = articleTitle.value.trim();
+        isNewTopic = true; // User is creating a new topic
         typeSelectionTitle.textContent = `What is "${currentArticleTitle}" about?`;
         renderCategories('root');
         showScreen(2);
@@ -1728,6 +1897,39 @@ document.addEventListener('DOMContentLoaded', function () {
     if (goodSourceGotItBtn) {
         goodSourceGotItBtn.addEventListener('click', () => {
             goodSourceModal.style.display = 'none';
+        });
+    }
+
+    // --- GATE MODAL EVENT LISTENERS ---
+    if (gatePrimaryBtn) {
+        gatePrimaryBtn.addEventListener('click', () => {
+            const gateType = gateModal.dataset.gateType;
+            processGateAndProceed(gateType);
+        });
+    }
+
+    if (gateSecondaryBtn) {
+        gateSecondaryBtn.addEventListener('click', () => {
+            const gateType = gateModal.dataset.gateType;
+            if (gateType === 'expansion') {
+                // "Create anyway" - proceed without redirect
+                hideGate();
+                showScreen(2.5);
+            } else if (gateType === 'sandbox') {
+                // "Read Policy" - open BLP policy in new tab
+                window.open('https://en.wikipedia.org/wiki/Wikipedia:Biographies_of_living_persons', '_blank');
+            } else if (gateType === 'coi') {
+                // "Cancel" - go back
+                hideGate();
+            }
+        });
+    }
+
+    // Close gate modal on overlay click
+    const gateModalOverlay = document.querySelector('.gate-modal-overlay');
+    if (gateModalOverlay) {
+        gateModalOverlay.addEventListener('click', () => {
+            hideGate();
         });
     }
 
