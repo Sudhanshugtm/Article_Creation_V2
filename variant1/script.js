@@ -3,6 +3,234 @@
 
 document.addEventListener('DOMContentLoaded', function () {
 
+    // --- WIKIDATA & WIKIPEDIA API LAYER ---
+    const WikidataAPI = {
+        baseUrl: 'https://www.wikidata.org/w/api.php',
+
+        // Step A: Search entities by label/alias
+        async searchEntities(query, language = 'en', limit = 7) {
+            const params = new URLSearchParams({
+                action: 'wbsearchentities',
+                search: query,
+                language: language,
+                limit: limit.toString(),
+                format: 'json',
+                origin: '*'
+            });
+
+            try {
+                const response = await fetch(`${this.baseUrl}?${params}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                return { success: true, results: data.search || [] };
+            } catch (error) {
+                console.error('Wikidata search error:', error);
+                return { success: false, error: error.message, results: [] };
+            }
+        },
+
+        // Step C: Get entity details (sitelinks, P31 claims)
+        async getEntityDetails(qid) {
+            const params = new URLSearchParams({
+                action: 'wbgetentities',
+                ids: qid,
+                props: 'sitelinks|claims|labels|descriptions',
+                sitefilter: 'enwiki',
+                format: 'json',
+                origin: '*'
+            });
+
+            try {
+                const response = await fetch(`${this.baseUrl}?${params}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                const entity = data.entities?.[qid];
+                if (!entity) return { success: false, error: 'Entity not found' };
+
+                // Extract P31 (instance of) values
+                const p31Claims = entity.claims?.P31 || [];
+                const instanceOf = p31Claims.map(claim =>
+                    claim.mainsnak?.datavalue?.value?.id
+                ).filter(Boolean);
+
+                // Check for enwiki sitelink
+                const enwikiTitle = entity.sitelinks?.enwiki?.title || null;
+
+                return {
+                    success: true,
+                    qid: qid,
+                    label: entity.labels?.en?.value || qid,
+                    description: entity.descriptions?.en?.value || '',
+                    enwikiTitle: enwikiTitle,
+                    instanceOf: instanceOf,
+                    hasLiveArticle: !!enwikiTitle
+                };
+            } catch (error) {
+                console.error('Wikidata entity fetch error:', error);
+                return { success: false, error: error.message };
+            }
+        }
+    };
+
+    const WikipediaAPI = {
+        baseUrl: 'https://en.wikipedia.org/w/api.php',
+        restBaseUrl: 'https://en.wikipedia.org/api/rest_v1',
+
+        // Fetch thumbnails for multiple titles at once
+        async getThumbnails(titles, size = 80) {
+            if (!titles || titles.length === 0) return {};
+
+            const params = new URLSearchParams({
+                action: 'query',
+                titles: titles.join('|'),
+                prop: 'pageimages',
+                pithumbsize: size.toString(),
+                format: 'json',
+                origin: '*'
+            });
+
+            try {
+                const response = await fetch(`${this.baseUrl}?${params}`);
+                if (!response.ok) return {};
+                const data = await response.json();
+                const pages = data.query?.pages || {};
+
+                // Map titles to thumbnails
+                const thumbnails = {};
+                Object.values(pages).forEach(page => {
+                    if (page.thumbnail?.source) {
+                        thumbnails[page.title] = page.thumbnail.source;
+                    }
+                });
+                return thumbnails;
+            } catch (error) {
+                console.error('Wikipedia thumbnail fetch error:', error);
+                return {};
+            }
+        },
+
+        // Fetch a single thumbnail using REST API (higher quality)
+        async getThumbnailREST(title, size = 80) {
+            try {
+                const encodedTitle = encodeURIComponent(title.replace(/ /g, '_'));
+                const response = await fetch(
+                    `${this.restBaseUrl}/page/summary/${encodedTitle}`,
+                    { headers: { 'Accept': 'application/json' } }
+                );
+                if (!response.ok) return null;
+                const data = await response.json();
+                return data.thumbnail?.source || null;
+            } catch (error) {
+                return null;
+            }
+        },
+
+        // Step D: Check if draft exists
+        async checkDraftExists(title) {
+            const draftTitle = `Draft:${title}`;
+            const params = new URLSearchParams({
+                action: 'query',
+                titles: draftTitle,
+                format: 'json',
+                origin: '*'
+            });
+
+            try {
+                const response = await fetch(`${this.baseUrl}?${params}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                const pages = data.query?.pages || {};
+                const pageId = Object.keys(pages)[0];
+
+                // If pageId is -1, the draft doesn't exist
+                const exists = pageId && pageId !== '-1' && !pages[pageId].missing;
+
+                return {
+                    success: true,
+                    exists: exists,
+                    draftTitle: draftTitle,
+                    pageId: exists ? pageId : null
+                };
+            } catch (error) {
+                console.error('Wikipedia draft check error:', error);
+                return { success: false, error: error.message, exists: false };
+            }
+        },
+
+        // Check if mainspace article exists
+        async checkArticleExists(title) {
+            const params = new URLSearchParams({
+                action: 'query',
+                titles: title,
+                format: 'json',
+                origin: '*'
+            });
+
+            try {
+                const response = await fetch(`${this.baseUrl}?${params}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                const pages = data.query?.pages || {};
+                const pageId = Object.keys(pages)[0];
+
+                const exists = pageId && pageId !== '-1' && !pages[pageId].missing;
+
+                return {
+                    success: true,
+                    exists: exists,
+                    title: title,
+                    pageId: exists ? pageId : null
+                };
+            } catch (error) {
+                console.error('Wikipedia article check error:', error);
+                return { success: false, error: error.message, exists: false };
+            }
+        }
+    };
+
+    // Step B: Keyword inference patterns (fallback when Wikidata returns 0 results)
+    const KeywordInference = {
+        patterns: {
+            company: /(LLC|Inc\.?|Corp\.?|Ltd\.?|Group|Holdings|GmbH|S\.A\.|PLC|Co\.|Company|Enterprises?|Solutions?|Technologies?|Services?)$/i,
+            person: /^(Dr\.?|Prof\.?|Mr\.?|Mrs\.?|Ms\.?|Sir|Dame|Lord|Lady)\s/i
+        },
+
+        analyze(title) {
+            if (this.patterns.company.test(title)) {
+                return { taxonomy: 'COMPANY', route: 'coi', confidence: 'inferred' };
+            }
+            if (this.patterns.person.test(title)) {
+                return { taxonomy: 'BIO', route: 'sandbox', confidence: 'inferred' };
+            }
+            return { taxonomy: 'GENERAL', route: 'notability', confidence: 'none' };
+        }
+    };
+
+    // Taxonomy mapping: Wikidata Q-IDs to routes
+    const TaxonomyMapping = {
+        // P31 (instance of) value mappings
+        'Q5': { taxonomy: 'BIO', route: 'sandbox', label: 'Person' },           // Human
+        'Q16521': { taxonomy: 'SPECIES', route: 'species', label: 'Species' },  // Taxon
+        'Q4830453': { taxonomy: 'COMPANY', route: 'coi', label: 'Business' },   // Business
+        'Q43229': { taxonomy: 'COMPANY', route: 'coi', label: 'Organization' }, // Organization
+        'Q1190554': { taxonomy: 'EVENT', route: 'event', label: 'Event' },      // Occurrence
+        'Q1656682': { taxonomy: 'EVENT', route: 'event', label: 'Event' },      // Event
+        'Q7889': { taxonomy: 'CREATIVE', route: 'standard', label: 'Video game' },
+        'Q11424': { taxonomy: 'CREATIVE', route: 'standard', label: 'Film' },
+        'Q7725634': { taxonomy: 'CREATIVE', route: 'standard', label: 'Literary work' },
+        'Q482994': { taxonomy: 'CREATIVE', route: 'standard', label: 'Album' },
+
+        // Get taxonomy from P31 values array
+        getTaxonomy(instanceOfArray) {
+            for (const qid of instanceOfArray) {
+                if (this[qid]) {
+                    return this[qid];
+                }
+            }
+            return { taxonomy: 'GENERAL', route: 'standard', label: 'General' };
+        }
+    };
+
     // --- ELEMENT REFERENCES ---
     const articleTitle = document.getElementById('articleTitle');
     const closeBtn = document.getElementById('closeBtn');
@@ -81,6 +309,12 @@ document.addEventListener('DOMContentLoaded', function () {
     const userSources = [];
     let citationCounter = 0;
     const wikidataCitations = []; // Added missing initialization
+
+    // New state for Wikidata-driven flow
+    let selectedEntity = null;        // The Q-item selected by user
+    let entityTaxonomy = null;        // Taxonomy determined from P31
+    let lastSearchResults = [];       // Cache of search results for disambiguation
+    let isApiAvailable = true;        // Flag for API availability (graceful degradation)
 
     // --- DATA (Mocks) ---
     const sectionOrder = ['Lead section', 'Characteristics', 'Distribution and habitat', 'Ecology and behaviour'];
@@ -757,45 +991,271 @@ document.addEventListener('DOMContentLoaded', function () {
         this.style.height = this.scrollHeight + 'px';
     }
 
-    function showTopicMatching(query) {
-        const normalizedQuery = query.toLowerCase().trim();
-        const topics = mockTopics[normalizedQuery] || [];
+    // Main topic matching function - uses real Wikidata API
+    async function showTopicMatching(query) {
+        topicList.innerHTML = '';
+        lastSearchResults = [];
+
+        // Show loading indicator
+        topicList.innerHTML = '<li class="topic-item topic-loading"><div class="topic-content"><div class="topic-description">Searching Wikidata...</div></div></li>';
+        topicMatching.style.display = 'block';
+
+        // Call Wikidata API
+        const searchResult = await WikidataAPI.searchEntities(query);
+
         topicList.innerHTML = '';
 
-        if (topics.length > 0) {
-            topics.forEach(topic => {
-                const li = document.createElement('li');
-                li.className = 'topic-item';
-
-                const thumbSrc = topic.thumbnail || '';
-                const thumbHtml = thumbSrc ? `<img src="${thumbSrc}" alt="${topic.title}" class="topic-thumbnail" onerror="this.replaceWith(document.createElement('div').className='topic-thumbnail')">` : '<div class="topic-thumbnail"></div>';
-
-                li.innerHTML = `${thumbHtml}
-                                <div class="topic-content">
-                                    <div class="topic-title">${topic.title}</div>
-                                    <div class="topic-description">${topic.description}</div>
-                                </div>`;
-
-                li.addEventListener('click', function () {
-                    currentArticleTitle = topic.title;
-                    isNewTopic = false; // User selected an existing topic
-                    // MOCK LOGIC: If it's the tiger, show the positive signal
-                    const badge = document.getElementById('eligibilityBadge');
-                    if (topic.title.includes('Siberian tiger')) {
-                        badge.style.display = 'inline-flex';
-                        // Ensure it has the base class plus any specific styling if needed
-                        badge.className = 'eligibility-banner';
-                    } else {
-                        badge.style.display = 'none';
-                    }
-
-                    showScreen(2.5);
-                });
-                topicList.appendChild(li);
-            });
+        if (!searchResult.success) {
+            // API failed - fall back to keyword inference
+            isApiAvailable = false;
+            console.warn('Wikidata API unavailable, using keyword inference fallback');
+            const inference = KeywordInference.analyze(query);
+            showKeywordInferenceFallback(query, inference);
+            return;
         }
+
+        isApiAvailable = true;
+        lastSearchResults = searchResult.results;
+
+        if (searchResult.results.length === 0) {
+            // ZERO MATCHES - Step B: Keyword Inference
+            const inference = KeywordInference.analyze(query);
+            showKeywordInferenceFallback(query, inference);
+            return;
+        }
+
+        // Fetch thumbnails from Wikipedia for all results (non-blocking)
+        const titles = searchResult.results.map(r => r.label);
+        const thumbnailsPromise = WikipediaAPI.getThumbnails(titles, 80);
+
+        // Render results from Wikidata immediately with placeholder
+        searchResult.results.forEach((result, index) => {
+            const li = document.createElement('li');
+            li.className = 'topic-item';
+            li.dataset.resultIndex = index;
+            li.dataset.qid = result.id; // Store QID for internal use only
+
+            // Start with placeholder, will be replaced when thumbnails load
+            li.innerHTML = `<div class="topic-thumbnail wikidata-icon" data-label="${result.label}"><span>W</span></div>
+                            <div class="topic-content">
+                                <div class="topic-title">${result.label}</div>
+                                <div class="topic-description">${result.description || 'No description available'}</div>
+                            </div>
+                            <div class="topic-arrow">
+                                <img src="node_modules/@wikimedia/codex-icons/dist/images/next.svg" alt="" width="16" height="16">
+                            </div>`;
+
+            li.addEventListener('click', async function () {
+                await handleEntitySelection(result);
+            });
+            topicList.appendChild(li);
+        });
+
         // Always show topic matching section so "Topic not listed" button is accessible
         topicMatching.style.display = 'block';
+
+        // Update thumbnails when they load (non-blocking enhancement)
+        thumbnailsPromise.then(thumbnails => {
+            Object.entries(thumbnails).forEach(([title, thumbUrl]) => {
+                const thumbEl = topicList.querySelector(`.topic-thumbnail[data-label="${title}"]`);
+                if (thumbEl && thumbUrl) {
+                    thumbEl.innerHTML = `<img src="${thumbUrl}" alt="${title}" class="topic-thumb-img" onerror="this.parentElement.innerHTML='<span>W</span>'; this.parentElement.classList.add('wikidata-icon');">`;
+                    thumbEl.classList.remove('wikidata-icon');
+                }
+            });
+        });
+    }
+
+    // Handle when user selects a Wikidata entity
+    async function handleEntitySelection(entity) {
+        currentArticleTitle = entity.label;
+        selectedEntity = entity;
+        isNewTopic = false;
+
+        // Show loading state
+        const badge = document.getElementById('eligibilityBadge');
+        badge.style.display = 'none';
+
+        // Step C: Get entity details (sitelinks, P31)
+        const details = await WikidataAPI.getEntityDetails(entity.id);
+
+        if (!details.success) {
+            // API error - proceed with manual category selection
+            console.warn('Could not fetch entity details, proceeding with manual flow');
+            showScreen(2);
+            return;
+        }
+
+        // Check for LIVE DUPLICATE (enwiki article exists)
+        if (details.hasLiveArticle) {
+            showLiveDuplicateModal(details.enwikiTitle);
+            return;
+        }
+
+        // Step D: Check for existing draft
+        const draftCheck = await WikipediaAPI.checkDraftExists(entity.label);
+        if (draftCheck.exists) {
+            showDraftExistsModal(draftCheck.draftTitle);
+            return;
+        }
+
+        // TRUE CONTENT GAP - Determine taxonomy from P31
+        entityTaxonomy = TaxonomyMapping.getTaxonomy(details.instanceOf);
+        console.log('Entity taxonomy:', entityTaxonomy);
+
+        // Show eligibility badge for known taxonomies
+        if (entityTaxonomy.taxonomy !== 'GENERAL') {
+            badge.style.display = 'inline-flex';
+            badge.textContent = `${entityTaxonomy.label} detected`;
+            badge.className = 'eligibility-banner';
+        }
+
+        // Route based on taxonomy
+        if (entityTaxonomy.route === 'sandbox') {
+            // BLP route - show BLP gate
+            showGate('sandbox');
+        } else if (entityTaxonomy.route === 'coi') {
+            // Business/Org route - show COI gate
+            showGate('coi');
+        } else {
+            // Standard route - proceed to sources
+            showScreen(2.5);
+        }
+    }
+
+    // Show fallback UI when Wikidata returns no results or API fails
+    function showKeywordInferenceFallback(query, inference) {
+        const li = document.createElement('li');
+        li.className = 'topic-item topic-no-match';
+
+        let inferenceText = '';
+        if (inference.taxonomy === 'COMPANY') {
+            inferenceText = '<span class="inference-badge inference-company">Looks like a company name</span>';
+        } else if (inference.taxonomy === 'BIO') {
+            inferenceText = '<span class="inference-badge inference-person">Looks like a person\'s name</span>';
+        }
+
+        li.innerHTML = `<div class="topic-thumbnail no-match-icon">
+                            <img src="node_modules/@wikimedia/codex-icons/dist/images/search.svg" alt="" width="24" height="24">
+                        </div>
+                        <div class="topic-content">
+                            <div class="topic-title">No existing topic found</div>
+                            <div class="topic-description">
+                                "${query}" isn't in Wikidata yet. You can create a new article if noteworthy.
+                                ${inferenceText}
+                            </div>
+                        </div>`;
+
+        topicList.appendChild(li);
+
+        // Store the inference for use when "Topic not listed" is clicked
+        topicList.dataset.inferredTaxonomy = inference.taxonomy;
+        topicList.dataset.inferredRoute = inference.route;
+
+        topicMatching.style.display = 'block';
+    }
+
+    // Show modal when a live Wikipedia article already exists
+    function showLiveDuplicateModal(articleTitle) {
+        const modal = document.getElementById('liveDuplicateModal');
+        if (!modal) {
+            // Create modal if it doesn't exist
+            createDuplicateModals();
+        }
+
+        const modalEl = document.getElementById('liveDuplicateModal');
+        const titleEl = document.getElementById('liveDuplicateTitle');
+        const linkEl = document.getElementById('liveDuplicateLink');
+
+        if (titleEl) titleEl.textContent = articleTitle;
+        if (linkEl) linkEl.href = `https://en.wikipedia.org/wiki/${encodeURIComponent(articleTitle)}`;
+
+        modalEl.style.display = 'flex';
+    }
+
+    // Show modal when a draft already exists
+    function showDraftExistsModal(draftTitle) {
+        const modal = document.getElementById('draftExistsModal');
+        if (!modal) {
+            createDuplicateModals();
+        }
+
+        const modalEl = document.getElementById('draftExistsModal');
+        const titleEl = document.getElementById('draftExistsTitle');
+        const linkEl = document.getElementById('draftExistsLink');
+
+        if (titleEl) titleEl.textContent = draftTitle;
+        if (linkEl) linkEl.href = `https://en.wikipedia.org/wiki/${encodeURIComponent(draftTitle)}`;
+
+        modalEl.style.display = 'flex';
+    }
+
+    // Create duplicate/draft modals dynamically
+    function createDuplicateModals() {
+        // Live Duplicate Modal
+        const liveDuplicateHTML = `
+            <div id="liveDuplicateModal" class="modal-overlay" style="display: none;">
+                <div class="modal-content duplicate-modal">
+                    <button class="modal-close-btn" id="liveDuplicateCloseBtn">
+                        <img src="node_modules/@wikimedia/codex-icons/dist/images/close.svg" alt="Close" width="20" height="20">
+                    </button>
+                    <div class="modal-icon modal-icon-info">
+                        <img src="node_modules/@wikimedia/codex-icons/dist/images/article.svg" alt="" width="32" height="32">
+                    </div>
+                    <h2 class="modal-title">Article Already Exists</h2>
+                    <p class="modal-description">
+                        An article for "<span id="liveDuplicateTitle"></span>" already exists on Wikipedia.
+                    </p>
+                    <div class="modal-actions">
+                        <a id="liveDuplicateLink" href="#" target="_blank" class="btn btn-primary">
+                            View Article
+                            <img src="node_modules/@wikimedia/codex-icons/dist/images/linkExternal.svg" alt="" width="14" height="14">
+                        </a>
+                        <button class="btn btn-secondary" id="liveDuplicateCancelBtn">Choose Different Topic</button>
+                    </div>
+                </div>
+            </div>`;
+
+        // Draft Exists Modal
+        const draftExistsHTML = `
+            <div id="draftExistsModal" class="modal-overlay" style="display: none;">
+                <div class="modal-content duplicate-modal">
+                    <button class="modal-close-btn" id="draftExistsCloseBtn">
+                        <img src="node_modules/@wikimedia/codex-icons/dist/images/close.svg" alt="Close" width="20" height="20">
+                    </button>
+                    <div class="modal-icon modal-icon-warning">
+                        <img src="node_modules/@wikimedia/codex-icons/dist/images/edit.svg" alt="" width="32" height="32">
+                    </div>
+                    <h2 class="modal-title">Draft Already Exists</h2>
+                    <p class="modal-description">
+                        A draft for "<span id="draftExistsTitle"></span>" is already in progress.
+                    </p>
+                    <div class="modal-actions">
+                        <a id="draftExistsLink" href="#" target="_blank" class="btn btn-primary">
+                            Edit Existing Draft
+                            <img src="node_modules/@wikimedia/codex-icons/dist/images/linkExternal.svg" alt="" width="14" height="14">
+                        </a>
+                        <button class="btn btn-secondary" id="draftExistsCancelBtn">Choose Different Topic</button>
+                    </div>
+                </div>
+            </div>`;
+
+        document.body.insertAdjacentHTML('beforeend', liveDuplicateHTML);
+        document.body.insertAdjacentHTML('beforeend', draftExistsHTML);
+
+        // Attach event listeners
+        document.getElementById('liveDuplicateCloseBtn').addEventListener('click', () => {
+            document.getElementById('liveDuplicateModal').style.display = 'none';
+        });
+        document.getElementById('liveDuplicateCancelBtn').addEventListener('click', () => {
+            document.getElementById('liveDuplicateModal').style.display = 'none';
+        });
+        document.getElementById('draftExistsCloseBtn').addEventListener('click', () => {
+            document.getElementById('draftExistsModal').style.display = 'none';
+        });
+        document.getElementById('draftExistsCancelBtn').addEventListener('click', () => {
+            document.getElementById('draftExistsModal').style.display = 'none';
+        });
     }
 
     // --- EVENT LISTENERS: NAVIGATION & SETUP ---
@@ -877,9 +1337,37 @@ document.addEventListener('DOMContentLoaded', function () {
     topicNotListedBtn.addEventListener('click', function () {
         currentArticleTitle = articleTitle.value.trim();
         isNewTopic = true; // User is creating a new topic
-        typeSelectionTitle.textContent = `What is "${currentArticleTitle}" about?`;
-        renderCategories('root');
-        showScreen(2);
+        selectedEntity = null; // No Wikidata entity selected
+
+        // Check if we have inferred taxonomy from keyword analysis
+        const inferredTaxonomy = topicList.dataset.inferredTaxonomy;
+        const inferredRoute = topicList.dataset.inferredRoute;
+
+        if (inferredTaxonomy && inferredRoute && inferredRoute !== 'notability') {
+            // Use the inferred taxonomy to route directly to appropriate gate
+            entityTaxonomy = {
+                taxonomy: inferredTaxonomy,
+                route: inferredRoute,
+                label: inferredTaxonomy === 'COMPANY' ? 'Organization' : 'Person',
+                confidence: 'inferred'
+            };
+
+            if (inferredRoute === 'coi') {
+                showGate('coi');
+            } else if (inferredRoute === 'sandbox') {
+                showGate('sandbox');
+            } else {
+                // Fallback to category selection
+                typeSelectionTitle.textContent = `What is "${currentArticleTitle}" about?`;
+                renderCategories('root');
+                showScreen(2);
+            }
+        } else {
+            // No inference available - use manual category selection
+            typeSelectionTitle.textContent = `What is "${currentArticleTitle}" about?`;
+            renderCategories('root');
+            showScreen(2);
+        }
     });
 
     typeSearchInput.addEventListener('input', function () {

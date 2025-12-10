@@ -218,9 +218,7 @@ body {
     font-size: var(--font-size-small);
     color: var(--color-subtle);
     font-family: var(--font-family-system-sans);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    line-height: var(--line-height-small);
 }
 
 /* Topic Not Listed Button */
@@ -256,6 +254,214 @@ body {
     flex-shrink: 0;
     display: block;
     margin-top: var(--size-12);
+}
+
+/* Wikidata Topic Matching Enhancements */
+.topic-loading .topic-description {
+    color: var(--color-placeholder);
+    font-style: italic;
+}
+
+.topic-thumbnail.wikidata-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--color-progressive);
+    color: var(--background-color-base);
+    font-weight: var(--font-weight-bold);
+    font-size: var(--font-size-large);
+}
+
+.topic-thumb-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: var(--border-radius-base);
+}
+
+/* Topic arrow indicator for clickable items */
+.topic-arrow {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: var(--opacity-icon-subtle);
+    margin-left: var(--size-50);
+}
+
+.topic-item:hover .topic-arrow {
+    opacity: var(--opacity-icon-base);
+}
+
+.topic-no-match {
+    cursor: default;
+    background-color: var(--background-color-neutral-subtle);
+}
+
+.topic-no-match:hover {
+    background-color: var(--background-color-neutral-subtle);
+}
+
+.no-match-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--background-color-interactive-subtle);
+}
+
+.no-match-icon img {
+    opacity: var(--opacity-icon-placeholder);
+}
+
+/* Inference badges for keyword matching */
+.inference-badge {
+    display: inline-block;
+    margin-top: var(--size-50);
+    padding: var(--size-25) var(--size-75);
+    border-radius: var(--border-radius-pill);
+    font-size: var(--font-size-x-small);
+    font-weight: var(--font-weight-semi-bold);
+}
+
+.inference-company {
+    background-color: var(--background-color-warning-subtle);
+    color: var(--color-warning);
+}
+
+.inference-person {
+    background-color: var(--background-color-progressive-subtle);
+    color: var(--color-progressive);
+}
+
+/* Duplicate/Draft Detection Modals */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--background-color-backdrop-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: var(--z-index-overlay);
+}
+
+.modal-content {
+    position: relative;
+    background-color: var(--background-color-base);
+    border-radius: var(--border-radius-base);
+    box-shadow: var(--box-shadow-drop-medium);
+    margin: var(--size-150);
+    width: 100%;
+}
+
+.duplicate-modal {
+    text-align: center;
+    padding: var(--size-200);
+    max-width: 400px;
+}
+
+.duplicate-modal .modal-icon {
+    width: var(--size-500);
+    height: var(--size-500);
+    border-radius: var(--border-radius-circle);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto var(--size-150);
+}
+
+.duplicate-modal .modal-icon-info {
+    background-color: var(--background-color-progressive-subtle);
+}
+
+.duplicate-modal .modal-icon-info img {
+    filter: brightness(0) saturate(100%) invert(33%) sepia(93%) saturate(1352%) hue-rotate(200deg) brightness(93%) contrast(91%);
+}
+
+.duplicate-modal .modal-icon-warning {
+    background-color: var(--background-color-warning-subtle);
+}
+
+.duplicate-modal .modal-icon-warning img {
+    filter: brightness(0) saturate(100%) invert(47%) sepia(97%) saturate(1064%) hue-rotate(17deg) brightness(101%) contrast(101%);
+}
+
+.duplicate-modal .modal-title {
+    font-size: var(--font-size-large);
+    font-weight: var(--font-weight-bold);
+    margin-bottom: var(--size-100);
+}
+
+.duplicate-modal .modal-description {
+    font-size: var(--font-size-medium);
+    color: var(--color-subtle);
+    margin-bottom: var(--size-200);
+    line-height: var(--line-height-medium);
+}
+
+.duplicate-modal .modal-description span {
+    font-weight: var(--font-weight-semi-bold);
+    color: var(--color-base);
+}
+
+.duplicate-modal .modal-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-100);
+}
+
+.duplicate-modal .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--size-50);
+    padding: var(--size-100) var(--size-150);
+    border-radius: var(--border-radius-base);
+    font-size: var(--font-size-medium);
+    font-weight: var(--font-weight-semi-bold);
+    cursor: pointer;
+    text-decoration: none;
+    transition: var(--transition-property-base) var(--transition-duration-base);
+}
+
+.duplicate-modal .btn-primary {
+    background-color: var(--color-progressive);
+    color: var(--background-color-base);
+    border: none;
+}
+
+.duplicate-modal .btn-primary:hover {
+    background-color: var(--color-progressive--hover);
+}
+
+.duplicate-modal .btn-secondary {
+    background-color: transparent;
+    color: var(--color-progressive);
+    border: var(--border-width-base) var(--border-style-base) var(--border-color-base);
+}
+
+.duplicate-modal .btn-secondary:hover {
+    background-color: var(--background-color-interactive-subtle);
+}
+
+.duplicate-modal .modal-close-btn {
+    position: absolute;
+    top: var(--size-100);
+    right: var(--size-100);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: var(--size-50);
+    border-radius: var(--border-radius-base);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.duplicate-modal .modal-close-btn:hover {
+    background-color: var(--background-color-interactive-subtle);
 }
 
 /* Screen Management */
@@ -487,7 +693,7 @@ body {
     outline: none;
     font-size: var(--font-size-large);
     font-weight: var(--font-weight-normal);
-    color: #202122;
+    color: var(--color-base);
     background: transparent;
     resize: none;
     overflow: hidden;
@@ -520,7 +726,7 @@ body {
     padding: 0 !important;
     border: none !important;
     border-radius: 0 !important;
-    color: #b0b0b0 !important;
+    color: var(--color-placeholder) !important;
     font-style: italic !important;
     font-weight: var(--font-weight-normal) !important;
     cursor: text;
@@ -789,7 +995,8 @@ body {
     margin-bottom: var(--size-200);
     border-radius: var(--border-radius-base);
     padding: var(--size-100);
-    border: var(--border-width-base) var(--border-style-base) #D1E9D2;
+    border: var(--border-width-base) var(--border-style-base) var(--border-color-success);
+    background-color: var(--background-color-success-subtle);
 }
 
 .fact-item {
@@ -1188,7 +1395,7 @@ body {
     max-width: var(--size-3200);
     width: 100%;
     box-shadow: var(--box-shadow-drop-xx-large);
-    z-index: 1;
+    z-index: var(--z-index-stacking-1);
 }
 
 .dialog-header {
@@ -1377,7 +1584,7 @@ body {
         max-height: 90vh;
         margin: auto;
         border-radius: var(--border-radius-base);
-        box-shadow: 0 2px 16px rgba(0, 0, 0, 0.2);
+        box-shadow: var(--box-shadow-drop-medium);
     }
 }
 
@@ -1520,9 +1727,9 @@ body {
 /* Add your own source card styling */
 .add-own-source-card {
     cursor: pointer;
-    padding: 12px 0;
-    margin: 8px 0;
-    border: 1px dashed var(--border-color-progressive);
+    padding: var(--size-75) 0;
+    margin: var(--size-50) 0;
+    border: var(--border-width-base) dashed var(--border-color-progressive);
     border-radius: var(--border-radius-base);
 }
 
@@ -1600,7 +1807,7 @@ body {
 
 .cdx-text-input__input:focus {
     border-color: var(--border-color-progressive--focus);
-    box-shadow: inset 0 0 0 1px var(--border-color-progressive--focus);
+    box-shadow: var(--box-shadow-inset-small) var(--border-color-progressive--focus);
 }
 
 .cdx-text-input__input.input-error {
@@ -1609,7 +1816,7 @@ body {
 
 .cdx-text-input__input.input-error:focus {
     border-color: var(--color-destructive);
-    box-shadow: inset 0 0 0 1px var(--color-destructive);
+    box-shadow: var(--box-shadow-inset-small) var(--color-destructive);
 }
 
 .cdx-text-input__input::placeholder {
@@ -1638,13 +1845,13 @@ body {
 }
 
 .verification-spinner {
-    width: 14px;
-    height: 14px;
-    border: 2px solid var(--border-color-subtle);
-    border-top: 2px solid var(--color-progressive);
-    border-radius: 50%;
+    width: var(--size-icon-x-small);
+    height: var(--size-icon-x-small);
+    border: var(--border-width-thick) var(--border-style-base) var(--border-color-subtle);
+    border-top: var(--border-width-thick) var(--border-style-base) var(--color-progressive);
+    border-radius: var(--border-radius-circle);
     animation: spin 1s linear infinite;
-    margin-right: 8px;
+    margin-right: var(--size-50);
 }
 
 .verification-text {
@@ -1970,7 +2177,7 @@ body {
 .good-source-chevron {
     flex-shrink: 0;
     margin-left: var(--size-100);
-    opacity: 0.7;
+    opacity: var(--opacity-icon-subtle);
 }
 
 /* Good Source Modal */
@@ -1981,7 +2188,7 @@ body {
     width: 100%;
     height: 100%;
     background-color: var(--background-color-base);
-    z-index: 2000;
+    z-index: var(--z-index-top);
     display: flex;
     flex-direction: column;
 }
@@ -2107,12 +2314,12 @@ body {
 
 .text-destructive {
     background-color: var(--color-destructive);
-    color: #fff;
+    color: var(--color-inverted);
 }
 
 .text-success {
     background-color: var(--color-success);
-    color: #fff;
+    color: var(--color-inverted);
 }
 
 /* Examples Row */
@@ -2165,10 +2372,10 @@ body {
     display: flex;
     gap: var(--size-100);
     padding: var(--size-150);
-    background-color: #FEF3E2;
+    background-color: var(--background-color-warning-subtle);
     border-radius: var(--border-radius-base);
     margin-bottom: var(--size-150);
-    border: 1px solid #F5D9B0;
+    border: var(--border-width-base) var(--border-style-base) var(--border-color-warning);
 }
 
 .advisory-icon {
@@ -2195,7 +2402,7 @@ body {
 
 /* Starter Article Outline Card */
 .starter-outline-card {
-    background-color: #E8F4FC;
+    background-color: var(--background-color-progressive-subtle);
     border-radius: var(--border-radius-base);
     padding: var(--size-150);
     flex: 1;
@@ -2213,7 +2420,7 @@ body {
 
 .wikitext-block {
     background-color: var(--background-color-base);
-    border: 1px solid var(--border-color-subtle);
+    border: var(--border-width-base) var(--border-style-base) var(--border-color-subtle);
     border-radius: var(--border-radius-base);
     padding: var(--size-150);
     flex: 1;
@@ -2241,7 +2448,7 @@ body {
     margin-top: var(--size-100);
     margin-left: auto;
     background: none;
-    border: 1px solid var(--border-color-base);
+    border: var(--border-width-base) var(--border-style-base) var(--border-color-base);
     border-radius: var(--border-radius-base);
     font-size: var(--font-size-small);
     font-weight: var(--font-weight-semi-bold);
@@ -2316,7 +2523,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
+    z-index: var(--z-index-overlay);
 }
 
 .gate-modal-overlay {
@@ -2325,7 +2532,7 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.65);
+    background-color: var(--background-color-backdrop-dark);
 }
 
 .gate-modal-content {
@@ -2418,7 +2625,7 @@ body {
 
 .expansion-suggestion-card {
     background-color: var(--background-color-progressive-subtle);
-    border: 1px solid var(--border-color-progressive);
+    border: var(--border-width-base) var(--border-style-base) var(--border-color-progressive);
     border-radius: var(--border-radius-base);
     padding: var(--size-150);
     display: flex;
@@ -2445,7 +2652,7 @@ body {
 /* Info Box */
 .gate-info-box {
     background-color: var(--background-color-warning-subtle);
-    border-left: 3px solid var(--color-warning);
+    border-left: var(--border-width-thick) var(--border-style-base) var(--color-warning);
     padding: var(--size-100) var(--size-150);
     margin-bottom: var(--size-150);
     text-align: left;
