@@ -793,10 +793,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
                 topicList.appendChild(li);
             });
-            topicMatching.style.display = 'block';
-        } else {
-            topicMatching.style.display = 'none';
         }
+        // Always show topic matching section so "Topic not listed" button is accessible
+        topicMatching.style.display = 'block';
     }
 
     // --- EVENT LISTENERS: NAVIGATION & SETUP ---
