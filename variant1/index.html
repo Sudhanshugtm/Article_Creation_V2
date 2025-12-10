@@ -170,39 +170,53 @@
             <!-- Screen 2.75: Dynamic Guidance -->
             <div class="screen" id="screen275" style="display: none;">
                 <div class="guidance-screen">
-                    <div class="guidance-header">
-                        <span class="guidance-label">Guidance for:</span>
-                        <span class="guidance-category-name" id="guidanceCategoryName">Person</span>
+                    <h1 class="guidance-title">New Article Guidance</h1>
+
+                    <!-- Advisory Card -->
+                    <div class="advisory-card" id="advisoryCard">
+                        <div class="advisory-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <path d="M12 2L1 21h22L12 2z" fill="#E67700" stroke="#E67700" stroke-width="2"/>
+                                <path d="M12 9v5M12 16v2" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                        </div>
+                        <div class="advisory-content">
+                            <span class="advisory-label" id="advisoryLabel">Advisory for Biography:</span>
+                            <span class="advisory-text" id="advisoryText">Avoid "resume-like" entries. Focus on notable achievements and verified sources. Do not include personal opinions or promotional language.</span>
+                        </div>
                     </div>
 
-                    <div class="guidance-icon-container" id="guidanceIconContainer">
-                        <img src="node_modules/@wikimedia/codex-icons/dist/images/userAvatar.svg" alt=""
-                            width="48" height="48" id="guidanceIcon">
+                    <!-- Starter Article Outline -->
+                    <div class="starter-outline-card">
+                        <h2 class="starter-outline-title">Starter Article Outline (Raw Wikitext)</h2>
+                        <div class="wikitext-block" id="wikitextBlock">
+                            <pre id="wikitextContent">'''{{subst:REVISIONUSER}}''' (born [[Date of birth|DD Month YYYY]]) is a [[Nationality]] [[Occupation]].
+
+==Early Life and Education==
+* Born in [[City, Country]].
+* Attended [[University Name]], graduating in [[Year]].
+
+==Career==
+* Known for [[Notable Achievement 1]] and [[Notable Achievement 2]].
+* In [[Year]], [[Event]].
+
+==References==
+{{reflist}}
+
+[[Category: Living people]]
+[[Category: [Occupation] from [Country]]]</pre>
+                        </div>
+                        <button class="copy-btn" id="copyWikitextBtn">
+                            <img src="node_modules/@wikimedia/codex-icons/dist/images/copy.svg" alt="" width="16" height="16">
+                            <span>COPY</span>
+                        </button>
                     </div>
 
-                    <div class="guidance-content">
-                        <h2 class="guidance-headline" id="guidanceHeadline">Wikipedia is not a résumé.</h2>
-
-                        <ul class="guidance-points" id="guidancePoints">
-                            <li>Social media followers or YouTube subscribers do not establish notability.</li>
-                            <li>Content must be based on independent secondary sources — not the subject's own website or social profiles.</li>
-                            <li>Biographies of living people require extra care to avoid defamation.</li>
-                        </ul>
-
-                        <a href="https://en.wikipedia.org/wiki/Wikipedia:Notability" target="_blank"
-                            class="guidance-learn-more" id="guidanceLearnMore">
-                            Learn more about notability
-                            <img src="node_modules/@wikimedia/codex-icons/dist/images/linkExternal.svg" alt=""
-                                width="16" height="16">
-                        </a>
-                    </div>
-
+                    <!-- Footer -->
                     <div class="guidance-footer">
                         <button class="cdx-button cdx-button--weight-primary cdx-button--action-progressive guidance-continue-btn"
                             id="guidanceContinueBtn">
-                            <span>Continue to editor</span>
-                            <img src="node_modules/@wikimedia/codex-icons/dist/images/arrowNext.svg" alt=""
-                                width="16" height="16">
+                            <span>Proceed to Visual Editor</span>
                         </button>
                     </div>
                 </div>

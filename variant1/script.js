@@ -17,11 +17,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const screen3 = document.getElementById('screen3');
 
     // Guidance screen elements
-    const guidanceCategoryName = document.getElementById('guidanceCategoryName');
-    const guidanceIcon = document.getElementById('guidanceIcon');
-    const guidanceHeadline = document.getElementById('guidanceHeadline');
-    const guidancePoints = document.getElementById('guidancePoints');
-    const guidanceLearnMore = document.getElementById('guidanceLearnMore');
+    const advisoryLabel = document.getElementById('advisoryLabel');
+    const advisoryText = document.getElementById('advisoryText');
+    const wikitextContent = document.getElementById('wikitextContent');
+    const copyWikitextBtn = document.getElementById('copyWikitextBtn');
     const guidanceContinueBtn = document.getElementById('guidanceContinueBtn');
     const sourcesInputContainer = document.getElementById('sourcesInputContainer');
     const skipSourcesBtn = document.getElementById('skipSourcesBtn');
@@ -80,81 +79,153 @@ document.addEventListener('DOMContentLoaded', function () {
     // Dynamic guidance content for each category
     const categoryGuidance = {
         'Person': {
-            icon: 'userAvatar.svg',
-            headline: 'Wikipedia is not a résumé.',
-            points: [
-                'Social media followers or YouTube subscribers do not establish notability.',
-                'Content must be based on independent secondary sources — not the subject\'s own website or social profiles.',
-                'Biographies of living people require extra care to avoid defamation.'
-            ],
-            learnMoreUrl: 'https://en.wikipedia.org/wiki/Wikipedia:Notability_(people)',
-            learnMoreText: 'Learn more about notability for people'
+            advisoryLabel: 'Advisory for Biography:',
+            advisoryText: 'Avoid "resume-like" entries. Focus on notable achievements and verified sources. Do not include personal opinions or promotional language.',
+            wikitext: `'''{{subst:REVISIONUSER}}''' (born [[Date of birth|DD Month YYYY]]) is a [[Nationality]] [[Occupation]].
+
+==Early Life and Education==
+* Born in [[City, Country]].
+* Attended [[University Name]], graduating in [[Year]].
+
+==Career==
+* Known for [[Notable Achievement 1]] and [[Notable Achievement 2]].
+* In [[Year]], [[Event]].
+
+==References==
+{{reflist}}
+
+[[Category: Living people]]
+[[Category: [Occupation] from [Country]]]`
         },
         'Place': {
-            icon: 'mapPin.svg',
-            headline: 'Describe, don\'t promote.',
-            points: [
-                'Focus on geographic, historical, or cultural significance.',
-                'Avoid tourism-style promotional language.',
-                'Cite reliable sources like maps, government records, or academic publications.'
-            ],
-            learnMoreUrl: 'https://en.wikipedia.org/wiki/Wikipedia:Notability_(geographic_features)',
-            learnMoreText: 'Learn more about geographic notability'
+            advisoryLabel: 'Advisory for Place:',
+            advisoryText: 'Focus on geographic and historical significance. Avoid promotional tourism language. Cite reliable sources like government records or academic publications.',
+            wikitext: `'''[Place Name]''' is a [[Type of place]] located in [[Region/Country]].
+
+==Geography==
+* Located at [[coordinates]].
+* [Describe terrain, climate, notable features].
+
+==History==
+* Founded/established in [[Year]].
+* [Key historical events].
+
+==Demographics==
+* Population: [number] (as of [year]).
+
+==References==
+{{reflist}}
+
+[[Category: [Type] in [Country]]]`
         },
         'Event': {
-            icon: 'calendar.svg',
-            headline: 'Lasting significance required.',
-            points: [
-                'Routine news coverage is not enough.',
-                'Events require sustained, significant coverage demonstrating lasting impact.',
-                'Sports scores, announcements, or single news reports are insufficient.'
-            ],
-            learnMoreUrl: 'https://en.wikipedia.org/wiki/Wikipedia:Notability_(events)',
-            learnMoreText: 'Learn more about event notability'
+            advisoryLabel: 'Advisory for Event:',
+            advisoryText: 'Events require sustained, significant coverage demonstrating lasting impact. Routine news reports or announcements are insufficient to establish notability.',
+            wikitext: `The '''[Event Name]''' was a [[Type of event]] that occurred on [[Date]] in [[Location]].
+
+==Background==
+* [Context leading to the event].
+
+==The Event==
+* [Description of what happened].
+* [Key participants or factors].
+
+==Aftermath==
+* [Consequences and lasting impact].
+
+==References==
+{{reflist}}
+
+[[Category: [Year] events]]
+[[Category: Events in [Location]]]`
         },
         'Organization': {
-            icon: 'building.svg',
-            headline: 'Wikipedia is not a directory.',
-            points: [
-                'Promotional language ("puffery") leads to rapid deletion.',
-                'Press releases and official websites cannot establish notability.',
-                'Disclose any conflicts of interest you may have.'
-            ],
-            learnMoreUrl: 'https://en.wikipedia.org/wiki/Wikipedia:Notability_(organizations_and_companies)',
-            learnMoreText: 'Learn more about organization notability'
+            advisoryLabel: 'Advisory for Organization:',
+            advisoryText: 'Wikipedia is not a directory or marketing platform. Promotional language leads to rapid deletion. Disclose any conflicts of interest.',
+            wikitext: `'''[Organization Name]''' is a [[Type of organization]] based in [[Location]], founded in [[Year]].
+
+==History==
+* Founded by [[Founder(s)]] in [[Year]].
+* [Key milestones].
+
+==Operations==
+* [What the organization does].
+* [Scope and reach].
+
+==Reception==
+* [Third-party coverage and analysis].
+
+==References==
+{{reflist}}
+
+[[Category: Organizations established in [Year]]]
+[[Category: [Type] based in [Country]]]`
         },
         'Creative Work': {
-            icon: 'book.svg',
-            headline: 'Critical reception matters.',
-            points: [
-                'Articles need third-party reviews or critical analysis.',
-                'Awards, accolades, or notable recognition help establish notability.',
-                'Avoid plot-only summaries — include real-world context and impact.'
-            ],
-            learnMoreUrl: 'https://en.wikipedia.org/wiki/Wikipedia:Notability_(creative_works)',
-            learnMoreText: 'Learn more about creative work notability'
+            advisoryLabel: 'Advisory for Creative Work:',
+            advisoryText: 'Focus on critical reception and cultural impact. Include third-party reviews and analysis. Avoid plot-only summaries without real-world context.',
+            wikitext: `'''[Title]''' is a [[Year]] [[Type of work]] by [[Creator/Author]].
+
+==Synopsis==
+* [Brief plot/content summary].
+
+==Production/Development==
+* [How it was created].
+* [Key contributors].
+
+==Reception==
+* [Critical reviews and ratings].
+* [Awards and recognition].
+
+==References==
+{{reflist}}
+
+[[Category: [Year] [type]]]
+[[Category: Works by [Creator]]]`
         },
         'Species': {
-            icon: 'die.svg',
-            headline: 'Cite scientific sources.',
-            points: [
-                'Use peer-reviewed journals and museum publications.',
-                'Describe taxonomy and classification clearly.',
-                'Avoid original research or speculation about undocumented traits.'
-            ],
-            learnMoreUrl: 'https://en.wikipedia.org/wiki/Wikipedia:Notability_(organisms)',
-            learnMoreText: 'Learn more about species notability'
+            advisoryLabel: 'Advisory for Species:',
+            advisoryText: 'Cite peer-reviewed journals and museum publications. Describe fossil evidence and taxonomic classification. Avoid original research or speculation.',
+            wikitext: `'''[Species name]''' is a [[Type of organism]] in the family [[Family name]].
+
+==Taxonomy==
+* First described by [[Scientist]] in [[Year]].
+* Classification: [[Kingdom]] > [[Phylum]] > [[Class]] > [[Order]] > [[Family]].
+
+==Description==
+* [Physical characteristics].
+* [Size and distinguishing features].
+
+==Distribution and habitat==
+* Found in [[Geographic range]].
+* Prefers [[habitat type]].
+
+==References==
+{{reflist}}
+
+[[Category: [Taxonomic group]]]`
         },
         'Concept': {
-            icon: 'lightbulb.svg',
-            headline: 'Explain with reliable sources.',
-            points: [
-                'Define the concept clearly and neutrally.',
-                'Avoid personal theories or unverified claims.',
-                'Academic and scholarly sources are preferred.'
-            ],
-            learnMoreUrl: 'https://en.wikipedia.org/wiki/Wikipedia:Notability',
-            learnMoreText: 'Learn more about notability'
+            advisoryLabel: 'Advisory for Concept:',
+            advisoryText: 'Define the concept clearly and neutrally using reliable academic sources. Avoid personal theories or unverified claims.',
+            wikitext: `'''[Concept Name]''' is a [[Field/domain]] concept that refers to [[Brief definition]].
+
+==Definition==
+* [Detailed explanation].
+* [Key characteristics].
+
+==History==
+* First introduced by [[Person/source]] in [[Year]].
+* [Evolution of the concept].
+
+==Applications==
+* [How the concept is used].
+* [Examples].
+
+==References==
+{{reflist}}
+
+[[Category: [Field] concepts]]`
         }
     };
 
@@ -456,25 +527,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const guidance = categoryGuidance[rootCategory] || categoryGuidance['Concept'];
 
-        // Update the guidance screen elements
-        guidanceCategoryName.textContent = rootCategory;
-        guidanceIcon.src = `node_modules/@wikimedia/codex-icons/dist/images/${guidance.icon}`;
-        guidanceHeadline.textContent = guidance.headline;
+        // Update the advisory card
+        advisoryLabel.textContent = guidance.advisoryLabel;
+        advisoryText.textContent = guidance.advisoryText;
 
-        // Update points list
-        guidancePoints.innerHTML = '';
-        guidance.points.forEach(point => {
-            const li = document.createElement('li');
-            li.textContent = point;
-            guidancePoints.appendChild(li);
-        });
+        // Update the wikitext content
+        wikitextContent.textContent = guidance.wikitext;
 
-        // Update learn more link
-        guidanceLearnMore.href = guidance.learnMoreUrl;
-        guidanceLearnMore.innerHTML = `
-            ${guidance.learnMoreText}
-            <img src="node_modules/@wikimedia/codex-icons/dist/images/linkExternal.svg" alt="" width="16" height="16">
-        `;
+        // Reset copy button state
+        copyWikitextBtn.classList.remove('copied');
+        copyWikitextBtn.querySelector('span').textContent = 'COPY';
     }
 
     function renderCategories(categoryKey) {
@@ -1593,6 +1655,44 @@ document.addEventListener('DOMContentLoaded', function () {
     guidanceContinueBtn.addEventListener('click', function () {
         showScreen(3);
         setTimeout(() => editorTextarea.focus(), 100);
+    });
+
+    // Copy wikitext to clipboard
+    copyWikitextBtn.addEventListener('click', function () {
+        const wikitext = wikitextContent.textContent;
+
+        navigator.clipboard.writeText(wikitext).then(() => {
+            // Success feedback
+            copyWikitextBtn.classList.add('copied');
+            copyWikitextBtn.querySelector('span').textContent = 'COPIED!';
+
+            // Reset after 2 seconds
+            setTimeout(() => {
+                copyWikitextBtn.classList.remove('copied');
+                copyWikitextBtn.querySelector('span').textContent = 'COPY';
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy text: ', err);
+            // Fallback for older browsers
+            const textArea = document.createElement('textarea');
+            textArea.value = wikitext;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                copyWikitextBtn.classList.add('copied');
+                copyWikitextBtn.querySelector('span').textContent = 'COPIED!';
+                setTimeout(() => {
+                    copyWikitextBtn.classList.remove('copied');
+                    copyWikitextBtn.querySelector('span').textContent = 'COPY';
+                }, 2000);
+            } catch (e) {
+                console.error('Fallback copy failed: ', e);
+            }
+            document.body.removeChild(textArea);
+        });
     });
 
     function captureUserSources() {
