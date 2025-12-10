@@ -111,7 +111,7 @@ body {
 /* Main Content */
 .main-content {
     flex: 1;
-    padding: var(--size-100) var(--size-100);
+    padding: var(--size-200);
     overflow-y: auto;
     background-color: var(--background-color-base);
     display: flex;
@@ -1331,7 +1331,7 @@ body {
 
     /* Increase padding on desktop for better readability */
     .main-content {
-        padding: var(--size-200) var(--size-400);
+        padding: var(--size-300);
     }
 
     /* Editor screen specific desktop layout */
