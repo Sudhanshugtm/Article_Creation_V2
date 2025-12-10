@@ -1644,6 +1644,12 @@ document.addEventListener('DOMContentLoaded', function () {
     // Listen for input changes on all source fields
     // sourcesInputContainer.addEventListener('input', updateSourcesNextButtonState); // Removed global listener, handled in attachVerificationListeners
 
+    // Continue button on sources screen
+    document.getElementById('sourcesContinueBtn').addEventListener('click', function () {
+        captureUserSources();
+        showScreen(275); // Go to guidance screen
+    });
+
     skipSourcesBtn.addEventListener('click', function () {
         showScreen(275); // Go to guidance screen first
     });
