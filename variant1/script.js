@@ -79,8 +79,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // Dynamic guidance content for each category
     const categoryGuidance = {
         'Person': {
-            advisoryLabel: 'Advisory for Biography:',
-            advisoryText: 'Avoid "resume-like" entries. Focus on notable achievements and verified sources. Do not include personal opinions or promotional language.',
+            advisoryLabel: 'Tip for biographies:',
+            advisoryText: 'Write about what makes this person notable to the world—not just their job history. Use news articles or books as sources, and keep your own opinions out.',
             wikitext: `'''{{subst:REVISIONUSER}}''' (born [[Date of birth|DD Month YYYY]]) is a [[Nationality]] [[Occupation]].
 
 ==Early Life and Education==
@@ -98,8 +98,8 @@ document.addEventListener('DOMContentLoaded', function () {
 [[Category: [Occupation] from [Country]]]`
         },
         'Place': {
-            advisoryLabel: 'Advisory for Place:',
-            advisoryText: 'Focus on geographic and historical significance. Avoid promotional tourism language. Cite reliable sources like government records or academic publications.',
+            advisoryLabel: 'Tip for places:',
+            advisoryText: 'Describe what makes this place interesting or important. Skip the travel-brochure language—stick to facts from official or published sources.',
             wikitext: `'''[Place Name]''' is a [[Type of place]] located in [[Region/Country]].
 
 ==Geography==
@@ -119,8 +119,8 @@ document.addEventListener('DOMContentLoaded', function () {
 [[Category: [Type] in [Country]]]`
         },
         'Event': {
-            advisoryLabel: 'Advisory for Event:',
-            advisoryText: 'Events require sustained, significant coverage demonstrating lasting impact. Routine news reports or announcements are insufficient to establish notability.',
+            advisoryLabel: 'Tip for events:',
+            advisoryText: 'Focus on events that had real impact and were covered by multiple sources over time—not just a single news mention.',
             wikitext: `The '''[Event Name]''' was a [[Type of event]] that occurred on [[Date]] in [[Location]].
 
 ==Background==
@@ -140,8 +140,8 @@ document.addEventListener('DOMContentLoaded', function () {
 [[Category: Events in [Location]]]`
         },
         'Organization': {
-            advisoryLabel: 'Advisory for Organization:',
-            advisoryText: 'Wikipedia is not a directory or marketing platform. Promotional language leads to rapid deletion. Disclose any conflicts of interest.',
+            advisoryLabel: 'Tip for organizations:',
+            advisoryText: 'Keep it factual, not promotional. If you have a connection to this organization, mention it. Marketing-style writing often leads to deletion.',
             wikitext: `'''[Organization Name]''' is a [[Type of organization]] based in [[Location]], founded in [[Year]].
 
 ==History==
@@ -162,8 +162,8 @@ document.addEventListener('DOMContentLoaded', function () {
 [[Category: [Type] based in [Country]]]`
         },
         'Creative Work': {
-            advisoryLabel: 'Advisory for Creative Work:',
-            advisoryText: 'Focus on critical reception and cultural impact. Include third-party reviews and analysis. Avoid plot-only summaries without real-world context.',
+            advisoryLabel: 'Tip for creative works:',
+            advisoryText: 'Go beyond just the plot—include how critics and audiences received it. Use reviews and articles from independent sources.',
             wikitext: `'''[Title]''' is a [[Year]] [[Type of work]] by [[Creator/Author]].
 
 ==Synopsis==
@@ -184,8 +184,8 @@ document.addEventListener('DOMContentLoaded', function () {
 [[Category: Works by [Creator]]]`
         },
         'Species': {
-            advisoryLabel: 'Advisory for Species:',
-            advisoryText: 'Cite peer-reviewed journals and museum publications. Describe fossil evidence and taxonomic classification. Avoid original research or speculation.',
+            advisoryLabel: 'Tip for species:',
+            advisoryText: 'Use scientific sources like journals or museum records. Describe what's known from research—avoid guesses or personal theories.',
             wikitext: `'''[Species name]''' is a [[Type of organism]] in the family [[Family name]].
 
 ==Taxonomy==
@@ -206,8 +206,8 @@ document.addEventListener('DOMContentLoaded', function () {
 [[Category: [Taxonomic group]]]`
         },
         'Concept': {
-            advisoryLabel: 'Advisory for Concept:',
-            advisoryText: 'Define the concept clearly and neutrally using reliable academic sources. Avoid personal theories or unverified claims.',
+            advisoryLabel: 'Tip for concepts:',
+            advisoryText: 'Explain the idea using established sources. Present different viewpoints fairly and avoid adding your own interpretations.',
             wikitext: `'''[Concept Name]''' is a [[Field/domain]] concept that refers to [[Brief definition]].
 
 ==Definition==

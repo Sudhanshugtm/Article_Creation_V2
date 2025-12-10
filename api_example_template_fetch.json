@@ -1,0 +1,439 @@
+{
+  "request": {
+    "endpoint": "/api/v1/templates/lead/short_overview",
+    "method": "GET",
+    "params": {
+      "article_type": "animal",
+      "language": "en"
+    }
+  },
+  "response": {
+    "template_id": "lead_short_overview_v1",
+    "version": "1.0.0",
+    "last_updated": "2025-01-15",
+    "metadata": {
+      "title": "Short Overview Template",
+      "description": "Template for creating a concise opening paragraph for animal articles",
+      "category": "lead_section",
+      "difficulty": "beginner",
+      "estimated_time_minutes": 10,
+      "success_rate": 0.85
+    },
+    "ui_config": {
+      "expansion_animation": "fade_slide",
+      "validation_mode": "realtime",
+      "preview_enabled": true,
+      "autosave_enabled": true,
+      "autosave_interval_seconds": 30
+    },
+    "structure": [
+      {
+        "sentence_id": "sentence_1",
+        "sentence_label": "Definition",
+        "sentence_template": "The {animal_common_name} or {alternative_name} is a {taxonomic_classification} native to {geographic_range}.",
+        "sentence_order": 1,
+        "is_required": true,
+        "fields": [
+          {
+            "field_id": "animal_common_name",
+            "field_label": "Common name",
+            "field_type": "text",
+            "input_component": "text_input",
+            "is_required": true,
+            "is_optional": false,
+            "placeholder": "e.g., Siberian tiger",
+            "help_text": "Use the most widely recognized common name for this animal",
+            "validation_rules": [
+              {
+                "rule": "lowercase_unless_proper_noun",
+                "error_message": "Common names should be lowercase unless they include a proper noun (like 'Siberian')"
+              },
+              {
+                "rule": "no_special_characters",
+                "error_message": "Common names should not contain special characters"
+              },
+              {
+                "rule": "min_length",
+                "min": 3,
+                "error_message": "Common name must be at least 3 characters"
+              }
+            ],
+            "character_limit": 100,
+            "show_character_count": false,
+            "requires_source": false,
+            "source_guidance": null,
+            "default_value": "",
+            "example_values": [
+              "Siberian tiger",
+              "Bengal tiger",
+              "gray wolf",
+              "African elephant"
+            ]
+          },
+          {
+            "field_id": "alternative_name",
+            "field_label": "Alternative name",
+            "field_type": "text",
+            "input_component": "text_input",
+            "is_required": false,
+            "is_optional": true,
+            "placeholder": "e.g., Amur tiger",
+            "help_text": "Include the most common alternative name if one exists",
+            "validation_rules": [
+              {
+                "rule": "lowercase_unless_proper_noun",
+                "error_message": "Common names should be lowercase unless they include a proper noun"
+              }
+            ],
+            "character_limit": 100,
+            "show_character_count": false,
+            "requires_source": false,
+            "source_guidance": null,
+            "default_value": "",
+            "example_values": [
+              "Amur tiger",
+              "Royal Bengal tiger",
+              "timber wolf"
+            ],
+            "conditional_display": {
+              "show_when": "user_clicks_add_alternative",
+              "initial_state": "collapsed"
+            }
+          },
+          {
+            "field_id": "taxonomic_classification",
+            "field_label": "Taxonomic classification",
+            "field_type": "text",
+            "input_component": "rich_text_input",
+            "is_required": true,
+            "is_optional": false,
+            "placeholder": "e.g., population of the tiger subspecies Panthera tigris tigris",
+            "help_text": "Specify if it's a species, subspecies, or population. Scientific names must be in italics.",
+            "validation_rules": [
+              {
+                "rule": "contains_scientific_name",
+                "error_message": "Must include a scientific name (genus and species)"
+              },
+              {
+                "rule": "scientific_name_italicized",
+                "error_message": "Scientific names must be italicized"
+              },
+              {
+                "rule": "genus_capitalized",
+                "error_message": "Genus name must be capitalized"
+              },
+              {
+                "rule": "species_lowercase",
+                "error_message": "Species epithet must be lowercase"
+              }
+            ],
+            "character_limit": 200,
+            "show_character_count": false,
+            "requires_source": true,
+            "source_guidance": "Use authoritative taxonomic sources like IUCN Red List, Mammal Species of the World, or Cat Specialist Group",
+            "acceptable_source_types": [
+              "iucn_red_list",
+              "mammal_species_world",
+              "cat_specialist_group",
+              "peer_reviewed_journal"
+            ],
+            "default_value": "",
+            "example_values": [
+              "subspecies Panthera tigris altaica",
+              "species Panthera leo",
+              "population of Canis lupus"
+            ],
+            "formatting_toolbar": {
+              "enabled": true,
+              "buttons": ["italic", "help"]
+            }
+          },
+          {
+            "field_id": "geographic_range",
+            "field_label": "Geographic range",
+            "field_type": "text",
+            "input_component": "text_input",
+            "is_required": true,
+            "is_optional": false,
+            "placeholder": "e.g., Northeast China, the Russian Far East, and possibly North Korea",
+            "help_text": "List the countries or major regions where this animal currently lives",
+            "validation_rules": [
+              {
+                "rule": "min_length",
+                "min": 10,
+                "error_message": "Please provide more detail about the geographic range"
+              },
+              {
+                "rule": "contains_region_or_country",
+                "error_message": "Should include at least one country or region name"
+              }
+            ],
+            "character_limit": 300,
+            "show_character_count": false,
+            "requires_source": true,
+            "source_guidance": "Use recent range maps or peer-reviewed distribution studies",
+            "acceptable_source_types": [
+              "range_map",
+              "distribution_study",
+              "iucn_red_list",
+              "peer_reviewed_journal"
+            ],
+            "default_value": "",
+            "example_values": [
+              "Northeast China, the Russian Far East, and possibly North Korea",
+              "India, Bangladesh, Nepal, and Bhutan",
+              "Sub-Saharan Africa",
+              "Northern forests of North America, Europe, and Asia"
+            ],
+            "autocomplete": {
+              "enabled": true,
+              "source": "wikidata_countries_regions"
+            }
+          }
+        ]
+      },
+      {
+        "sentence_id": "sentence_2",
+        "sentence_label": "Distinctive Features",
+        "sentence_template": "It is known for {key_distinctive_feature_1} and {key_distinctive_feature_2}.",
+        "sentence_order": 2,
+        "is_required": true,
+        "fields": [
+          {
+            "field_id": "key_distinctive_feature_1",
+            "field_label": "Key distinctive feature",
+            "field_type": "text",
+            "input_component": "text_input",
+            "is_required": true,
+            "is_optional": false,
+            "placeholder": "e.g., its thick fur adapted to cold climates",
+            "help_text": "What makes this animal unique or easily recognizable? Focus on physical or behavioral traits.",
+            "validation_rules": [
+              {
+                "rule": "min_length",
+                "min": 10,
+                "error_message": "Please provide more detail about this feature"
+              },
+              {
+                "rule": "starts_with_lowercase_or_possessive",
+                "error_message": "Should start with lowercase or 'its/their'"
+              }
+            ],
+            "character_limit": 200,
+            "show_character_count": false,
+            "requires_source": true,
+            "source_guidance": "Use peer-reviewed studies on morphology, behavior, or ecology",
+            "acceptable_source_types": [
+              "peer_reviewed_journal",
+              "field_guide",
+              "monograph"
+            ],
+            "default_value": "",
+            "example_values": [
+              "its thick fur adapted to cold climates",
+              "being the largest of all cat species",
+              "its distinctive black and white coloration",
+              "complex social structure and cooperative hunting"
+            ]
+          },
+          {
+            "field_id": "key_distinctive_feature_2",
+            "field_label": "Second distinctive feature",
+            "field_type": "text",
+            "input_component": "text_input",
+            "is_required": false,
+            "is_optional": true,
+            "placeholder": "e.g., being one of the largest tiger populations",
+            "help_text": "Add another characteristic that distinguishes this animal",
+            "validation_rules": [
+              {
+                "rule": "min_length",
+                "min": 10,
+                "error_message": "Please provide more detail about this feature"
+              },
+              {
+                "rule": "different_from_feature_1",
+                "error_message": "This should be different from the first feature"
+              }
+            ],
+            "character_limit": 200,
+            "show_character_count": false,
+            "requires_source": true,
+            "source_guidance": "Use peer-reviewed studies",
+            "acceptable_source_types": [
+              "peer_reviewed_journal",
+              "field_guide"
+            ],
+            "default_value": "",
+            "conditional_display": {
+              "show_when": "feature_1_completed",
+              "initial_state": "collapsed",
+              "trigger_text": "+ Add second feature (optional)"
+            }
+          }
+        ]
+      },
+      {
+        "sentence_id": "sentence_3",
+        "sentence_label": "Conservation Status",
+        "sentence_template": "The species is classified as {conservation_status} by the IUCN, with an estimated population of {current_population} in the wild as of {year}.",
+        "sentence_order": 3,
+        "is_required": true,
+        "fields": [
+          {
+            "field_id": "conservation_status",
+            "field_label": "IUCN conservation status",
+            "field_type": "select",
+            "input_component": "dropdown",
+            "is_required": true,
+            "is_optional": false,
+            "placeholder": "Select status",
+            "help_text": "Select the current IUCN Red List conservation status",
+            "options": [
+              {
+                "value": "Critically Endangered",
+                "label": "Critically Endangered (CR)",
+                "description": "Extremely high risk of extinction"
+              },
+              {
+                "value": "Endangered",
+                "label": "Endangered (EN)",
+                "description": "High risk of extinction"
+              },
+              {
+                "value": "Vulnerable",
+                "label": "Vulnerable (VU)",
+                "description": "High risk of endangerment"
+              },
+              {
+                "value": "Near Threatened",
+                "label": "Near Threatened (NT)",
+                "description": "Likely to become threatened"
+              },
+              {
+                "value": "Least Concern",
+                "label": "Least Concern (LC)",
+                "description": "Lowest risk category"
+              },
+              {
+                "value": "Data Deficient",
+                "label": "Data Deficient (DD)",
+                "description": "Inadequate information"
+              }
+            ],
+            "validation_rules": [],
+            "requires_source": true,
+            "source_guidance": "Must cite the IUCN Red List directly",
+            "acceptable_source_types": [
+              "iucn_red_list"
+            ],
+            "default_value": "",
+            "searchable": false
+          },
+          {
+            "field_id": "current_population",
+            "field_label": "Current population estimate",
+            "field_type": "text",
+            "input_component": "text_input",
+            "is_required": true,
+            "is_optional": false,
+            "placeholder": "e.g., approximately 500-600 individuals",
+            "help_text": "Provide the most recent population estimate. Include a range if the exact number is unknown.",
+            "validation_rules": [
+              {
+                "rule": "contains_number",
+                "error_message": "Must include a population number or range"
+              },
+              {
+                "rule": "min_length",
+                "min": 5,
+                "error_message": "Please provide more detail"
+              }
+            ],
+            "character_limit": 150,
+            "show_character_count": false,
+            "requires_source": true,
+            "source_guidance": "Use recent census data or peer-reviewed population studies",
+            "acceptable_source_types": [
+              "population_census",
+              "peer_reviewed_journal",
+              "conservation_organization_report"
+            ],
+            "default_value": "",
+            "example_values": [
+              "approximately 500-600 individuals",
+              "fewer than 2,500 mature individuals",
+              "estimated at 3,200 individuals",
+              "between 20,000 and 25,000 individuals"
+            ]
+          },
+          {
+            "field_id": "year",
+            "field_label": "Year of estimate",
+            "field_type": "number",
+            "input_component": "year_picker",
+            "is_required": true,
+            "is_optional": false,
+            "placeholder": "e.g., 2022",
+            "help_text": "What year was this population estimate made?",
+            "validation_rules": [
+              {
+                "rule": "is_year",
+                "error_message": "Must be a valid year"
+              },
+              {
+                "rule": "within_last_10_years",
+                "error_message": "Population estimate should be from within the last 10 years for accuracy"
+              },
+              {
+                "rule": "not_future",
+                "error_message": "Year cannot be in the future"
+              }
+            ],
+            "min_value": 2015,
+            "max_value": 2025,
+            "requires_source": true,
+            "source_guidance": "Year should match the source cited for population estimate",
+            "default_value": ""
+          }
+        ]
+      }
+    ],
+    "preview_config": {
+      "enabled": true,
+      "update_mode": "debounced",
+      "debounce_ms": 500,
+      "show_citations": true,
+      "show_formatting": true
+    },
+    "source_requirements": {
+      "minimum_sources": 3,
+      "recommended_sources": 5,
+      "required_source_types": [
+        "iucn_red_list",
+        "taxonomic_authority",
+        "peer_reviewed_journal"
+      ],
+      "citation_style": "wikipedia"
+    },
+    "validation": {
+      "required_fields_count": 7,
+      "optional_fields_count": 2,
+      "validation_mode": "progressive",
+      "allow_save_draft": true,
+      "allow_save_incomplete": false
+    },
+    "help_resources": {
+      "tutorial_url": "https://en.wikipedia.org/wiki/Help:Creating_animal_articles",
+      "examples": [
+        "https://en.wikipedia.org/wiki/Siberian_tiger",
+        "https://en.wikipedia.org/wiki/Bengal_tiger",
+        "https://en.wikipedia.org/wiki/Gray_wolf"
+      ],
+      "video_tutorial": "https://commons.wikimedia.org/wiki/File:Creating_lead_sections.webm",
+      "chat_support_available": true
+    }
+  },
+  "success": true,
+  "timestamp": "2025-01-23T14:30:00Z"
+}
