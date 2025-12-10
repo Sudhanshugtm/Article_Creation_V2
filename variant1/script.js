@@ -185,7 +185,7 @@ document.addEventListener('DOMContentLoaded', function () {
         },
         'Species': {
             advisoryLabel: 'Tip for species:',
-            advisoryText: 'Use scientific sources like journals or museum records. Describe what's known from research—avoid guesses or personal theories.',
+            advisoryText: 'Use scientific sources like journals or museum records. Describe what is known from research—avoid guesses or personal theories.',
             wikitext: `'''[Species name]''' is a [[Type of organism]] in the family [[Family name]].
 
 ==Taxonomy==
