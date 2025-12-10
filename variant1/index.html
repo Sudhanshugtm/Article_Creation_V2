@@ -167,6 +167,47 @@
                 </div>
             </div>
 
+            <!-- Screen 2.75: Dynamic Guidance -->
+            <div class="screen" id="screen275" style="display: none;">
+                <div class="guidance-screen">
+                    <div class="guidance-header">
+                        <span class="guidance-label">Guidance for:</span>
+                        <span class="guidance-category-name" id="guidanceCategoryName">Person</span>
+                    </div>
+
+                    <div class="guidance-icon-container" id="guidanceIconContainer">
+                        <img src="node_modules/@wikimedia/codex-icons/dist/images/userAvatar.svg" alt=""
+                            width="48" height="48" id="guidanceIcon">
+                    </div>
+
+                    <div class="guidance-content">
+                        <h2 class="guidance-headline" id="guidanceHeadline">Wikipedia is not a résumé.</h2>
+
+                        <ul class="guidance-points" id="guidancePoints">
+                            <li>Social media followers or YouTube subscribers do not establish notability.</li>
+                            <li>Content must be based on independent secondary sources — not the subject's own website or social profiles.</li>
+                            <li>Biographies of living people require extra care to avoid defamation.</li>
+                        </ul>
+
+                        <a href="https://en.wikipedia.org/wiki/Wikipedia:Notability" target="_blank"
+                            class="guidance-learn-more" id="guidanceLearnMore">
+                            Learn more about notability
+                            <img src="node_modules/@wikimedia/codex-icons/dist/images/linkExternal.svg" alt=""
+                                width="16" height="16">
+                        </a>
+                    </div>
+
+                    <div class="guidance-footer">
+                        <button class="cdx-button cdx-button--weight-primary cdx-button--action-progressive guidance-continue-btn"
+                            id="guidanceContinueBtn">
+                            <span>Continue to editor</span>
+                            <img src="node_modules/@wikimedia/codex-icons/dist/images/arrowNext.svg" alt=""
+                                width="16" height="16">
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Screen 3: Article Editor -->
             <div class="screen" id="screen3" style="display: none;">
                 <!-- Article Sections Container -->

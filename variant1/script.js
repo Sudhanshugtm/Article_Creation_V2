@@ -13,7 +13,16 @@ document.addEventListener('DOMContentLoaded', function () {
     const screen1 = document.getElementById('screen1');
     const screen2 = document.getElementById('screen2');
     const screen25 = document.getElementById('screen25');
+    const screen275 = document.getElementById('screen275');
     const screen3 = document.getElementById('screen3');
+
+    // Guidance screen elements
+    const guidanceCategoryName = document.getElementById('guidanceCategoryName');
+    const guidanceIcon = document.getElementById('guidanceIcon');
+    const guidanceHeadline = document.getElementById('guidanceHeadline');
+    const guidancePoints = document.getElementById('guidancePoints');
+    const guidanceLearnMore = document.getElementById('guidanceLearnMore');
+    const guidanceContinueBtn = document.getElementById('guidanceContinueBtn');
     const sourcesInputContainer = document.getElementById('sourcesInputContainer');
     const skipSourcesBtn = document.getElementById('skipSourcesBtn');
     const typeSelectionTitle = document.getElementById('typeSelectionTitle');
@@ -66,6 +75,87 @@ document.addEventListener('DOMContentLoaded', function () {
         'Characteristics': 'Describe the physical traits and appearance of the Siberian tiger...',
         'Distribution and habitat': 'Explain where the Siberian tiger lives and its environment...',
         'Ecology and behaviour': 'Describe the diet, activity and social behaviour of the Siberian tiger...'
+    };
+
+    // Dynamic guidance content for each category
+    const categoryGuidance = {
+        'Person': {
+            icon: 'userAvatar.svg',
+            headline: 'Wikipedia is not a résumé.',
+            points: [
+                'Social media followers or YouTube subscribers do not establish notability.',
+                'Content must be based on independent secondary sources — not the subject\'s own website or social profiles.',
+                'Biographies of living people require extra care to avoid defamation.'
+            ],
+            learnMoreUrl: 'https://en.wikipedia.org/wiki/Wikipedia:Notability_(people)',
+            learnMoreText: 'Learn more about notability for people'
+        },
+        'Place': {
+            icon: 'mapPin.svg',
+            headline: 'Describe, don\'t promote.',
+            points: [
+                'Focus on geographic, historical, or cultural significance.',
+                'Avoid tourism-style promotional language.',
+                'Cite reliable sources like maps, government records, or academic publications.'
+            ],
+            learnMoreUrl: 'https://en.wikipedia.org/wiki/Wikipedia:Notability_(geographic_features)',
+            learnMoreText: 'Learn more about geographic notability'
+        },
+        'Event': {
+            icon: 'calendar.svg',
+            headline: 'Lasting significance required.',
+            points: [
+                'Routine news coverage is not enough.',
+                'Events require sustained, significant coverage demonstrating lasting impact.',
+                'Sports scores, announcements, or single news reports are insufficient.'
+            ],
+            learnMoreUrl: 'https://en.wikipedia.org/wiki/Wikipedia:Notability_(events)',
+            learnMoreText: 'Learn more about event notability'
+        },
+        'Organization': {
+            icon: 'building.svg',
+            headline: 'Wikipedia is not a directory.',
+            points: [
+                'Promotional language ("puffery") leads to rapid deletion.',
+                'Press releases and official websites cannot establish notability.',
+                'Disclose any conflicts of interest you may have.'
+            ],
+            learnMoreUrl: 'https://en.wikipedia.org/wiki/Wikipedia:Notability_(organizations_and_companies)',
+            learnMoreText: 'Learn more about organization notability'
+        },
+        'Creative Work': {
+            icon: 'book.svg',
+            headline: 'Critical reception matters.',
+            points: [
+                'Articles need third-party reviews or critical analysis.',
+                'Awards, accolades, or notable recognition help establish notability.',
+                'Avoid plot-only summaries — include real-world context and impact.'
+            ],
+            learnMoreUrl: 'https://en.wikipedia.org/wiki/Wikipedia:Notability_(creative_works)',
+            learnMoreText: 'Learn more about creative work notability'
+        },
+        'Species': {
+            icon: 'die.svg',
+            headline: 'Cite scientific sources.',
+            points: [
+                'Use peer-reviewed journals and museum publications.',
+                'Describe taxonomy and classification clearly.',
+                'Avoid original research or speculation about undocumented traits.'
+            ],
+            learnMoreUrl: 'https://en.wikipedia.org/wiki/Wikipedia:Notability_(organisms)',
+            learnMoreText: 'Learn more about species notability'
+        },
+        'Concept': {
+            icon: 'lightbulb.svg',
+            headline: 'Explain with reliable sources.',
+            points: [
+                'Define the concept clearly and neutrally.',
+                'Avoid personal theories or unverified claims.',
+                'Academic and scholarly sources are preferred.'
+            ],
+            learnMoreUrl: 'https://en.wikipedia.org/wiki/Wikipedia:Notability',
+            learnMoreText: 'Learn more about notability'
+        }
     };
 
     const sectionSuggestions = {
@@ -201,7 +291,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             document.getElementById('goodSourceModal').style.display = 'none';
-            showScreen(3);
+            showScreen(275); // Go to guidance screen first
         });
     }
 
@@ -239,6 +329,7 @@ document.addEventListener('DOMContentLoaded', function () {
         screen1.style.display = 'none';
         screen2.style.display = 'none';
         screen25.style.display = 'none';
+        screen275.style.display = 'none';
         screen3.style.display = 'none';
         headerTitle.style.display = 'none';
         headerDivider.style.display = 'none';
@@ -319,6 +410,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (suggestionsHeading) suggestionsHeading.style.display = 'none';
             }
 
+        } else if (screenNum === 275) {
+            screen275.style.display = 'block';
+            headerTitle.style.display = 'block';
+            headerTitle.textContent = 'Guidance';
+            nextBtn.style.display = 'none';
+            updateGuidanceContent();
         } else if (screenNum === 3) {
             screen3.style.display = 'block';
             headerDivider.style.display = 'block';
@@ -331,6 +428,53 @@ document.addEventListener('DOMContentLoaded', function () {
                 editor.innerHTML = '';
             }
         }
+    }
+
+    // Update guidance screen content based on selected category
+    function updateGuidanceContent() {
+        // Get the root category from currentCategory (e.g., "Person" from "Politician" or "Actor")
+        let rootCategory = currentCategory;
+
+        // Map subcategories to their root categories
+        const subcategoryToRoot = {
+            // Person subcategories
+            'Politician': 'Person', 'Actor': 'Person', 'Musician': 'Person', 'Athlete': 'Person',
+            'Scientist': 'Person', 'Business person': 'Person', 'Writer': 'Person',
+            // Place subcategories
+            'City': 'Place', 'Country': 'Place', 'Building': 'Place', 'Natural landmark': 'Place',
+            // Organization subcategories
+            'Company': 'Organization', 'Non-profit': 'Organization', 'School': 'Organization',
+            'Government agency': 'Organization',
+            // Creative Work subcategories
+            'Film': 'Creative Work', 'Book': 'Creative Work', 'Album': 'Creative Work',
+            'Video game': 'Creative Work', 'TV series': 'Creative Work'
+        };
+
+        if (subcategoryToRoot[currentCategory]) {
+            rootCategory = subcategoryToRoot[currentCategory];
+        }
+
+        const guidance = categoryGuidance[rootCategory] || categoryGuidance['Concept'];
+
+        // Update the guidance screen elements
+        guidanceCategoryName.textContent = rootCategory;
+        guidanceIcon.src = `node_modules/@wikimedia/codex-icons/dist/images/${guidance.icon}`;
+        guidanceHeadline.textContent = guidance.headline;
+
+        // Update points list
+        guidancePoints.innerHTML = '';
+        guidance.points.forEach(point => {
+            const li = document.createElement('li');
+            li.textContent = point;
+            guidancePoints.appendChild(li);
+        });
+
+        // Update learn more link
+        guidanceLearnMore.href = guidance.learnMoreUrl;
+        guidanceLearnMore.innerHTML = `
+            ${guidance.learnMoreText}
+            <img src="node_modules/@wikimedia/codex-icons/dist/images/linkExternal.svg" alt="" width="16" height="16">
+        `;
     }
 
     function renderCategories(categoryKey) {
@@ -472,8 +616,8 @@ document.addEventListener('DOMContentLoaded', function () {
             });
 
             if (hasGoodSource) {
-                // FAST TRACK: High confidence
-                showScreen(3);
+                // FAST TRACK: High confidence - go to guidance screen first
+                showScreen(275);
             } else {
                 // SLOW TRACK: Show Eligibility Modal
                 const eligibilityModal = document.getElementById('eligibilityModal');
@@ -492,7 +636,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 document.getElementById('eligibilityProceedBtn').onclick = () => {
                     eligibilityModal.style.display = 'none';
-                    showScreen(3); // Proceed anyway
+                    showScreen(275); // Proceed to guidance screen
                 };
             }
         }
@@ -1438,11 +1582,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.getElementById('startWritingBtn').addEventListener('click', function () {
         captureUserSources();
-        showScreen(3);
-        setTimeout(() => editorTextarea.focus(), 100);
+        showScreen(275); // Go to guidance screen first
     });
 
     skipSourcesBtn.addEventListener('click', function () {
+        showScreen(275); // Go to guidance screen first
+    });
+
+    // Guidance screen continue button
+    guidanceContinueBtn.addEventListener('click', function () {
         showScreen(3);
         setTimeout(() => editorTextarea.focus(), 100);
     });
