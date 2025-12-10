@@ -484,7 +484,7 @@ document.addEventListener('DOMContentLoaded', function () {
         } else if (screenNum === 275) {
             screen275.style.display = 'block';
             headerTitle.style.display = 'block';
-            headerTitle.textContent = 'Guidance';
+            headerTitle.textContent = 'New Article Guidance';
             nextBtn.style.display = 'none';
             updateGuidanceContent();
         } else if (screenNum === 3) {

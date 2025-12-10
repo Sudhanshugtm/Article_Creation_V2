@@ -2145,7 +2145,7 @@ body {
     display: flex;
     flex-direction: column;
     height: 100%;
-    padding: var(--size-200);
+    padding: var(--size-100);
     background-color: var(--background-color-neutral-subtle);
     overflow-y: auto;
 }
@@ -2160,11 +2160,11 @@ body {
 /* Advisory Card */
 .advisory-card {
     display: flex;
-    gap: var(--size-150);
-    padding: var(--size-200);
+    gap: var(--size-100);
+    padding: var(--size-150);
     background-color: #FEF3E2;
     border-radius: var(--border-radius-base);
-    margin-bottom: var(--size-200);
+    margin-bottom: var(--size-150);
     border: 1px solid #F5D9B0;
 }
 
@@ -2194,7 +2194,7 @@ body {
 .starter-outline-card {
     background-color: #E8F4FC;
     border-radius: var(--border-radius-base);
-    padding: var(--size-200);
+    padding: var(--size-150);
     flex: 1;
     display: flex;
     flex-direction: column;
