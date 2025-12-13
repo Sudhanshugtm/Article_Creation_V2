@@ -1,0 +1,15 @@
+# ABOUTME: Git ignore file for article creation design project
+# ABOUTME: Excludes worktrees, node modules, and build artifacts
+
+# Worktrees
+.worktrees/
+
+# Dependencies
+node_modules/
+
+# Build artifacts
+dist/
+build/
+
+# OS files
+.DS_Store
