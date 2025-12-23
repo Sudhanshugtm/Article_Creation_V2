@@ -751,6 +751,28 @@ body {
     border-color: var(--border-color-success);
 }
 
+/* Suggestion card when selected (Option C: influences initial ghost text) */
+.suggestion-card.selected {
+    border-color: var(--border-color-progressive);
+    background-color: var(--background-color-progressive-subtle);
+    box-shadow: 0 0 0 1px var(--border-color-progressive);
+    cursor: pointer;
+}
+
+.suggestion-card.selected:hover {
+    border-color: var(--border-color-progressive--hover);
+    background-color: var(--background-color-progressive-subtle);
+}
+
+.suggestion-card.selected .suggestion-title {
+    color: var(--color-progressive);
+}
+
+/* Allow clicking on suggestion cards */
+.suggestion-card {
+    cursor: pointer;
+}
+
 .add-btn-circle {
     display: flex;
     align-items: center;

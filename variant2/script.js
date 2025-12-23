@@ -85,6 +85,28 @@ document.addEventListener('DOMContentLoaded', function() {
     // Track which suggestion cards have been "added" (visual feedback only)
     const addedSuggestionCards = new Map(); // Map<sectionName, Set<suggestionTitle>>
 
+    // Track selected suggestion card per section (Option C: cards influence initial ghost text)
+    const selectedSuggestionCards = new Map(); // Map<sectionName, suggestionTitle>
+
+    // Initial ghost text mapping for suggestion cards (Option C)
+    const cardInitialGhostText = {
+        // Lead section cards
+        'Short overview': ' Siberian tiger is the largest subspecies of tiger, native to the Russian Far East and Northeast China.',
+        'Taxonomy in brief': ' species is scientifically classified as Panthera tigris altaica, belonging to the family Felidae.',
+        // Characteristics cards
+        'Physical description': ' tiger is the largest living cat species, with a muscular body, large head, and powerful limbs.',
+        'Size and weight': ' Adult tigers typically measure between 2.5 to 3.9 meters in length, with males weighing 180-306 kg.',
+        'Coat and coloration': ' tiger\'s distinctive orange coat features bold black stripes, with a paler coloration than other subspecies.',
+        // Distribution and habitat cards
+        'Geographic range': ' species is found primarily in the Russian Far East, with small populations in Northeast China.',
+        'Habitat preferences': ' Siberian tiger inhabits temperate forests including coniferous, deciduous, and mixed forest types.',
+        'Population estimates': ' Current wild population is estimated at 500-600 individuals, showing recovery from near extinction.',
+        // Ecology and behaviour cards
+        'Diet and hunting': ' Siberian tiger primarily hunts large ungulates including deer, wild boar, and elk.',
+        'Social structure': ' tigers are solitary and territorial animals, with males maintaining larger territories than females.',
+        'Reproduction': ' Female tigers give birth to litters of 2-4 cubs after a gestation period of approximately 103 days.'
+    };
+
     // Smart suggestion tracking system
     const usedSuggestions = new Set(); // Track suggestions that have been accepted
     const triggerIndices = new Map(); // Track which suggestion index to use next for each trigger
@@ -430,6 +452,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Function to get default suggestion for empty editor
     function getDefaultSuggestion(sectionName) {
+        // Option C: Check if a suggestion card is selected for this section
+        const selectedCard = selectedSuggestionCards.get(sectionName);
+        if (selectedCard && cardInitialGhostText[selectedCard]) {
+            // Check if the card-based suggestion is not already written
+            const cardSuggestion = cardInitialGhostText[selectedCard];
+            if (!isContentAlreadyWritten(cardSuggestion, sectionName)) {
+                currentTriggerKey = `card_${selectedCard}`;
+                return cardSuggestion;
+            }
+        }
+
+        // Fall back to generic default suggestions
         const sectionKey = getSectionKey(sectionName);
         const defaults = defaultSuggestions[sectionKey];
         
@@ -513,6 +547,46 @@ document.addEventListener('DOMContentLoaded', function() {
         hideGhostText();
         currentTriggerKey = null;
         return true;
+    }
+
+    // Function to update ghost text when a card is selected (Option C)
+    function updateGhostTextForSection(sectionName) {
+        // Find the textarea for this section
+        let targetTextarea;
+        if (sectionName === 'Lead section') {
+            targetTextarea = editorTextarea;
+        } else {
+            const sectionBlocks = document.querySelectorAll('.section-block');
+            sectionBlocks.forEach(block => {
+                if (block.dataset.sectionName === sectionName) {
+                    targetTextarea = block.querySelector('.section-textarea');
+                }
+            });
+        }
+
+        if (!targetTextarea) return;
+
+        // Check if the editor is empty (only show card-based ghost text for empty editors)
+        const text = targetTextarea.innerText || targetTextarea.textContent || '';
+        // Remove ghost text content from the check
+        const cleanText = text.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+        
+        // Remove any existing ghost text nodes for accurate content check
+        const existingGhost = targetTextarea.querySelector('.autocomplete-ghost-text');
+        let actualContent = cleanText;
+        if (existingGhost) {
+            actualContent = cleanText.replace(existingGhost.textContent, '').trim();
+        }
+
+        // Only update ghost text if editor is empty
+        if (!actualContent) {
+            hideGhostText();
+            const defaultSuggestion = getDefaultSuggestion(sectionName);
+            if (defaultSuggestion && targetTextarea === document.activeElement) {
+                // Need to place cursor in textarea first
+                showGhostText(targetTextarea, defaultSuggestion);
+            }
+        }
     }
 
     // Function to handle autocomplete on input
@@ -933,14 +1007,22 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         const addedSet = addedSuggestionCards.get(sectionName);
 
+        // Get currently selected card for this section
+        const selectedCard = selectedSuggestionCards.get(sectionName);
+
         // Add new suggestion cards
         suggestions.forEach(suggestion => {
             const card = document.createElement('div');
             card.className = 'suggestion-card';
 
             const isAdded = addedSet.has(suggestion.title);
+            const isSelected = selectedCard === suggestion.title;
+
             if (isAdded) {
                 card.classList.add('suggestion-added');
+            }
+            if (isSelected) {
+                card.classList.add('selected');
             }
 
             card.innerHTML = `
@@ -953,10 +1035,37 @@ document.addEventListener('DOMContentLoaded', function() {
                 </button>
             `;
 
-            // Add click handler (visual feedback only - mark as added)
+            // Add click handler for card selection (Option C: influence initial ghost text)
+            card.addEventListener('click', function(e) {
+                // Don't trigger selection if clicking the add button
+                if (e.target.closest('.add-btn-circle')) {
+                    return;
+                }
+
+                // Toggle selection: if already selected, deselect; otherwise select this card
+                const currentlySelected = selectedSuggestionCards.get(sectionName);
+                if (currentlySelected === suggestion.title) {
+                    // Deselect (toggle off)
+                    selectedSuggestionCards.delete(sectionName);
+                    card.classList.remove('selected');
+                } else {
+                    // Remove selection from all other cards in this section
+                    const allCards = suggestedSection.querySelectorAll('.suggestion-card');
+                    allCards.forEach(c => c.classList.remove('selected'));
+                    // Select this card
+                    selectedSuggestionCards.set(sectionName, suggestion.title);
+                    card.classList.add('selected');
+                }
+
+                // Update ghost text immediately if editor is empty (Option C behavior)
+                updateGhostTextForSection(sectionName);
+            });
+
+            // Add click handler for add button (visual feedback only - mark as added)
             if (!isAdded) {
                 const addBtn = card.querySelector('.add-btn-circle');
-                addBtn.addEventListener('click', function() {
+                addBtn.addEventListener('click', function(e) {
+                    e.stopPropagation(); // Prevent card selection when clicking add button
                     // Mark the suggestion as added (visual feedback only)
                     addedSet.add(suggestion.title);
                     // Update the card appearance
