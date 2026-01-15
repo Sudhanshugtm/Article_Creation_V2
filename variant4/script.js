@@ -33,6 +33,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const sourcesList = document.getElementById('sourcesList');
     const openEditorBtn = document.getElementById('openEditorBtn');
     const handoffArticleTitle = document.getElementById('handoffArticleTitle');
+    const previewArticleTitle = document.getElementById('previewArticleTitle');
+    const previewArticleType = document.getElementById('previewArticleType');
+    const guidanceSectionTitle = document.getElementById('guidanceSectionTitle');
+    const guidanceList = document.getElementById('guidanceList');
 
     // --- STATE VARIABLES ---
     let searchTimeout;
@@ -89,35 +93,48 @@ document.addEventListener('DOMContentLoaded', function () {
     // --- GUIDANCE CONTENT BY CATEGORY ---
     const guidanceByCategory = {
         animal: {
-            title: 'Tips for writing about animals',
+            typeLabel: 'Animal article',
+            sectionTitle: 'For the opening section of an animal article:',
             tips: [
-                'Say what kind of animal it is',
-                'Mention where it lives',
-                'Add one thing that makes it notable (size, rarity, conservation status)'
+                'Say what kind of animal it is.',
+                'Mention where it lives.',
+                'Add one thing that makes it notable (size, rarity, conservation status).'
             ]
         },
-        person: {
-            title: 'Tips for writing about people',
+        mammals: {
+            typeLabel: 'Animal article',
+            sectionTitle: 'For the opening section of an animal article:',
             tips: [
-                'State why they are notable',
-                'Mention their profession or role',
-                'Include key accomplishments or contributions'
+                'Say what kind of animal it is.',
+                'Mention where it lives.',
+                'Add one thing that makes it notable (size, rarity, conservation status).'
+            ]
+        },
+        people: {
+            typeLabel: 'Biography',
+            sectionTitle: 'For the opening section of a biography:',
+            tips: [
+                'State who the person is and why they are notable.',
+                'Mention their profession or main role.',
+                'Include birth date and nationality if known.'
             ]
         },
         company: {
-            title: 'Tips for writing about companies',
+            typeLabel: 'Company article',
+            sectionTitle: 'For the opening section of a company article:',
             tips: [
-                'State what the company does',
-                'Mention when and where it was founded',
-                'Include notable achievements or products'
+                'State what the company does.',
+                'Mention when and where it was founded.',
+                'Include notable products or services.'
             ]
         },
         default: {
-            title: 'Tips for writing your article',
+            typeLabel: 'Article',
+            sectionTitle: 'For the opening section:',
             tips: [
-                'Start with a clear definition',
-                'Explain why the topic is notable',
-                'Include key facts and context'
+                'Start with a clear definition of the topic.',
+                'Explain why the topic is notable.',
+                'Include key facts and context.'
             ]
         }
     };
@@ -184,11 +201,18 @@ document.addEventListener('DOMContentLoaded', function () {
     function updateGuidanceContent() {
         const guidance = guidanceByCategory[currentCategory] || guidanceByCategory.default;
 
-        if (guidanceTitle) {
-            guidanceTitle.textContent = guidance.title;
+        // Update article preview card
+        if (previewArticleTitle) {
+            previewArticleTitle.textContent = currentArticleTitle || 'New article';
+        }
+        if (previewArticleType) {
+            previewArticleType.textContent = guidance.typeLabel;
         }
 
-        const guidanceList = document.querySelector('.guidance-content .guidance-list');
+        // Update guidance section
+        if (guidanceSectionTitle) {
+            guidanceSectionTitle.textContent = guidance.sectionTitle;
+        }
         if (guidanceList && guidance.tips) {
             guidanceList.innerHTML = guidance.tips.map(tip => `<li>${tip}</li>`).join('');
         }

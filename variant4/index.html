@@ -142,35 +142,49 @@
 
             <!-- Screen 3: Community Guidance (before VE handoff) -->
             <div class="screen" id="screen3" style="display: none;">
-                <div class="community-guidance-container">
-                    <div class="guidance-header">
-                        <div class="guidance-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 20 20">
-                                <path fill="currentColor" d="M10 0a10 10 0 1 0 10 10A10 10 0 0 0 10 0m1 3a1.25 1.25 0 1 1 0 2.5A1.25 1.25 0 0 1 11 3m-.5 4.5a1 1 0 0 1 1 1v7a1 1 0 0 1-2 0v-7a1 1 0 0 1 1-1"/>
-                            </svg>
+                <div class="guidance-screen-content">
+                    <!-- Article Title Card -->
+                    <div class="article-preview-card">
+                        <div class="preview-card-header">
+                            <span class="preview-label">You're creating</span>
                         </div>
-                        <h2 class="guidance-title" id="guidanceTitle">Tips for writing about animals</h2>
+                        <h2 class="preview-article-title" id="previewArticleTitle">Siberian tiger</h2>
+                        <span class="preview-article-type" id="previewArticleType">Animal article</span>
                     </div>
 
-                    <div class="guidance-content">
-                        <h3 class="guidance-subheading">For the opening section:</h3>
-                        <ul class="guidance-list">
-                            <li>Say what kind of animal it is</li>
-                            <li>Mention where it lives</li>
-                            <li>Add one thing that makes it notable (size, rarity, conservation status)</li>
-                        </ul>
+                    <!-- Getting Started Panel -->
+                    <div class="getting-started-panel">
+                        <div class="panel-header">
+                            <h3 class="panel-title">Before you start writing</h3>
+                        </div>
+                        <div class="panel-content">
+                            <h4 class="panel-subheading" id="guidanceSectionTitle">For the opening section of an animal article:</h4>
+                            <ul class="panel-list" id="guidanceList">
+                                <li>Say what kind of animal it is.</li>
+                                <li>Mention where it lives.</li>
+                                <li>Add one thing that makes it notable (size, rarity, conservation status).</li>
+                            </ul>
 
-                        <h3 class="guidance-subheading">Remember:</h3>
-                        <ul class="guidance-list">
-                            <li>Write in a neutral tone</li>
-                            <li>Cite your sources as you write</li>
-                            <li>Avoid promotional language</li>
-                        </ul>
+                            <h4 class="panel-subheading">Article eligibility:</h4>
+                            <ul class="panel-list">
+                                <li>There are several in-depth sources about this topic</li>
+                                <li>The sources are independent (not your own website / company)</li>
+                                <li>They are reliable (books, news, academic, respected sites – not just directory listings)</li>
+                            </ul>
+
+                            <a href="https://en.wikipedia.org/wiki/Wikipedia:Notability" target="_blank" class="panel-link">
+                                Learn more about notability
+                                <img src="node_modules/@wikimedia/codex-icons/dist/images/linkExternal.svg" alt="" width="16" height="16" class="external-icon">
+                            </a>
+                        </div>
                     </div>
 
-                    <div class="guidance-sources" id="guidanceSources" style="display: none;">
-                        <h3 class="guidance-subheading">Your sources:</h3>
-                        <ul class="sources-list" id="sourcesList">
+                    <!-- Your Sources Panel (if sources were added) -->
+                    <div class="your-sources-panel" id="guidanceSources" style="display: none;">
+                        <div class="panel-header">
+                            <h3 class="panel-title">Your sources</h3>
+                        </div>
+                        <ul class="sources-url-list" id="sourcesList">
                             <!-- User's sources will be listed here -->
                         </ul>
                     </div>
@@ -178,13 +192,9 @@
 
                 <div class="guidance-footer">
                     <button
-                        class="cdx-button cdx-button--weight-primary cdx-button--action-progressive cdx-button--size-large open-editor-btn"
+                        class="cdx-button cdx-button--weight-primary cdx-button--action-progressive open-editor-btn"
                         id="openEditorBtn">
-                        <span>Open Visual Editor</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" style="margin-left: 8px;">
-                            <path fill="currentColor" d="M17 17H3V3h5V1H3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5h-2z"/>
-                            <path fill="currentColor" d="m11 1 3.29 3.29-5.73 5.73 1.42 1.42 5.73-5.73L19 9V1z"/>
-                        </svg>
+                        <span>Start writing</span>
                     </button>
                 </div>
             </div>
