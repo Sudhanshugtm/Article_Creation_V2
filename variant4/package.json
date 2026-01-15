@@ -1,0 +1,10 @@
+{
+  "name": "article-creation-variant4",
+  "version": "1.0.0",
+  "description": "Article Creation Guidance - Initial Intervention Prototype",
+  "dependencies": {
+    "@wikimedia/codex": "^2.3.2",
+    "@wikimedia/codex-design-tokens": "^2.3.2",
+    "@wikimedia/codex-icons": "^2.3.2"
+  }
+}
