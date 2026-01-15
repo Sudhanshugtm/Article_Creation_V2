@@ -41,35 +41,42 @@ document.addEventListener('DOMContentLoaded', function () {
     let currentScreen = 1;
     const userSources = [];
 
+    // --- MOCK DATA ---
+    const mockTopics = {
+        'siberian tiger': [
+            { title: 'Siberian tiger', description: 'subspecies of tiger', thumbnail: 'assets/images/siberian-tiger-1-thumb.jpg' },
+            { title: 'Siberian Tiger', description: 'Sculpture by Kurt Bauer in Hamburg', thumbnail: 'assets/images/siberian-tiger-2-thumb.jpg' },
+            { title: 'Siberian Tiger Park', description: 'zoological park in Harbin, China', thumbnail: 'assets/images/siberian-tiger-3-thumb.jpg' },
+            { title: 'Siberian Tiger Re-population Project', description: 'reestablishment of Siberian tiger populations', thumbnail: 'assets/images/siberian-tiger-4-thumb.jpg' }
+        ]
+    };
+
     // --- CATEGORY DATA ---
     const categories = {
         root: [
-            { id: 'people', name: 'Person' },
-            { id: 'places', name: 'Place' },
-            { id: 'things', name: 'Thing' },
-            { id: 'organizations', name: 'Organization' },
-            { id: 'events', name: 'Event' },
-            { id: 'concepts', name: 'Concept' }
+            { id: 'people', name: 'People' },
+            { id: 'culture', name: 'Culture' },
+            { id: 'geography', name: 'Geography' },
+            { id: 'history', name: 'History' },
+            { id: 'science', name: 'Science' },
+            { id: 'organizations', name: 'Organizations' },
+            { id: 'animal', name: 'Animal' }
+        ],
+        animal: [
+            { id: 'mammals', name: 'Mammals' },
+            { id: 'birds', name: 'Birds' },
+            { id: 'fish', name: 'Fish' },
+            { id: 'reptiles', name: 'Reptiles' },
+            { id: 'insects', name: 'Insects' },
+            { id: 'amphibians', name: 'Amphibians' }
         ],
         people: [
+            { id: 'biography', name: 'Biography' },
             { id: 'artist', name: 'Artist' },
-            { id: 'athlete', name: 'Athlete' },
             { id: 'politician', name: 'Politician' },
+            { id: 'athlete', name: 'Athlete' },
             { id: 'scientist', name: 'Scientist' },
             { id: 'writer', name: 'Writer' }
-        ],
-        places: [
-            { id: 'city', name: 'City' },
-            { id: 'country', name: 'Country' },
-            { id: 'landmark', name: 'Landmark' },
-            { id: 'natural', name: 'Natural feature' }
-        ],
-        things: [
-            { id: 'animal', name: 'Animal' },
-            { id: 'plant', name: 'Plant' },
-            { id: 'food', name: 'Food' },
-            { id: 'technology', name: 'Technology' },
-            { id: 'vehicle', name: 'Vehicle' }
         ],
         organizations: [
             { id: 'company', name: 'Company' },
@@ -196,68 +203,56 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // --- WIKIDATA SEARCH ---
-    async function searchWikidata(query) {
-        if (!query || query.length < 2) {
-            topicMatching.style.display = 'none';
-            return;
-        }
-
-        try {
-            const response = await fetch(
-                `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(query)}&language=en&limit=5&format=json&origin=*`
-            );
-            const data = await response.json();
-
-            if (data.search && data.search.length > 0) {
-                displayTopicResults(data.search);
-            } else {
-                topicMatching.style.display = 'none';
-            }
-        } catch (error) {
-            console.error('Wikidata search error:', error);
-            topicMatching.style.display = 'none';
-        }
-    }
-
-    function displayTopicResults(results) {
+    // --- TOPIC MATCHING (Mock Data) ---
+    function showTopicMatching(query) {
+        const normalizedQuery = query.toLowerCase().trim();
+        const topics = mockTopics[normalizedQuery] || [];
         topicList.innerHTML = '';
-        topicMatching.style.display = 'block';
 
-        results.forEach(result => {
-            const li = document.createElement('li');
-            li.className = 'topic-item';
-            li.innerHTML = `
-                <div class="topic-info">
-                    <span class="topic-title">${result.label}</span>
-                    ${result.description ? `<span class="topic-description">${result.description}</span>` : ''}
-                </div>
-                <svg class="topic-chevron" width="20" height="20" viewBox="0 0 20 20">
-                    <path d="M7 1 5.6 2.5 13 10l-7.4 7.5L7 19l9-9z"/>
-                </svg>
-            `;
-            li.addEventListener('click', () => selectTopic(result));
-            topicList.appendChild(li);
-        });
-    }
+        if (topics.length > 0) {
+            topics.forEach(topic => {
+                const li = document.createElement('li');
+                li.className = 'topic-item';
 
-    function selectTopic(topic) {
-        currentArticleTitle = topic.label;
-        articleTitle.value = topic.label;
+                const thumbSrc = topic.thumbnail || '';
+                const thumbHtml = thumbSrc
+                    ? `<img src="${thumbSrc}" alt="${topic.title}" class="topic-thumbnail" onerror="this.style.display='none'">`
+                    : '<div class="topic-thumbnail"></div>';
 
-        // Auto-detect category from Wikidata description
-        if (topic.description) {
-            const desc = topic.description.toLowerCase();
-            if (desc.includes('animal') || desc.includes('species') || desc.includes('subspecies')) {
-                currentCategory = 'animal';
-            } else if (desc.includes('person') || desc.includes('human')) {
-                currentCategory = 'person';
-            } else if (desc.includes('company') || desc.includes('corporation')) {
-                currentCategory = 'company';
-            }
+                li.innerHTML = `
+                    ${thumbHtml}
+                    <div class="topic-content">
+                        <div class="topic-title">${topic.title}</div>
+                        <div class="topic-description">${topic.description}</div>
+                    </div>
+                `;
+
+                li.addEventListener('click', function() {
+                    currentArticleTitle = topic.title;
+
+                    // Auto-detect category from description
+                    const desc = topic.description.toLowerCase();
+                    if (desc.includes('subspecies') || desc.includes('tiger') || desc.includes('animal')) {
+                        currentCategory = 'animal';
+                    }
+
+                    // Show eligibility badge for Siberian tiger
+                    const badge = document.getElementById('eligibilityBadge');
+                    if (topic.title.toLowerCase().includes('siberian tiger') && !topic.title.includes('Park') && !topic.title.includes('Project')) {
+                        badge.style.display = 'inline-flex';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+
+                    showScreen(2.5);
+                });
+
+                topicList.appendChild(li);
+            });
+            topicMatching.style.display = 'block';
+        } else {
+            topicMatching.style.display = 'none';
         }
-
-        showScreen(2.5);
     }
 
     // --- CATEGORY RENDERING ---
@@ -345,15 +340,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // --- EVENT LISTENERS ---
 
-    // Title input with debounced Wikidata search
+    // Title input with debounced mock search
     articleTitle.addEventListener('input', function() {
         currentArticleTitle = this.value.trim();
         autoResizeTextarea(this);
 
         clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-            searchWikidata(currentArticleTitle);
-        }, 300);
+        if (currentArticleTitle.length > 2) {
+            searchTimeout = setTimeout(() => {
+                showTopicMatching(currentArticleTitle);
+            }, 500);
+        } else {
+            topicMatching.style.display = 'none';
+        }
     });
 
     // Auto-resize textarea
@@ -400,9 +399,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // Next button
     nextBtn.addEventListener('click', () => {
         if (currentScreen === 1 && currentArticleTitle) {
-            showScreen(2);
-            typeSelectionTitle.textContent = `What is "${currentArticleTitle}" about?`;
-            renderCategories('root');
+            // Try to show topic matching first
+            showTopicMatching(currentArticleTitle);
         }
     });
 
