@@ -1772,14 +1772,14 @@ body {
 /* Start writing button - primary action */
 .start-writing-btn {
     width: 100%;
+    max-width: none;
     margin-bottom: var(--size-100);
 }
-
-
 
 /* Skip sources button - secondary/deferral action */
 .skip-sources-btn {
     width: 100%;
+    max-width: none;
 }
 
 /* Desktop alignment for action buttons */
@@ -2291,6 +2291,7 @@ body {
 
 .open-editor-btn {
     width: 100%;
+    max-width: none;
 }
 
 /* ============================================
