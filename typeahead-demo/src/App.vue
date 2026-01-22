@@ -225,6 +225,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .page {
   min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
   place-items: start center;
   padding: 32px 16px;
@@ -245,7 +246,10 @@ onBeforeUnmount(() => {
 .cdx-dialog__header {
   display: flex;
   align-items: center;
-  padding: 12px 16px;
+  padding-top: calc(12px + env(safe-area-inset-top));
+  padding-right: calc(16px + env(safe-area-inset-right));
+  padding-left: calc(16px + env(safe-area-inset-left));
+  padding-bottom: 12px;
   border-bottom: 1px solid var(--border-color-subtle, #c8ccd1);
   gap: 8px;
 }
@@ -268,7 +272,10 @@ onBeforeUnmount(() => {
 }
 
 .content {
-  padding: 16px;
+  padding-top: 16px;
+  padding-right: calc(16px + env(safe-area-inset-right));
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  padding-left: calc(16px + env(safe-area-inset-left));
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -353,7 +360,7 @@ onBeforeUnmount(() => {
   color: var(--color-subtle, #54595d);
 }
 
-@media (max-width: 420px) {
+@media (max-width: 600px), (hover: none) and (pointer: coarse) {
   .page {
     display: block;
     padding: 0;
@@ -363,6 +370,7 @@ onBeforeUnmount(() => {
   .phone {
     width: 100%;
     min-height: 100vh;
+    min-height: 100dvh;
     border: none;
     border-radius: 0;
     box-shadow: none;
