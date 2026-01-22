@@ -79,7 +79,7 @@ import {
   CdxIcon,
   CdxTypeaheadSearch
 } from '@wikimedia/codex';
-import { cdxIconArrowPrevious } from '@wikimedia/codex-icons';
+import { cdxIconAdd, cdxIconArrowPrevious, cdxIconSearch } from '@wikimedia/codex-icons';
 
 const step = ref('title');
 const query = ref('');
@@ -91,17 +91,56 @@ const typeaheadResults = ref([]);
 
 const mockNetworkDelayMs = 650;
 const topicHeaderValue = '__topic_header__';
+const somethingElseValue = '__something_else__';
+
+const svgToDataUri = (svg) => `data:image/svg+xml,${encodeURIComponent(svg)}`;
+const iconToThumbnail = (iconPath, { color = '#54595d', size = 20 } = {}) => ({
+  url: svgToDataUri(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 20 20" fill="${color}">${iconPath}</svg>`
+  )
+});
+
+const plusThumbnail = iconToThumbnail(cdxIconAdd);
+const searchThumbnail = iconToThumbnail(cdxIconSearch);
 
 const mockData = [
-  { value: 'Q69581', label: 'Siberian tiger', description: 'subspecies of tiger', thumbnail: { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/P.t.altaica_Tomak_Male.jpg/100px-P.t.altaica_Tomak_Male.jpg' } },
-  { value: 'Q118496461', label: 'Siberian tiger', description: 'sculpture by Kurt Bauer in Hamburg', thumbnail: null },
-  { value: 'Q23583041', label: 'Siberian Tiger Re-population Project', description: 'reestablishment of Siberian tiger populations', thumbnail: null },
-  { value: 'Q42', label: 'Douglas Adams', description: 'English author and humourist (1952–2001)', thumbnail: { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/Douglas_adams_portrait_cropped.jpg/100px-Douglas_adams_portrait_cropped.jpg' } }
+  {
+    value: 'Q69581',
+    label: 'Siberian tiger',
+    description: 'Animal · Endangered…',
+    supportingText: 'article exists',
+    thumbnail: {
+      url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/P.t.altaica_Tomak_Male.jpg/100px-P.t.altaica_Tomak_Male.jpg'
+    },
+    class: 'topic-result--exists'
+  },
+  {
+    value: 'Q_in_captivity',
+    label: 'Siberian tiger in captivity',
+    description: 'Conservation project',
+    thumbnail: plusThumbnail,
+    class: 'topic-thumbnail--plain-icon'
+  },
+  {
+    value: 'Q_habitat',
+    label: 'Siberian tiger habitat',
+    description: 'Geographic region',
+    thumbnail: plusThumbnail,
+    class: 'topic-thumbnail--plain-icon'
+  },
+  {
+    value: 'Q42',
+    label: 'Douglas Adams',
+    description: 'English author and humourist (1952–2001)',
+    thumbnail: {
+      url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/Douglas_adams_portrait_cropped.jpg/100px-Douglas_adams_portrait_cropped.jpg'
+    }
+  }
 ];
 
 const normalizedQuery = computed(() => query.value.trim().toLowerCase());
 const actualResults = computed(
-  () => typeaheadResults.value.filter((r) => r.value !== topicHeaderValue)
+  () => typeaheadResults.value.filter((r) => r.value !== topicHeaderValue && r.value !== somethingElseValue)
 );
 const shouldHideMenu = computed(() => query.value.trim().length < 2 || !!certainMatch.value);
 const certainMatch = computed(() => {
@@ -131,21 +170,35 @@ const runSearch = (val) => {
     .map((d) => ({
       value: d.value,
       label: d.label,
+      supportingText: d.supportingText ?? '',
       description: d.description,
-      thumbnail: d.thumbnail ?? null
+      thumbnail: d.thumbnail ?? null,
+      class: d.class
     }));
 
-  typeaheadResults.value = nextMatches.length > 0 ? [
-    {
+  const results = [];
+  if (nextMatches.length > 0) {
+    results.push({
       value: topicHeaderValue,
       label: 'Choose a topic',
       description: 'Select a topic to get writing help.',
       disabled: true,
-      showThumbnail: false,
       class: 'topic-menu-header'
-    },
-    ...nextMatches
-  ] : [];
+    });
+  }
+
+  results.push(
+    ...nextMatches,
+    {
+      value: somethingElseValue,
+      label: 'Something else',
+      description: 'Is it a person, place, event, or…?',
+      thumbnail: searchThumbnail,
+      class: 'topic-thumbnail--framed-icon'
+    }
+  );
+
+  typeaheadResults.value = results;
 };
 
 let requestId = 0;
@@ -344,6 +397,10 @@ onBeforeUnmount(() => {
   cursor: default;
 }
 
+:deep(.topic-menu-header .cdx-menu-item__thumbnail) {
+  visibility: hidden;
+}
+
 :deep(.topic-menu-header .cdx-menu-item__content) {
   padding-top: 12px;
   padding-bottom: 12px;
@@ -358,6 +415,34 @@ onBeforeUnmount(() => {
 
 :deep(.topic-menu-header .cdx-menu-item__text__description) {
   color: var(--color-subtle, #54595d);
+}
+
+:deep(.topic-result--exists .cdx-menu-item__text__supporting-text) {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background-color: var(--background-color-success-subtle, #dff2eb);
+  color: var(--color-success, #177860);
+  font-size: var(--font-size-x-small, 0.75rem);
+  line-height: var(--line-height-small, 1.375rem);
+  white-space: nowrap;
+}
+
+:deep(.topic-thumbnail--plain-icon .cdx-thumbnail__placeholder),
+:deep(.topic-thumbnail--plain-icon .cdx-thumbnail__image) {
+  border-color: transparent;
+  background-color: transparent;
+}
+
+:deep(.topic-thumbnail--plain-icon .cdx-thumbnail__image),
+:deep(.topic-thumbnail--framed-icon .cdx-thumbnail__image) {
+  background-size: 20px 20px;
+}
+
+:deep(.topic-thumbnail--framed-icon .cdx-thumbnail__image) {
+  background-color: var(--background-color-interactive-subtle, #f8f9fa);
 }
 
 @media (max-width: 600px), (hover: none) and (pointer: coarse) {
