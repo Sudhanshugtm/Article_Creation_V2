@@ -1,4 +1,4 @@
-name: Deploy static content to Pages
+name: Deploy typeahead demo to Pages
 
 on:
   push:
@@ -23,12 +23,24 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: typeahead-demo/package-lock.json
+      - name: Install dependencies
+        working-directory: typeahead-demo
+        run: npm ci
+      - name: Build
+        working-directory: typeahead-demo
+        run: npm run build
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'
+          path: 'typeahead-demo/dist'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
