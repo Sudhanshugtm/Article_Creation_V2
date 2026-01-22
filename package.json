@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "main": "script.js",
   "scripts": {
+    "dev": "npm --prefix typeahead-demo run dev -- --host 0.0.0.0 --port 5174",
+    "build": "npm --prefix typeahead-demo run build",
+    "preview": "npm --prefix typeahead-demo run preview -- --host 0.0.0.0 --port 5174",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
