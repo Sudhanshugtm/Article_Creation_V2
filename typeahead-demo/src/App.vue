@@ -28,7 +28,6 @@
               :style="{
                 '--something-else-icon-mask': somethingElseIconMask
               }"
-              :class="{ 'typeahead--menu-hidden': shouldHideMenu }"
               placeholder="e.g. Siberian tiger"
               aria-label="Article title"
               @input="onInput"
@@ -42,18 +41,6 @@
               </template>
             </CdxTypeaheadSearch>
           </div>
-
-          <template v-if="certainMatch">
-            <p class="prompt">Suggested match</p>
-            <CdxCard class="confirm-card" :thumbnail="certainMatch.thumbnail" force-thumbnail>
-              <template #title>{{ certainMatch.label }}</template>
-              <template #description>{{ certainMatch.description }}</template>
-            </CdxCard>
-
-            <CdxButton weight="primary" action="progressive" @click="confirmCertainMatch">
-              Continue
-            </CdxButton>
-          </template>
         </div>
 
         <div v-show="step !== 'title'">
@@ -147,25 +134,6 @@ const mockData = [
   }
 ];
 
-const normalizedQuery = computed(() => query.value.trim().toLowerCase());
-const actualResults = computed(
-  () => typeaheadResults.value.filter((r) => r.value !== topicHeaderValue)
-);
-const shouldHideMenu = computed(() => query.value.trim().length < 2 || !!certainMatch.value);
-const certainMatch = computed(() => {
-  if (normalizedQuery.value.length < 2) return null;
-  if (actualResults.value.length === 0) return null;
-
-  const top = actualResults.value[0];
-  const exactCount = actualResults.value.filter(
-    (r) => r.label.trim().toLowerCase() === normalizedQuery.value
-  ).length;
-
-  if (exactCount !== 1) return null;
-  if (top.label.trim().toLowerCase() !== normalizedQuery.value) return null;
-  return top;
-});
-
 const runSearch = (val) => {
   const normalized = val.trim().toLowerCase();
   if (normalized.length < 2) {
@@ -249,12 +217,6 @@ function onSearchResultClick(event) {
   }
   if (event.searchResult.value === topicHeaderValue) return;
   confirmedTopic.value = event.searchResult;
-  step.value = 'next';
-}
-
-function confirmCertainMatch() {
-  if (!certainMatch.value) return;
-  confirmedTopic.value = certainMatch.value;
   step.value = 'next';
 }
 
@@ -387,30 +349,11 @@ onBeforeUnmount(() => {
   color: var(--color-subtle, #54595d);
 }
 
-.confirm-card {
-  background: var(--background-color-interactive-subtle, #f8f9fa);
-}
-
-.prompt {
-  margin: 0;
-  font-size: 0.875rem;
-  color: var(--color-base, #202122);
-}
-
 .next-step-title {
   margin: 0;
   font-size: 0.875rem;
   font-weight: 700;
   color: var(--color-base, #202122);
-}
-
-.typeahead--menu-hidden :deep(.cdx-typeahead-search__menu) {
-  display: none;
-}
-
-.typeahead--menu-hidden.cdx-typeahead-search--expanded :deep(.cdx-typeahead-search__input.cdx-search-input .cdx-text-input) {
-  border-bottom-left-radius: 2px;
-  border-bottom-right-radius: 2px;
 }
 
 :deep(.topic-menu-header) {
