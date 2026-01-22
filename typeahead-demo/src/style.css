@@ -1,0 +1,17 @@
+:root {
+  font-family: "Noto Sans", "Noto Sans Hebrew", "Noto Sans Arabic", system-ui, -apple-system, sans-serif;
+  color: #202122;
+  background-color: #f8f9fa;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+#app {
+  min-height: 100vh;
+}
