@@ -22,8 +22,12 @@
               form-action="#"
               :search-results="typeaheadResults"
               :debounce-interval="0"
+              search-footer-url="#"
               is-mobile-view
               show-thumbnail
+              :style="{
+                '--something-else-icon-mask': somethingElseIconMask
+              }"
               :class="{ 'typeahead--menu-hidden': shouldHideMenu }"
               placeholder="e.g. Siberian tiger"
               aria-label="Article title"
@@ -32,6 +36,10 @@
             >
               <template #search-results-pending>Searching…</template>
               <template #search-no-results-text>No topics found.</template>
+              <template #search-footer-text>
+                <span class="search-footer-label">Something else</span>
+                <span class="search-footer-description">Is it a person, place, event, or…?</span>
+              </template>
             </CdxTypeaheadSearch>
           </div>
 
@@ -91,7 +99,6 @@ const typeaheadResults = ref([]);
 
 const mockNetworkDelayMs = 650;
 const topicHeaderValue = '__topic_header__';
-const somethingElseValue = '__something_else__';
 
 const svgToDataUri = (svg) => `data:image/svg+xml,${encodeURIComponent(svg)}`;
 const iconToThumbnail = (iconPath, { color = '#54595d', size = 20 } = {}) => ({
@@ -101,7 +108,9 @@ const iconToThumbnail = (iconPath, { color = '#54595d', size = 20 } = {}) => ({
 });
 
 const plusThumbnail = iconToThumbnail(cdxIconAdd);
-const searchThumbnail = iconToThumbnail(cdxIconSearch);
+const somethingElseIconMask = `url("${svgToDataUri(
+  `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="#000">${cdxIconSearch}</svg>`
+)}")`;
 
 const mockData = [
   {
@@ -140,7 +149,7 @@ const mockData = [
 
 const normalizedQuery = computed(() => query.value.trim().toLowerCase());
 const actualResults = computed(
-  () => typeaheadResults.value.filter((r) => r.value !== topicHeaderValue && r.value !== somethingElseValue)
+  () => typeaheadResults.value.filter((r) => r.value !== topicHeaderValue)
 );
 const shouldHideMenu = computed(() => query.value.trim().length < 2 || !!certainMatch.value);
 const certainMatch = computed(() => {
@@ -187,16 +196,7 @@ const runSearch = (val) => {
     });
   }
 
-  results.push(
-    ...nextMatches,
-    {
-      value: somethingElseValue,
-      label: 'Something else',
-      description: 'Is it a person, place, event, or…?',
-      thumbnail: searchThumbnail,
-      class: 'topic-thumbnail--framed-icon'
-    }
-  );
+  results.push(...nextMatches);
 
   typeaheadResults.value = results;
 };
@@ -236,7 +236,17 @@ function onInput(val) {
 }
 
 function onSearchResultClick(event) {
-  if (!event?.searchResult) return;
+  if (!event) return;
+  if (!event.searchResult) {
+    confirmedTopic.value = {
+      value: 'something_else',
+      label: 'Something else',
+      description: 'Is it a person, place, event, or…?',
+      thumbnail: null
+    };
+    step.value = 'next';
+    return;
+  }
   if (event.searchResult.value === topicHeaderValue) return;
   confirmedTopic.value = event.searchResult;
   step.value = 'next';
@@ -257,6 +267,7 @@ function onBack() {
 }
 
 let removeSubmitHandler = null;
+let removeFooterClickHandler = null;
 onMounted(() => {
   const form = document.getElementById(typeaheadFormId);
   if (!form) return;
@@ -265,12 +276,21 @@ onMounted(() => {
     e.preventDefault();
     e.stopImmediatePropagation();
   };
+  const preventFooterNavigation = (e) => {
+    const target = e.target instanceof Element ? e.target : null;
+    if (!target) return;
+    if (!target.closest('.cdx-typeahead-search__search-footer')) return;
+    e.preventDefault();
+  };
   form.addEventListener('submit', preventSubmit, true);
+  form.addEventListener('click', preventFooterNavigation, true);
   removeSubmitHandler = () => form.removeEventListener('submit', preventSubmit, true);
+  removeFooterClickHandler = () => form.removeEventListener('click', preventFooterNavigation, true);
 });
 
 onBeforeUnmount(() => {
   removeSubmitHandler?.();
+  removeFooterClickHandler?.();
   clearPendingTimer();
 });
 </script>
@@ -398,7 +418,7 @@ onBeforeUnmount(() => {
 }
 
 :deep(.topic-menu-header .cdx-menu-item__thumbnail) {
-  visibility: hidden;
+  display: none;
 }
 
 :deep(.topic-menu-header .cdx-menu-item__content) {
@@ -437,12 +457,58 @@ onBeforeUnmount(() => {
 }
 
 :deep(.topic-thumbnail--plain-icon .cdx-thumbnail__image),
-:deep(.topic-thumbnail--framed-icon .cdx-thumbnail__image) {
+:deep(.cdx-typeahead-search__search-footer__icon) {
   background-size: 20px 20px;
 }
 
-:deep(.topic-thumbnail--framed-icon .cdx-thumbnail__image) {
+:deep(.cdx-typeahead-search__search-footer__icon) {
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid var(--border-color-subtle, #c8ccd1);
+  border-radius: 2px;
   background-color: var(--background-color-interactive-subtle, #f8f9fa);
+  color: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:deep(.cdx-typeahead-search__search-footer__icon svg) {
+  display: none;
+}
+
+:deep(.cdx-typeahead-search__search-footer__icon)::before {
+  content: '';
+  width: 20px;
+  height: 20px;
+  background-color: var(--color-subtle, #54595d);
+  -webkit-mask-image: var(--something-else-icon-mask);
+  mask-image: var(--something-else-icon-mask);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: 20px 20px;
+  mask-size: 20px 20px;
+}
+
+:deep(.cdx-typeahead-search__search-footer__text) {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+:deep(.cdx-typeahead-search__search-footer__text strong) {
+  font-weight: 700;
+}
+
+.search-footer-label {
+  font-weight: 700;
+}
+
+.search-footer-description {
+  color: var(--color-subtle, #54595d);
+  font-weight: 400;
 }
 
 @media (max-width: 600px), (hover: none) and (pointer: coarse) {
