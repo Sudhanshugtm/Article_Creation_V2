@@ -11,53 +11,57 @@
 
       <div class="content">
         <div v-show="step === 'title'">
-          <div class="screen-heading">
-            <h3 class="screen-title">Article title</h3>
-          </div>
-
           <div class="input-block">
-            <CdxTypeaheadSearch
-              :id="typeaheadFormId"
-              ref="typeahead"
-              form-action="#"
-              :search-results="typeaheadResults"
-              :debounce-interval="0"
-              search-footer-url="#"
-              is-mobile-view
-              show-thumbnail
-              :style="{
-                '--something-else-icon-mask': somethingElseIconMask
-              }"
-              placeholder="e.g. Siberian tiger"
+            <CdxTextInput
+              v-model="query"
+              placeholder="Type article title"
               aria-label="Article title"
-              @input="onInput"
-              @search-result-click="onSearchResultClick"
-            >
-              <template #search-results-pending>Searching…</template>
-              <template #search-no-results-text>No topics found.</template>
-              <template #search-footer-text>
-                <span class="search-footer-label">Something else</span>
-                <span class="search-footer-description">Is it a person, place, event, or…?</span>
-              </template>
-            </CdxTypeaheadSearch>
+              class="borderless-input"
+            />
+            <div v-if="isLoading" class="loading-row">
+              <CdxProgressIndicator class="title-progress" />
+              <span class="loading-label">Checking...</span>
+            </div>
           </div>
         </div>
 
-        <div v-show="step !== 'title'">
-          <p class="next-step-title">Next step (prototype)</p>
-          <CdxCard
-            v-if="confirmedTopic"
-            class="confirm-card"
-            :thumbnail="confirmedTopic.thumbnail"
-            force-thumbnail
-          >
-            <template #title>{{ confirmedTopic.label }}</template>
-            <template #description>{{ confirmedTopic.description }}</template>
-          </CdxCard>
+        <div v-show="step === 'disambiguate'">
+          <h3 class="question-title">What is "{{ query }}"?</h3>
+          <p class="question-subtitle">Select a topic to get writing help.</p>
 
-          <CdxButton weight="quiet" @click="step = 'title'">
-            Change title
-          </CdxButton>
+          <div class="topic-list">
+            <CdxCard
+              v-for="topic in wikidataResults"
+              :key="topic.id"
+              :thumbnail="topic.thumbnail ? { url: topic.thumbnail } : null"
+              class="topic-card"
+              @click="selectTopic(topic)"
+            >
+              <template #title>{{ topic.label }}</template>
+              <template #description>{{ topic.description }}</template>
+            </CdxCard>
+          </div>
+
+          <p class="something-else-row">
+            Something else? <a href="#" @click.prevent="selectNone">Describe this topic</a>
+          </p>
+        </div>
+
+        <div v-show="step === 'article-type'">
+          <h3 class="question-title">What is "{{ query }}"?</h3>
+          <p class="question-subtitle">Select a type to help us provide the right guidance.</p>
+
+          <div class="topic-list">
+            <CdxCard
+              v-for="type in articleTypes"
+              :key="type.id"
+              class="topic-card"
+              @click="selectArticleType(type)"
+            >
+              <template #title>{{ type.label }}</template>
+              <template #description>{{ type.description }}</template>
+            </CdxCard>
+          </div>
         </div>
       </div>
     </section>
@@ -67,18 +71,143 @@
 <script setup>
 // ABOUTME: Vue component for article creation title entry with topic matching
 // ABOUTME: Uses Codex TypeaheadSearch for title input + topic suggestion selection
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import {
   CdxButton,
   CdxCard,
   CdxIcon,
-  CdxTypeaheadSearch
+  CdxMessage,
+  CdxProgressIndicator,
+  CdxTextInput
 } from '@wikimedia/codex';
-import { cdxIconAdd, cdxIconArrowPrevious, cdxIconSearch } from '@wikimedia/codex-icons';
+import { cdxIconAdd, cdxIconArticle, cdxIconArrowPrevious, cdxIconCheck, cdxIconEdit, cdxIconSearch } from '@wikimedia/codex-icons';
 
 const step = ref('title');
 const query = ref('');
 const confirmedTopic = ref(null);
+const selectedTopic = ref(null);
+const isLoading = ref(false);
+const checkComplete = ref(false);
+let loadingTimer = null;
+let completeTimer = null;
+
+// Stepper configuration
+const steps = [
+  { id: 'title', label: 'Title' },
+  { id: 'disambiguate', label: 'Topic' },
+  { id: 'structure', label: 'Structure' },
+  { id: 'write', label: 'Write' },
+  { id: 'review', label: 'Review' }
+];
+
+const currentStepIndex = computed(() => {
+  const index = steps.findIndex(s => s.id === step.value);
+  return index >= 0 ? index : 0;
+});
+
+const wikidataResults = ref([]);
+const isLoadingResults = ref(false);
+
+async function fetchWikidataResults(searchQuery) {
+  isLoadingResults.value = true;
+  try {
+    // Step 1: Search entities (fetch more to allow filtering)
+    const searchUrl = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(searchQuery)}&language=en&limit=10&format=json&origin=*`;
+    const searchResponse = await fetch(searchUrl);
+    const searchData = await searchResponse.json();
+
+    if (!searchData.search?.length) {
+      wikidataResults.value = [];
+      return;
+    }
+
+    // Step 2: Get entities with images (P18) and sitelinks
+    const ids = searchData.search.map(item => item.id).join('|');
+    const entitiesUrl = `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${ids}&props=claims|sitelinks&format=json&origin=*`;
+    const entitiesResponse = await fetch(entitiesUrl);
+    const entitiesData = await entitiesResponse.json();
+
+    // Step 3: Map and score results
+    const queryLower = searchQuery.toLowerCase().trim();
+    const scored = searchData.search.map(item => {
+      const entity = entitiesData.entities?.[item.id];
+      const imageFile = entity?.claims?.P18?.[0]?.mainsnak?.datavalue?.value;
+      const thumbnail = imageFile
+        ? `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(imageFile)}?width=100`
+        : null;
+      const hasWikipedia = !!entity?.sitelinks?.enwiki;
+      const exactMatch = item.label.toLowerCase().trim() === queryLower;
+
+      // Score: Wikipedia (4) + Image (2) + Exact match (1)
+      const score = (hasWikipedia ? 4 : 0) + (thumbnail ? 2 : 0) + (exactMatch ? 1 : 0);
+
+      return {
+        id: item.id,
+        label: item.label,
+        description: item.description || '',
+        thumbnail,
+        score
+      };
+    });
+
+    // Step 4: Sort by score and take top 3
+    scored.sort((a, b) => b.score - a.score);
+    wikidataResults.value = scored.slice(0, 3).map(({ score, ...rest }) => rest);
+  } catch (error) {
+    console.error('Wikidata fetch error:', error);
+    wikidataResults.value = [];
+  } finally {
+    isLoadingResults.value = false;
+  }
+}
+
+function selectTopic(topic) {
+  confirmedTopic.value = topic;
+  step.value = 'next';
+}
+
+function selectNone() {
+  step.value = 'article-type';
+}
+
+// Article types for manual selection
+const articleTypes = [
+  { id: 'person', label: 'Person', description: 'Individual human being', wikidataClass: 'Q5' },
+  { id: 'place', label: 'Place', description: 'Location, city, landmark, or geographic feature', wikidataClass: 'Q17334923' },
+  { id: 'organization', label: 'Organization', description: 'Company, institution, group, or team', wikidataClass: 'Q43229' },
+  { id: 'event', label: 'Event', description: 'Something that happened at a specific time', wikidataClass: 'Q1190554' },
+  { id: 'creative-work', label: 'Creative work', description: 'Book, film, album, artwork, or game', wikidataClass: 'Q17537576' },
+  { id: 'species', label: 'Species / Living thing', description: 'Animal, plant, or organism', wikidataClass: 'Q16521' },
+  { id: 'concept', label: 'Concept / Topic', description: 'Idea, theory, phenomenon, or general topic', wikidataClass: 'Q151885' }
+];
+
+function selectArticleType(type) {
+  confirmedTopic.value = {
+    id: 'new',
+    label: query.value,
+    articleType: type,
+    isNew: true
+  };
+  step.value = 'next';
+}
+
+watch(query, (val) => {
+  isLoading.value = false;
+  checkComplete.value = false;
+  if (loadingTimer) clearTimeout(loadingTimer);
+  if (completeTimer) clearTimeout(completeTimer);
+
+  if (val.trim().length > 0) {
+    loadingTimer = setTimeout(() => {
+      isLoading.value = true;
+      completeTimer = setTimeout(async () => {
+        await fetchWikidataResults(val);
+        isLoading.value = false;
+        step.value = 'disambiguate';
+      }, 1000);
+    }, 500);
+  }
+});
 
 const typeahead = ref(null);
 const typeaheadFormId = 'article-title-form';
@@ -88,13 +217,10 @@ const mockNetworkDelayMs = 650;
 const topicHeaderValue = '__topic_header__';
 
 const svgToDataUri = (svg) => `data:image/svg+xml,${encodeURIComponent(svg)}`;
-const iconToThumbnail = (iconPath, { color = '#54595d', size = 20 } = {}) => ({
-  url: svgToDataUri(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 20 20" fill="${color}">${iconPath}</svg>`
-  )
-});
 
-const plusThumbnail = iconToThumbnail(cdxIconAdd);
+const searchIconDataUri = svgToDataUri(
+  `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="#72777d">${cdxIconSearch}</svg>`
+);
 const somethingElseIconMask = `url("${svgToDataUri(
   `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="#000">${cdxIconSearch}</svg>`
 )}")`;
@@ -114,14 +240,14 @@ const mockData = [
     value: 'Q_in_captivity',
     label: 'Siberian tiger in captivity',
     description: 'Conservation project',
-    thumbnail: plusThumbnail,
+    thumbnail: null,
     class: 'topic-thumbnail--plain-icon'
   },
   {
     value: 'Q_habitat',
     label: 'Siberian tiger habitat',
     description: 'Geographic region',
-    thumbnail: plusThumbnail,
+    thumbnail: null,
     class: 'topic-thumbnail--plain-icon'
   },
   {
@@ -222,10 +348,40 @@ function onSearchResultClick(event) {
 
 function onBack() {
   if (step.value === 'next') {
-    step.value = 'title';
-    typeahead.value?.focus?.();
+    step.value = 'disambiguate';
     return;
   }
+  if (step.value === 'article-type') {
+    step.value = 'disambiguate';
+    return;
+  }
+  if (step.value === 'disambiguate') {
+    goBackToTitle();
+    return;
+  }
+}
+
+function goBackToTitle() {
+  step.value = 'title';
+  checkComplete.value = false;
+  isLoading.value = false;
+  selectedTopic.value = null;
+  if (loadingTimer) clearTimeout(loadingTimer);
+  if (completeTimer) clearTimeout(completeTimer);
+}
+
+function readArticle() {
+  // Open Wikipedia article (mock for now)
+  window.open(`https://en.wikipedia.org/wiki/${encodeURIComponent(query.value)}`, '_blank');
+}
+
+function searchElse() {
+  query.value = '';
+  checkComplete.value = false;
+}
+
+function proceedToDisambiguate() {
+  step.value = 'disambiguate';
 }
 
 let removeSubmitHandler = null;
@@ -297,6 +453,13 @@ onBeforeUnmount(() => {
   text-align: center;
 }
 
+.step-counter {
+  font-size: var(--font-size-small, 14px);
+  color: var(--color-subtle, #54595d);
+  min-width: 32px;
+  text-align: right;
+}
+
 .back-button {
   min-width: auto;
   padding: 4px;
@@ -306,8 +469,9 @@ onBeforeUnmount(() => {
   width: 32px;
 }
 
+
 .content {
-  padding-top: 16px;
+  padding-top: 24px;
   padding-right: calc(16px + env(safe-area-inset-right));
   padding-bottom: calc(16px + env(safe-area-inset-bottom));
   padding-left: calc(16px + env(safe-area-inset-left));
@@ -340,7 +504,145 @@ onBeforeUnmount(() => {
 .input-block {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0;
+}
+
+.loading-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.loading-label {
+  font-size: var(--font-size-small, 14px);
+  color: var(--color-subtle, #54595d);
+}
+
+.exists-line {
+  margin: 12px 0 0;
+  font-size: var(--font-size-small, 14px);
+  color: var(--color-subtle, #54595d);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.exists-icon {
+  color: var(--color-success, #14866d);
+}
+
+.exists-line a {
+  color: var(--color-progressive, #36c);
+  text-decoration: none;
+}
+
+.exists-line a:hover {
+  text-decoration: underline;
+}
+
+.fixed-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.fixed-title-text {
+  font-size: var(--font-size-x-large, 20px);
+  font-family: 'Linux Libertine', 'Georgia', 'Times', serif;
+  font-weight: 700;
+  color: var(--color-base, #202122);
+}
+
+.edit-title-btn {
+  min-width: auto;
+  padding: 4px;
+}
+
+.question-title {
+  margin: 0;
+  font-size: var(--font-size-large, 18px);
+  font-weight: 700;
+  color: var(--color-base, #202122);
+}
+
+.question-subtitle {
+  margin: 4px 0 16px;
+  font-size: var(--font-size-small, 14px);
+  color: var(--color-subtle, #54595d);
+}
+
+/* Topic List - Disambiguation UI */
+.topic-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.topic-card {
+  cursor: pointer;
+}
+
+:deep(.topic-card:hover) {
+  background-color: var(--background-color-interactive-subtle, #f8f9fa);
+}
+
+:deep(.topic-card:active) {
+  background-color: var(--background-color-interactive, #eaecf0);
+}
+
+:deep(.topic-card:focus-visible) {
+  outline: 2px solid var(--color-progressive, #36c);
+  outline-offset: 1px;
+}
+
+.something-else-row {
+  margin: 16px 0 0;
+  font-size: var(--font-size-small, 14px);
+  color: var(--color-subtle, #54595d);
+}
+
+.something-else-row a {
+  color: var(--color-progressive, #36c);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.something-else-row a:hover {
+  text-decoration: underline;
+}
+
+:deep(.borderless-input .cdx-text-input__input) {
+  border: none;
+  border-bottom: 1px solid var(--border-color-base, #a2a9b1);
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  font-size: var(--font-size-x-large, 20px);
+  line-height: var(--line-height-x-large, 1.875rem);
+  font-family: 'Linux Libertine', 'Georgia', 'Times', serif;
+  padding-bottom: 8px;
+}
+
+:deep(.borderless-input .cdx-text-input__input:focus) {
+  border: none;
+  border-bottom: 2px solid var(--color-progressive, #36c);
+  box-shadow: none;
+  outline: none;
+}
+
+:deep(.borderless-input .cdx-text-input__input::placeholder) {
+  color: var(--color-subtle, #54595d);
+  font-size: var(--font-size-x-large, 20px);
+  font-weight: 400;
+  opacity: 0.5;
+  font-family: 'Linux Libertine', 'Georgia', 'Times', serif;
+}
+
+:deep(.borderless-input .cdx-text-input__input) {
+  caret-color: var(--color-progressive, #36c);
 }
 
 .helper-text {
