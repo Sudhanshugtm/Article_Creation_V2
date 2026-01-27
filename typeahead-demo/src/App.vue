@@ -22,18 +22,23 @@
               <CdxProgressIndicator class="title-progress" />
               <span class="loading-label">Checking...</span>
             </div>
+
+            <p v-if="exactMatch && !isLoading" class="exists-hint">
+              "<strong>{{ exactMatch.label }}</strong>" already exists in {{ exactMatch.wikiLang }} Wikipedia.
+              <a :href="exactMatch.localWikiUrl" target="_blank">Read it</a> or <a href="#" @click.prevent="clearAndSearch">try another</a>?
+            </p>
           </div>
         </div>
 
         <div v-show="step === 'disambiguate'">
           <h3 class="question-title">What is "{{ query }}"?</h3>
 
-          <template v-if="wikidataResults.length > 0">
+          <template v-if="creatableTopics.length > 0">
             <p class="question-subtitle">Select a topic to get writing help.</p>
 
             <div class="topic-list">
               <CdxCard
-                v-for="topic in wikidataResults"
+                v-for="topic in creatableTopics"
                 :key="topic.id"
                 :thumbnail="topic.thumbnail ? { url: topic.thumbnail } : null"
                 class="topic-card"
@@ -88,7 +93,6 @@ import {
   CdxButton,
   CdxCard,
   CdxIcon,
-  CdxMessage,
   CdxProgressIndicator,
   CdxTextInput
 } from '@wikimedia/codex';
@@ -100,6 +104,7 @@ const confirmedTopic = ref(null);
 const selectedTopic = ref(null);
 const isLoading = ref(false);
 const checkComplete = ref(false);
+const exactMatch = ref(null);
 let loadingTimer = null;
 let completeTimer = null;
 
@@ -120,54 +125,116 @@ const currentStepIndex = computed(() => {
 const wikidataResults = ref([]);
 const isLoadingResults = ref(false);
 
+// Only show topics without local articles in disambiguation (those are candidates for creation)
+const creatableTopics = computed(() =>
+  wikidataResults.value.filter(topic => !topic.hasLocalArticle)
+);
+
+// Detect script type from input
+function detectScript(text) {
+  if (/[\u0980-\u09FF]/.test(text)) return 'bn'; // Bengali
+  if (/[\u0D00-\u0D7F]/.test(text)) return 'ml'; // Malayalam
+  if (/[\u0900-\u097F]/.test(text)) return 'hi'; // Hindi/Devanagari
+  return 'en'; // Default to English (Latin script)
+}
+
 async function fetchWikidataResults(searchQuery) {
   isLoadingResults.value = true;
   try {
-    // Step 1: Search entities (fetch more to allow filtering)
-    const searchUrl = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(searchQuery)}&language=en&limit=10&format=json&origin=*`;
-    const searchResponse = await fetch(searchUrl);
-    const searchData = await searchResponse.json();
+    // Detect script and determine search/display languages
+    const detectedScript = detectScript(searchQuery);
+    const displayLang = detectedScript; // Show results in user's script language
+    const searchLanguages = detectedScript === 'en'
+      ? ['en', 'bn', 'ml', 'hi']  // Latin input: search English first, then others
+      : [detectedScript, 'en'];   // Non-Latin input: search detected language first, then English
 
-    if (!searchData.search?.length) {
+    // Step 1: Search entities across multiple languages, display in user's language
+    const searchPromises = searchLanguages.map(lang =>
+      fetch(`https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(searchQuery)}&language=${lang}&uselang=${displayLang}&limit=10&format=json&origin=*`)
+        .then(r => r.json())
+        .then(data => ({ lang, results: data.search || [] }))
+        .catch(() => ({ lang, results: [] }))
+    );
+
+    const searchResults = await Promise.all(searchPromises);
+
+    // Merge and dedupe by QID, keeping first occurrence (priority by language order)
+    const seen = new Set();
+    const mergedResults = [];
+    for (const { lang, results } of searchResults) {
+      for (const item of results) {
+        if (!seen.has(item.id)) {
+          seen.add(item.id);
+          mergedResults.push({ ...item, searchLang: lang });
+        }
+      }
+    }
+
+    if (!mergedResults.length) {
       wikidataResults.value = [];
+      // Skip empty disambiguate screen, go directly to article-type selection
+      step.value = 'article-type';
       return;
     }
 
     // Step 2: Get entities with images (P18) and sitelinks
-    const ids = searchData.search.map(item => item.id).join('|');
+    const ids = mergedResults.slice(0, 15).map(item => item.id).join('|');
     const entitiesUrl = `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${ids}&props=claims|sitelinks&format=json&origin=*`;
     const entitiesResponse = await fetch(entitiesUrl);
     const entitiesData = await entitiesResponse.json();
 
     // Step 3: Map and score results
     const queryLower = searchQuery.toLowerCase().trim();
-    const scored = searchData.search.map(item => {
+    const scored = mergedResults.slice(0, 15).map(item => {
       const entity = entitiesData.entities?.[item.id];
       const imageFile = entity?.claims?.P18?.[0]?.mainsnak?.datavalue?.value;
       const thumbnail = imageFile
         ? `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(imageFile)}?width=100`
         : null;
       const hasWikipedia = !!entity?.sitelinks?.enwiki;
+      const hasBnWiki = !!entity?.sitelinks?.bnwiki;
+      const hasMlWiki = !!entity?.sitelinks?.mlwiki;
+      const hasHiWiki = !!entity?.sitelinks?.hiwiki;
       const exactMatch = item.label.toLowerCase().trim() === queryLower;
 
-      // Score: Wikipedia (4) + Image (2) + Exact match (1)
-      const score = (hasWikipedia ? 4 : 0) + (thumbnail ? 2 : 0) + (exactMatch ? 1 : 0);
+      // Score: Target wiki (5) + Any Wikipedia (3) + Image (2) + Exact match (1)
+      const hasTargetWiki = hasBnWiki || hasMlWiki || hasHiWiki;
+      const score = (hasTargetWiki ? 5 : 0) + (hasWikipedia ? 3 : 0) + (thumbnail ? 2 : 0) + (exactMatch ? 1 : 0);
+
+      // Determine which local wiki has the article (for display)
+      const wikiLang = hasBnWiki ? 'Bengali' : hasHiWiki ? 'Hindi' : hasMlWiki ? 'Malayalam' : null;
+      const localWikiUrl = hasBnWiki ? `https://bn.wikipedia.org/wiki/${encodeURIComponent(entity?.sitelinks?.bnwiki?.title)}` :
+                          hasHiWiki ? `https://hi.wikipedia.org/wiki/${encodeURIComponent(entity?.sitelinks?.hiwiki?.title)}` :
+                          hasMlWiki ? `https://ml.wikipedia.org/wiki/${encodeURIComponent(entity?.sitelinks?.mlwiki?.title)}` : null;
 
       return {
         id: item.id,
         label: item.label,
         description: item.description || '',
         thumbnail,
+        searchLang: item.searchLang,
+        hasLocalArticle: hasTargetWiki,
+        wikiLang,
+        localWikiUrl,
         score
       };
     });
 
     // Step 4: Sort by score and take top 3
     scored.sort((a, b) => b.score - a.score);
-    wikidataResults.value = scored.slice(0, 3).map(({ score, ...rest }) => rest);
+    const topResults = scored.slice(0, 3).map(({ score, searchLang, ...rest }) => rest);
+    wikidataResults.value = topResults;
+
+    // Check for exact match with local article - show inline instead of disambiguation
+    const queryNormalized = searchQuery.toLowerCase().trim();
+    const exactMatchResult = topResults.find(
+      r => r.label.toLowerCase().trim() === queryNormalized && r.hasLocalArticle
+    );
+    exactMatch.value = exactMatchResult || null;
   } catch (error) {
     console.error('Wikidata fetch error:', error);
     wikidataResults.value = [];
+    exactMatch.value = null;
   } finally {
     isLoadingResults.value = false;
   }
@@ -215,7 +282,19 @@ watch(query, (val) => {
       completeTimer = setTimeout(async () => {
         await fetchWikidataResults(val);
         isLoading.value = false;
-        step.value = 'disambiguate';
+        // If exact match with local article exists, stay on title screen with inline message
+        if (exactMatch.value) {
+          return;
+        }
+        // If there are creatable topics (without local articles), show disambiguation
+        // Otherwise go to article-type selection
+        if (creatableTopics.value.length > 0) {
+          step.value = 'disambiguate';
+        } else if (wikidataResults.value.length > 0) {
+          // All results have local articles - go to manual type selection
+          step.value = 'article-type';
+        }
+        // fetchWikidataResults handles the case when no results at all
       }, 1000);
     }, 500);
   }
@@ -364,7 +443,12 @@ function onBack() {
     return;
   }
   if (step.value === 'article-type') {
-    step.value = 'disambiguate';
+    // If no Wikidata results, skip disambiguate and go back to title
+    if (wikidataResults.value.length === 0) {
+      goBackToTitle();
+    } else {
+      step.value = 'disambiguate';
+    }
     return;
   }
   if (step.value === 'disambiguate') {
@@ -393,7 +477,14 @@ function searchElse() {
 }
 
 function proceedToDisambiguate() {
+  exactMatch.value = null;
   step.value = 'disambiguate';
+}
+
+function clearAndSearch() {
+  query.value = '';
+  exactMatch.value = null;
+  wikidataResults.value = [];
 }
 
 let removeSubmitHandler = null;
@@ -531,26 +622,19 @@ onBeforeUnmount(() => {
   color: var(--color-subtle, #54595d);
 }
 
-.exists-line {
-  margin: 12px 0 0;
+.exists-hint {
+  margin: 16px 0 0;
   font-size: var(--font-size-small, 14px);
   color: var(--color-subtle, #54595d);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
 }
 
-.exists-icon {
-  color: var(--color-success, #14866d);
-}
-
-.exists-line a {
+.exists-hint a {
   color: var(--color-progressive, #36c);
   text-decoration: none;
+  margin-left: 4px;
 }
 
-.exists-line a:hover {
+.exists-hint a:hover {
   text-decoration: underline;
 }
 
@@ -608,6 +692,56 @@ onBeforeUnmount(() => {
 :deep(.topic-card:focus-visible) {
   outline: 2px solid var(--color-progressive, #36c);
   outline-offset: 1px;
+}
+
+.topic-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.exists-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background-color: var(--background-color-success-subtle, #dff2eb);
+  color: var(--color-success, #177860);
+  font-size: var(--font-size-x-small, 0.75rem);
+  font-weight: 400;
+  vertical-align: middle;
+}
+
+.exists-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 4px;
+  font-size: var(--font-size-small, 13px);
+}
+
+.read-link {
+  color: var(--color-progressive, #36c);
+  text-decoration: none;
+}
+
+.read-link:hover {
+  text-decoration: underline;
+}
+
+.action-divider {
+  color: var(--color-subtle, #a2a9b1);
+}
+
+.create-link {
+  color: var(--color-subtle, #72777d);
+  text-decoration: none;
+}
+
+.create-link:hover {
+  text-decoration: underline;
+  color: var(--color-base, #202122);
 }
 
 .something-else-row {
