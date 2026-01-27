@@ -27,24 +27,36 @@
 
         <div v-show="step === 'disambiguate'">
           <h3 class="question-title">What is "{{ query }}"?</h3>
-          <p class="question-subtitle">Select a topic to get writing help.</p>
 
-          <div class="topic-list">
-            <CdxCard
-              v-for="topic in wikidataResults"
-              :key="topic.id"
-              :thumbnail="topic.thumbnail ? { url: topic.thumbnail } : null"
-              class="topic-card"
-              @click="selectTopic(topic)"
-            >
-              <template #title>{{ topic.label }}</template>
-              <template #description>{{ topic.description }}</template>
-            </CdxCard>
-          </div>
+          <template v-if="wikidataResults.length > 0">
+            <p class="question-subtitle">Select a topic to get writing help.</p>
 
-          <p class="something-else-row">
-            Something else? <a href="#" @click.prevent="selectNone">Describe this topic</a>
-          </p>
+            <div class="topic-list">
+              <CdxCard
+                v-for="topic in wikidataResults"
+                :key="topic.id"
+                :thumbnail="topic.thumbnail ? { url: topic.thumbnail } : null"
+                class="topic-card"
+                @click="selectTopic(topic)"
+              >
+                <template #title>{{ topic.label }}</template>
+                <template #description>{{ topic.description }}</template>
+              </CdxCard>
+            </div>
+
+            <p class="something-else-row">
+              Something else? <a href="#" @click.prevent="selectNone">Describe this topic</a>
+            </p>
+          </template>
+
+          <template v-else>
+            <div class="empty-state">
+              <p class="empty-state__text">We couldn't find this topic. Tell us what it is, and we'll suggest how to structure the article.</p>
+              <CdxButton weight="primary" action="progressive" @click="selectNone">
+                Describe this topic
+              </CdxButton>
+            </div>
+          </template>
         </div>
 
         <div v-show="step === 'article-type'">
@@ -612,6 +624,16 @@ onBeforeUnmount(() => {
 
 .something-else-row a:hover {
   text-decoration: underline;
+}
+
+.empty-state {
+  margin-top: 24px;
+}
+
+.empty-state__text {
+  margin: 0 0 16px;
+  font-size: var(--font-size-small, 14px);
+  color: var(--color-subtle, #54595d);
 }
 
 :deep(.borderless-input .cdx-text-input__input) {
