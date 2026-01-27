@@ -214,8 +214,11 @@ async function fetchWikidataResults(searchQuery) {
         hasTargetWiki = true;
         wikiLang = 'Malayalam';
         localWikiUrl = `https://ml.wikipedia.org/wiki/${encodeURIComponent(entity?.sitelinks?.mlwiki?.title)}`;
+      } else if (detectedScript === 'en' && hasWikipedia) {
+        hasTargetWiki = true;
+        wikiLang = 'English';
+        localWikiUrl = `https://en.wikipedia.org/wiki/${encodeURIComponent(entity?.sitelinks?.enwiki?.title)}`;
       }
-      // For English (detectedScript === 'en'), hasTargetWiki stays false - go to disambiguation
 
       // Score: Target wiki (5) + Any Wikipedia (3) + Image (2) + Exact match (1)
       const score = (hasTargetWiki ? 5 : 0) + (hasWikipedia ? 3 : 0) + (thumbnail ? 2 : 0) + (exactMatch ? 1 : 0);
