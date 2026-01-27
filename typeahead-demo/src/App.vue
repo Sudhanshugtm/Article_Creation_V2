@@ -25,7 +25,7 @@
 
             <p v-if="exactMatch && !isLoading" class="exists-hint">
               "<strong>{{ exactMatch.label }}</strong>" already exists in {{ exactMatch.wikiLang }} Wikipedia.
-              <a :href="exactMatch.localWikiUrl" target="_blank">Read it</a> or <a href="#" @click.prevent="clearAndSearch">try another</a>?
+              <a :href="exactMatch.localWikiUrl" target="_blank">Read it</a> or try another.
             </p>
           </div>
         </div>
