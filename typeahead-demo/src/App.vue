@@ -197,15 +197,28 @@ async function fetchWikidataResults(searchQuery) {
       const hasHiWiki = !!entity?.sitelinks?.hiwiki;
       const exactMatch = item.label.toLowerCase().trim() === queryLower;
 
-      // Score: Target wiki (5) + Any Wikipedia (3) + Image (2) + Exact match (1)
-      const hasTargetWiki = hasBnWiki || hasMlWiki || hasHiWiki;
-      const score = (hasTargetWiki ? 5 : 0) + (hasWikipedia ? 3 : 0) + (thumbnail ? 2 : 0) + (exactMatch ? 1 : 0);
+      // Only check wiki matching detected script (English input = no "exists" message)
+      let hasTargetWiki = false;
+      let wikiLang = null;
+      let localWikiUrl = null;
 
-      // Determine which local wiki has the article (for display)
-      const wikiLang = hasBnWiki ? 'Bengali' : hasHiWiki ? 'Hindi' : hasMlWiki ? 'Malayalam' : null;
-      const localWikiUrl = hasBnWiki ? `https://bn.wikipedia.org/wiki/${encodeURIComponent(entity?.sitelinks?.bnwiki?.title)}` :
-                          hasHiWiki ? `https://hi.wikipedia.org/wiki/${encodeURIComponent(entity?.sitelinks?.hiwiki?.title)}` :
-                          hasMlWiki ? `https://ml.wikipedia.org/wiki/${encodeURIComponent(entity?.sitelinks?.mlwiki?.title)}` : null;
+      if (detectedScript === 'bn' && hasBnWiki) {
+        hasTargetWiki = true;
+        wikiLang = 'Bengali';
+        localWikiUrl = `https://bn.wikipedia.org/wiki/${encodeURIComponent(entity?.sitelinks?.bnwiki?.title)}`;
+      } else if (detectedScript === 'hi' && hasHiWiki) {
+        hasTargetWiki = true;
+        wikiLang = 'Hindi';
+        localWikiUrl = `https://hi.wikipedia.org/wiki/${encodeURIComponent(entity?.sitelinks?.hiwiki?.title)}`;
+      } else if (detectedScript === 'ml' && hasMlWiki) {
+        hasTargetWiki = true;
+        wikiLang = 'Malayalam';
+        localWikiUrl = `https://ml.wikipedia.org/wiki/${encodeURIComponent(entity?.sitelinks?.mlwiki?.title)}`;
+      }
+      // For English (detectedScript === 'en'), hasTargetWiki stays false - go to disambiguation
+
+      // Score: Target wiki (5) + Any Wikipedia (3) + Image (2) + Exact match (1)
+      const score = (hasTargetWiki ? 5 : 0) + (hasWikipedia ? 3 : 0) + (thumbnail ? 2 : 0) + (exactMatch ? 1 : 0);
 
       return {
         id: item.id,
