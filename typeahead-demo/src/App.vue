@@ -57,21 +57,38 @@
         <div v-show="step === 'article-type'">
           <h3 class="question-title">What is "{{ query }}"?</h3>
 
-          <!-- Similar article search -->
-          <div class="similar-search-block">
-            <p class="similar-search-hint">
-              Find a similar Wikipedia article so we can detect the right type.
-            </p>
+          <!-- PRIMARY: Type cards always visible -->
+          <div class="type-cards-section">
+            <div class="topic-list">
+              <CdxCard
+                v-for="type in visibleArticleTypes"
+                :key="type.id"
+                :class="['topic-card', { 'topic-card--suggested': detectedType === type.id }]"
+                @click="selectArticleType(type)"
+              >
+                <template #title>
+                  <span class="type-card-title">
+                    <CdxIcon :icon="typeIcons[type.id]" size="small" />
+                    {{ type.label }}
+                  </span>
+                </template>
+                <template #description>{{ type.description }}</template>
+              </CdxCard>
+            </div>
+          </div>
+
+          <!-- SECONDARY: Similar-article search (always visible, visually lightweight) -->
+          <div class="similar-search-section">
+            <label class="similar-search-label">Similar to existing articles</label>
 
             <div class="similar-search-input-wrapper">
               <CdxTextInput
                 v-model="similarQuery"
-                placeholder="Article title or Wikipedia URL..."
-                aria-label="Search for a similar article"
+                placeholder="Search Wikipedia or paste a URL"
+                aria-label="Search for a similar Wikipedia article"
                 :disabled="isDetectingType"
               />
 
-              <!-- Autocomplete dropdown (hidden for URL input) -->
               <ul
                 v-if="similarResults.length > 0 && !selectedSimilarArticle && !isUrlInput"
                 class="similar-results-dropdown"
@@ -87,66 +104,35 @@
                 </li>
               </ul>
 
-              <!-- Searching indicator -->
               <div v-if="isSearchingSimilar" class="loading-row">
                 <CdxProgressIndicator class="title-progress" />
                 <span class="loading-label">Searching...</span>
               </div>
             </div>
 
-            <!-- URL detected hint -->
-            <p v-if="isUrlInput && extractedUrlTitle && isDetectingType" class="url-detected-hint">
-              Detected: "<strong>{{ extractedUrlTitle }}</strong>"
-            </p>
-
-            <!-- Detecting type indicator -->
-            <div v-if="isDetectingType" class="loading-row">
-              <CdxProgressIndicator class="title-progress" />
-              <span class="loading-label">Detecting type...</span>
+            <!-- Post-selection state: reads as type detection result -->
+            <div v-if="selectedSimilarArticle" class="similar-selected-card">
+              <template v-if="isDetectingType">
+                <div class="similar-selected-header">
+                  <CdxProgressIndicator class="inline-progress" />
+                  <span class="similar-detecting-label">Detecting type...</span>
+                </div>
+              </template>
+              <template v-else-if="detectedType">
+                <p class="detection-result-line">
+                  Looks like a <strong>{{ TYPE_LABELS[detectedType] }}</strong>
+                </p>
+                <p class="detection-basis-line">
+                  Based on "{{ selectedSimilarArticle.title }}"
+                </p>
+              </template>
+              <template v-else-if="detectionFailed">
+                <p class="detection-failed-hint">
+                  Couldn't detect the type. Pick one above.
+                </p>
+              </template>
             </div>
-
-            <!-- Detection success: confirmation -->
-            <div v-if="detectedType && selectedSimilarArticle" class="similar-confirmation">
-              <p class="similar-confirmation-text">
-                Similar to "<strong>{{ selectedSimilarArticle.title }}</strong>"
-                <span class="detected-type-badge">{{ TYPE_LABELS[detectedType] }}</span>
-              </p>
-              <CdxButton
-                weight="primary"
-                action="progressive"
-                @click="confirmDetectedType"
-              >
-                Continue
-              </CdxButton>
-            </div>
-
-            <!-- Detection failed: fallback message -->
-            <p v-if="detectionFailed" class="detection-failed-hint">
-              We couldn't detect the type. Please pick one below.
-            </p>
           </div>
-
-          <!-- Manual pick link (visible only when cards are hidden) -->
-          <p v-if="!showManualCards" class="manual-pick-link">
-            <a href="#" @click.prevent="revealManualCards">or pick a type manually</a>
-          </p>
-
-          <!-- Manual type cards (hidden by default, revealed on link click or detection failure) -->
-          <Transition name="cards-reveal">
-            <div v-if="showManualCards" class="manual-cards-section">
-              <div class="topic-list" :class="{ 'type-cards-highlighted': detectionFailed }">
-                <CdxCard
-                  v-for="type in visibleArticleTypes"
-                  :key="type.id"
-                  class="topic-card"
-                  @click="selectArticleType(type)"
-                >
-                  <template #title>{{ type.label }}</template>
-                  <template #description>{{ type.description }}</template>
-                </CdxCard>
-              </div>
-            </div>
-          </Transition>
         </div>
 
         <div v-show="step === 'next'" class="prototype-end">
@@ -172,7 +158,7 @@ import {
   CdxProgressIndicator,
   CdxTextInput
 } from '@wikimedia/codex';
-import { cdxIconAdd, cdxIconArticle, cdxIconArrowPrevious, cdxIconCheck, cdxIconEdit, cdxIconSearch } from '@wikimedia/codex-icons';
+import { cdxIconAdd, cdxIconArticle, cdxIconArrowPrevious, cdxIconCalendar, cdxIconCheck, cdxIconEdit, cdxIconMapPin, cdxIconSearch, cdxIconUserAvatar, cdxIconUserGroup } from '@wikimedia/codex-icons';
 
 const step = ref('title');
 const query = ref('');
@@ -209,9 +195,15 @@ const isSearchingSimilar = ref(false);
 const isDetectingType = ref(false);
 const detectedType = ref(null);
 const detectionFailed = ref(false);
-const showManualCards = ref(false);
 const isUrlInput = ref(false);
 const extractedUrlTitle = ref(null);
+
+const typeIcons = {
+  person: cdxIconUserAvatar,
+  place: cdxIconMapPin,
+  organization: cdxIconUserGroup,
+  event: cdxIconCalendar
+};
 let similarDebounceTimer = null;
 
 // Only show topics without local articles in disambiguation (those are candidates for creation)
@@ -359,7 +351,8 @@ function selectNone() {
 const visibleArticleTypes = [
   { id: 'person', label: 'Person', description: "Someone's biography", wikidataClass: 'Q5' },
   { id: 'place', label: 'Place', description: 'Location, city, or landmark', wikidataClass: 'Q2221906' },
-  { id: 'organization', label: 'Organization', description: 'School, company, group, or team', wikidataClass: 'Q43229' }
+  { id: 'organization', label: 'Organization', description: 'School, company, group, or team', wikidataClass: 'Q43229' },
+  { id: 'event', label: 'Event', description: 'Festival, battle, election, or ceremony', wikidataClass: 'Q1190554' }
 ];
 
 // Full type map for SPARQL-based auto-detection (maps Wikidata class → our type)
@@ -398,11 +391,6 @@ function parseWikipediaUrl(input) {
   // Decode URL encoding and replace underscores with spaces
   title = decodeURIComponent(title).replace(/_/g, ' ');
   return { lang, title };
-}
-
-// Reveal the manual type cards (used by link click and detection failure)
-function revealManualCards() {
-  showManualCards.value = true;
 }
 
 // Search Wikipedia for similar articles using opensearch API
@@ -498,28 +486,7 @@ async function selectSimilarArticle(article) {
     detectedType.value = typeId;
   } else {
     detectionFailed.value = true;
-    showManualCards.value = true;
   }
-}
-
-// Continue with the detected type from similar article
-function confirmDetectedType() {
-  const typeId = detectedType.value;
-  // Find the matching type definition (check visibleArticleTypes first, then use TYPE_MAP)
-  const matchedVisible = visibleArticleTypes.find(t => t.id === typeId);
-  const typeObj = matchedVisible || {
-    id: typeId,
-    label: TYPE_LABELS[typeId] || typeId,
-    wikidataClass: Object.entries(TYPE_MAP).find(([, v]) => v === typeId)?.[0] || ''
-  };
-
-  confirmedTopic.value = {
-    id: 'new',
-    label: query.value,
-    articleType: typeObj,
-    isNew: true
-  };
-  step.value = 'next';
 }
 
 // Clear similar article search state
@@ -530,7 +497,6 @@ function clearSimilarSearch() {
   detectedType.value = null;
   detectionFailed.value = false;
   isDetectingType.value = false;
-  showManualCards.value = false;
   isUrlInput.value = false;
   extractedUrlTitle.value = null;
 }
@@ -1003,6 +969,11 @@ onBeforeUnmount(() => {
   outline-offset: 1px;
 }
 
+:deep(.topic-card--suggested) {
+  border-color: var(--color-progressive, #36c);
+  box-shadow: 0 0 0 1px var(--color-progressive, #36c);
+}
+
 .topic-item {
   display: flex;
   flex-direction: column;
@@ -1069,33 +1040,68 @@ onBeforeUnmount(() => {
   text-decoration: underline;
 }
 
-/* Manual pick link — centered subtle CTA */
-.manual-pick-link {
-  margin: 20px 0 0;
-  font-size: var(--font-size-small, 14px);
-  color: var(--color-subtle, #54595d);
-  text-align: center;
-}
-
-.manual-pick-link a {
-  color: var(--color-progressive, #36c);
-  text-decoration: none;
-}
-
-.manual-pick-link a:hover {
-  text-decoration: underline;
-}
-
-/* URL detected inline hint */
-.url-detected-hint {
-  margin: 8px 0 0;
-  font-size: var(--font-size-small, 14px);
-  color: var(--color-subtle, #54595d);
-}
-
-/* Manual cards section wrapper */
-.manual-cards-section {
+/* Type cards section — primary action area */
+.type-cards-section {
   margin-top: 16px;
+}
+
+.type-card-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Similar-article search — secondary action below type cards */
+.similar-search-section {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color-subtle, #c8ccd1);
+}
+
+.similar-search-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: var(--font-size-small, 14px);
+  color: var(--color-subtle, #54595d);
+}
+
+/* Unified post-selection card (detecting → result → failure) */
+.similar-selected-card {
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--background-color-interactive-subtle, #f8f9fa);
+  border: 1px solid var(--border-color-subtle, #c8ccd1);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.similar-selected-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.similar-detecting-label {
+  font-size: var(--font-size-small, 14px);
+  color: var(--color-subtle, #54595d);
+}
+
+.inline-progress {
+  flex-shrink: 0;
+}
+
+.detection-result-line {
+  margin: 0;
+  font-size: var(--font-size-small, 14px);
+  color: var(--color-base, #202122);
+}
+
+.detection-basis-line {
+  margin: 0;
+  font-size: var(--font-size-x-small, 12px);
+  color: var(--color-subtle, #54595d);
 }
 
 /* Vue transition: cards reveal (fade + slide-up) */
@@ -1274,12 +1280,6 @@ onBeforeUnmount(() => {
   margin-bottom: 4px;
 }
 
-.similar-search-hint {
-  margin: 4px 0 12px;
-  font-size: var(--font-size-small, 14px);
-  color: var(--color-subtle, #54595d);
-}
-
 .similar-search-input-wrapper {
   position: relative;
 }
@@ -1328,25 +1328,6 @@ onBeforeUnmount(() => {
   text-overflow: ellipsis;
 }
 
-/* Detection confirmation */
-.similar-confirmation {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 12px;
-  padding: 12px;
-  background: var(--background-color-interactive-subtle, #f8f9fa);
-  border-radius: 4px;
-  border: 1px solid var(--border-color-subtle, #c8ccd1);
-}
-
-.similar-confirmation-text {
-  margin: 0;
-  font-size: var(--font-size-small, 14px);
-  color: var(--color-base, #202122);
-}
-
 .detected-type-badge {
   display: inline-block;
   margin-left: 6px;
@@ -1362,16 +1343,6 @@ onBeforeUnmount(() => {
   margin: 12px 0 0;
   font-size: var(--font-size-small, 14px);
   color: var(--color-warning, #edab00);
-}
-
-/* Highlight type cards when detection fails */
-.type-cards-highlighted {
-  animation: highlight-pulse 0.6s ease-out;
-}
-
-@keyframes highlight-pulse {
-  0% { outline: 2px solid var(--color-warning, #edab00); outline-offset: 4px; border-radius: 4px; }
-  100% { outline: 2px solid transparent; outline-offset: 4px; }
 }
 
 /* End-of-prototype placeholder screen */
