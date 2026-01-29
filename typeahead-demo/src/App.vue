@@ -2,9 +2,10 @@
   <main class="page">
     <section class="phone">
       <header class="cdx-dialog__header">
-        <CdxButton weight="quiet" class="back-button" aria-label="Go back" @click="onBack">
+        <CdxButton v-if="step !== 'title'" weight="quiet" class="back-button" aria-label="Go back" @click="onBack">
           <CdxIcon :icon="cdxIconArrowPrevious" />
         </CdxButton>
+        <span v-else class="header-spacer"></span>
         <h2 class="cdx-dialog__header__title">New article</h2>
         <span class="header-spacer"></span>
       </header>
@@ -30,55 +31,130 @@
           </div>
         </div>
 
-        <div v-show="step === 'disambiguate'">
+        <div v-show="step === 'disambiguate' && creatableTopics.length > 0">
           <h3 class="question-title">What is "{{ query }}"?</h3>
 
-          <template v-if="creatableTopics.length > 0">
-            <p class="question-subtitle">Select a topic to get writing help.</p>
+          <p class="question-subtitle">Select a topic to get writing help.</p>
 
-            <div class="topic-list">
-              <CdxCard
-                v-for="topic in creatableTopics"
-                :key="topic.id"
-                :thumbnail="topic.thumbnail ? { url: topic.thumbnail } : null"
-                class="topic-card"
-                @click="selectTopic(topic)"
-              >
-                <template #title>{{ topic.label }}</template>
-                <template #description>{{ topic.description }}</template>
-              </CdxCard>
-            </div>
+          <div class="topic-list">
+            <CdxCard
+              v-for="topic in creatableTopics"
+              :key="topic.id"
+              :thumbnail="topic.thumbnail ? { url: topic.thumbnail } : null"
+              class="topic-card"
+              @click="selectTopic(topic)"
+            >
+              <template #title>{{ topic.label }}</template>
+              <template #description>{{ topic.description }}</template>
+            </CdxCard>
+          </div>
 
-            <p class="something-else-row">
-              Something else? <a href="#" @click.prevent="selectNone">Describe this topic</a>
-            </p>
-          </template>
-
-          <template v-else>
-            <div class="empty-state">
-              <p class="empty-state__text">We couldn't find this topic. Tell us what it is, and we'll suggest how to structure the article.</p>
-              <CdxButton weight="primary" action="progressive" @click="selectNone">
-                Describe this topic
-              </CdxButton>
-            </div>
-          </template>
+          <p class="something-else-row">
+            Something else? <a href="#" @click.prevent="selectNone">Skip to type selection</a>
+          </p>
         </div>
 
         <div v-show="step === 'article-type'">
           <h3 class="question-title">What is "{{ query }}"?</h3>
-          <p class="question-subtitle">Select a type to help us provide the right guidance.</p>
 
-          <div class="topic-list">
-            <CdxCard
-              v-for="type in articleTypes"
-              :key="type.id"
-              class="topic-card"
-              @click="selectArticleType(type)"
-            >
-              <template #title>{{ type.label }}</template>
-              <template #description>{{ type.description }}</template>
-            </CdxCard>
+          <!-- Similar article search -->
+          <div class="similar-search-block">
+            <p class="similar-search-hint">
+              Find a similar Wikipedia article so we can detect the right type.
+            </p>
+
+            <div class="similar-search-input-wrapper">
+              <CdxTextInput
+                v-model="similarQuery"
+                placeholder="Article title or Wikipedia URL..."
+                aria-label="Search for a similar article"
+                :disabled="isDetectingType"
+              />
+
+              <!-- Autocomplete dropdown (hidden for URL input) -->
+              <ul
+                v-if="similarResults.length > 0 && !selectedSimilarArticle && !isUrlInput"
+                class="similar-results-dropdown"
+              >
+                <li
+                  v-for="result in similarResults"
+                  :key="result.title"
+                  class="similar-result-item"
+                  @click="selectSimilarArticle(result)"
+                >
+                  <span class="similar-result-title">{{ result.title }}</span>
+                  <span v-if="result.description" class="similar-result-desc">{{ result.description }}</span>
+                </li>
+              </ul>
+
+              <!-- Searching indicator -->
+              <div v-if="isSearchingSimilar" class="loading-row">
+                <CdxProgressIndicator class="title-progress" />
+                <span class="loading-label">Searching...</span>
+              </div>
+            </div>
+
+            <!-- URL detected hint -->
+            <p v-if="isUrlInput && extractedUrlTitle && isDetectingType" class="url-detected-hint">
+              Detected: "<strong>{{ extractedUrlTitle }}</strong>"
+            </p>
+
+            <!-- Detecting type indicator -->
+            <div v-if="isDetectingType" class="loading-row">
+              <CdxProgressIndicator class="title-progress" />
+              <span class="loading-label">Detecting type...</span>
+            </div>
+
+            <!-- Detection success: confirmation -->
+            <div v-if="detectedType && selectedSimilarArticle" class="similar-confirmation">
+              <p class="similar-confirmation-text">
+                Similar to "<strong>{{ selectedSimilarArticle.title }}</strong>"
+                <span class="detected-type-badge">{{ TYPE_LABELS[detectedType] }}</span>
+              </p>
+              <CdxButton
+                weight="primary"
+                action="progressive"
+                @click="confirmDetectedType"
+              >
+                Continue
+              </CdxButton>
+            </div>
+
+            <!-- Detection failed: fallback message -->
+            <p v-if="detectionFailed" class="detection-failed-hint">
+              We couldn't detect the type. Please pick one below.
+            </p>
           </div>
+
+          <!-- Manual pick link (visible only when cards are hidden) -->
+          <p v-if="!showManualCards" class="manual-pick-link">
+            <a href="#" @click.prevent="revealManualCards">or pick a type manually</a>
+          </p>
+
+          <!-- Manual type cards (hidden by default, revealed on link click or detection failure) -->
+          <Transition name="cards-reveal">
+            <div v-if="showManualCards" class="manual-cards-section">
+              <div class="topic-list" :class="{ 'type-cards-highlighted': detectionFailed }">
+                <CdxCard
+                  v-for="type in visibleArticleTypes"
+                  :key="type.id"
+                  class="topic-card"
+                  @click="selectArticleType(type)"
+                >
+                  <template #title>{{ type.label }}</template>
+                  <template #description>{{ type.description }}</template>
+                </CdxCard>
+              </div>
+            </div>
+          </Transition>
+        </div>
+
+        <div v-show="step === 'next'" class="prototype-end">
+          <p class="prototype-end__text">End of prototype</p>
+          <p class="prototype-end__subtext">The remaining steps (structure, writing, review) are not yet built.</p>
+          <CdxButton weight="quiet" action="progressive" @click="goBackToTitle">
+            Start over
+          </CdxButton>
         </div>
       </div>
     </section>
@@ -124,6 +200,19 @@ const currentStepIndex = computed(() => {
 
 const wikidataResults = ref([]);
 const isLoadingResults = ref(false);
+
+// Similar-article search state
+const similarQuery = ref('');
+const similarResults = ref([]);
+const selectedSimilarArticle = ref(null);
+const isSearchingSimilar = ref(false);
+const isDetectingType = ref(false);
+const detectedType = ref(null);
+const detectionFailed = ref(false);
+const showManualCards = ref(false);
+const isUrlInput = ref(false);
+const extractedUrlTitle = ref(null);
+let similarDebounceTimer = null;
 
 // Only show topics without local articles in disambiguation (those are candidates for creation)
 const creatableTopics = computed(() =>
@@ -172,6 +261,7 @@ async function fetchWikidataResults(searchQuery) {
 
     if (!mergedResults.length) {
       wikidataResults.value = [];
+      exactMatch.value = null;
       // Skip empty disambiguate screen, go directly to article-type selection
       step.value = 'article-type';
       return;
@@ -265,16 +355,218 @@ function selectNone() {
   step.value = 'article-type';
 }
 
-// Article types for manual selection
-const articleTypes = [
-  { id: 'person', label: 'Person', description: 'Individual human being', wikidataClass: 'Q5' },
-  { id: 'place', label: 'Place', description: 'Location, city, landmark, or geographic feature', wikidataClass: 'Q17334923' },
-  { id: 'organization', label: 'Organization', description: 'Company, institution, group, or team', wikidataClass: 'Q43229' },
-  { id: 'event', label: 'Event', description: 'Something that happened at a specific time', wikidataClass: 'Q1190554' },
-  { id: 'creative-work', label: 'Creative work', description: 'Book, film, album, artwork, or game', wikidataClass: 'Q17537576' },
-  { id: 'species', label: 'Species / Living thing', description: 'Animal, plant, or organism', wikidataClass: 'Q16521' },
-  { id: 'concept', label: 'Concept / Topic', description: 'Idea, theory, phenomenon, or general topic', wikidataClass: 'Q151885' }
+// Visible article types for manual selection (reduced set)
+const visibleArticleTypes = [
+  { id: 'person', label: 'Person', description: "Someone's biography", wikidataClass: 'Q5' },
+  { id: 'place', label: 'Place', description: 'Location, city, or landmark', wikidataClass: 'Q2221906' },
+  { id: 'organization', label: 'Organization', description: 'School, company, group, or team', wikidataClass: 'Q43229' }
 ];
+
+// Full type map for SPARQL-based auto-detection (maps Wikidata class → our type)
+const TYPE_MAP = {
+  Q5: 'person',
+  Q2221906: 'place',        // geographic location
+  Q43229: 'organization',
+  Q1190554: 'event',
+  Q17537576: 'creative-work',
+  Q16521: 'species',
+  Q151885: 'concept'
+};
+
+// Priority order when multiple types match
+const TYPE_PRIORITY = ['person', 'place', 'organization', 'event', 'creative-work', 'species', 'concept'];
+
+// Labels for detected types (used in confirmation UI)
+const TYPE_LABELS = {
+  person: 'Person',
+  place: 'Place',
+  organization: 'Organization',
+  event: 'Event',
+  'creative-work': 'Creative work',
+  species: 'Species',
+  concept: 'Concept'
+};
+
+// Parse a Wikipedia URL and extract language + title
+function parseWikipediaUrl(input) {
+  const match = input.trim().match(/^https?:\/\/([a-z]{2,3})\.wikipedia\.org\/wiki\/(.+)/i);
+  if (!match) return null;
+  const lang = match[1];
+  let title = match[2];
+  // Strip fragment and query string
+  title = title.split('#')[0].split('?')[0];
+  // Decode URL encoding and replace underscores with spaces
+  title = decodeURIComponent(title).replace(/_/g, ' ');
+  return { lang, title };
+}
+
+// Reveal the manual type cards (used by link click and detection failure)
+function revealManualCards() {
+  showManualCards.value = true;
+}
+
+// Search Wikipedia for similar articles using opensearch API
+async function searchWikipediaArticles(searchText) {
+  const trimmed = searchText.trim();
+  if (trimmed.length < 2) {
+    similarResults.value = [];
+    return;
+  }
+  isSearchingSimilar.value = true;
+  try {
+    const url = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(trimmed)}&limit=5&namespace=0&format=json&origin=*`;
+    const response = await fetch(url);
+    const data = await response.json();
+    // opensearch returns [query, titles[], descriptions[], urls[]]
+    const titles = data[1] || [];
+    const descriptions = data[2] || [];
+    similarResults.value = titles.map((title, i) => ({
+      title,
+      description: descriptions[i] || ''
+    }));
+  } catch (error) {
+    console.error('Wikipedia opensearch error:', error);
+    similarResults.value = [];
+  } finally {
+    isSearchingSimilar.value = false;
+  }
+}
+
+// Detect article type via Wikidata: resolve article → QID → SPARQL P31/P279 chain
+async function detectArticleType(articleTitle) {
+  try {
+    // Step 1: Resolve Wikipedia article title to Wikidata QID via pageprops
+    const ppUrl = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(articleTitle)}&prop=pageprops&ppprop=wikibase_item&format=json&origin=*`;
+    const ppResponse = await fetch(ppUrl);
+    const ppData = await ppResponse.json();
+    const pages = ppData.query?.pages || {};
+    const page = Object.values(pages)[0];
+    const qid = page?.pageprops?.wikibase_item;
+    if (!qid) return null;
+
+    // Step 2: SPARQL query to walk P31 → P279 chain and match known types
+    const knownClasses = Object.keys(TYPE_MAP).join(' wd:');
+    const sparql = `
+      SELECT ?type WHERE {
+        wd:${qid} wdt:P31/wdt:P279* ?type .
+        VALUES ?type { wd:${knownClasses} }
+      } LIMIT 10
+    `;
+    const sparqlUrl = `https://query.wikidata.org/sparql?query=${encodeURIComponent(sparql)}&format=json`;
+    const sparqlResponse = await fetch(sparqlUrl);
+    const sparqlData = await sparqlResponse.json();
+    const bindings = sparqlData.results?.bindings || [];
+
+    if (bindings.length === 0) return null;
+
+    // Extract matched type IDs and pick by priority
+    const matchedTypeIds = bindings.map(b => {
+      const uri = b.type.value;
+      return uri.split('/').pop(); // e.g. "Q5" from full URI
+    });
+
+    const matchedTypes = matchedTypeIds
+      .map(qid => TYPE_MAP[qid])
+      .filter(Boolean);
+
+    // Return the highest-priority match
+    for (const typeId of TYPE_PRIORITY) {
+      if (matchedTypes.includes(typeId)) {
+        return typeId;
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error('Type detection error:', error);
+    return null;
+  }
+}
+
+// Handle user selecting a similar article from the dropdown
+async function selectSimilarArticle(article) {
+  selectedSimilarArticle.value = article;
+  similarResults.value = [];
+  similarQuery.value = article.title;
+  isDetectingType.value = true;
+  detectionFailed.value = false;
+  detectedType.value = null;
+
+  const typeId = await detectArticleType(article.title);
+
+  isDetectingType.value = false;
+  if (typeId) {
+    detectedType.value = typeId;
+  } else {
+    detectionFailed.value = true;
+    showManualCards.value = true;
+  }
+}
+
+// Continue with the detected type from similar article
+function confirmDetectedType() {
+  const typeId = detectedType.value;
+  // Find the matching type definition (check visibleArticleTypes first, then use TYPE_MAP)
+  const matchedVisible = visibleArticleTypes.find(t => t.id === typeId);
+  const typeObj = matchedVisible || {
+    id: typeId,
+    label: TYPE_LABELS[typeId] || typeId,
+    wikidataClass: Object.entries(TYPE_MAP).find(([, v]) => v === typeId)?.[0] || ''
+  };
+
+  confirmedTopic.value = {
+    id: 'new',
+    label: query.value,
+    articleType: typeObj,
+    isNew: true
+  };
+  step.value = 'next';
+}
+
+// Clear similar article search state
+function clearSimilarSearch() {
+  similarQuery.value = '';
+  similarResults.value = [];
+  selectedSimilarArticle.value = null;
+  detectedType.value = null;
+  detectionFailed.value = false;
+  isDetectingType.value = false;
+  showManualCards.value = false;
+  isUrlInput.value = false;
+  extractedUrlTitle.value = null;
+}
+
+// Watcher for similar article search with 300ms debounce + URL detection
+watch(similarQuery, (val) => {
+  if (similarDebounceTimer) clearTimeout(similarDebounceTimer);
+  // Reset detection state when typing
+  selectedSimilarArticle.value = null;
+  detectedType.value = null;
+  detectionFailed.value = false;
+  isUrlInput.value = false;
+  extractedUrlTitle.value = null;
+
+  const trimmed = val.trim();
+  if (trimmed.length < 2) {
+    similarResults.value = [];
+    return;
+  }
+
+  // Check if input is a Wikipedia URL
+  const urlParsed = parseWikipediaUrl(trimmed);
+  if (urlParsed) {
+    isUrlInput.value = true;
+    extractedUrlTitle.value = urlParsed.title;
+    similarResults.value = [];
+    // Directly trigger detection (skip autocomplete)
+    selectSimilarArticle({ title: urlParsed.title, description: '' });
+    return;
+  }
+
+  // Regular text input — debounce autocomplete search
+  similarDebounceTimer = setTimeout(() => {
+    searchWikipediaArticles(val);
+  }, 300);
+});
 
 function selectArticleType(type) {
   confirmedTopic.value = {
@@ -459,8 +751,8 @@ function onBack() {
     return;
   }
   if (step.value === 'article-type') {
-    // If no Wikidata results, skip disambiguate and go back to title
-    if (wikidataResults.value.length === 0) {
+    // Skip disambiguate if there are no creatable topics to show
+    if (creatableTopics.value.length === 0) {
       goBackToTitle();
     } else {
       step.value = 'disambiguate';
@@ -478,6 +770,7 @@ function goBackToTitle() {
   checkComplete.value = false;
   isLoading.value = false;
   selectedTopic.value = null;
+  clearSimilarSearch();
   if (loadingTimer) clearTimeout(loadingTimer);
   if (completeTimer) clearTimeout(completeTimer);
 }
@@ -776,6 +1069,54 @@ onBeforeUnmount(() => {
   text-decoration: underline;
 }
 
+/* Manual pick link — centered subtle CTA */
+.manual-pick-link {
+  margin: 20px 0 0;
+  font-size: var(--font-size-small, 14px);
+  color: var(--color-subtle, #54595d);
+  text-align: center;
+}
+
+.manual-pick-link a {
+  color: var(--color-progressive, #36c);
+  text-decoration: none;
+}
+
+.manual-pick-link a:hover {
+  text-decoration: underline;
+}
+
+/* URL detected inline hint */
+.url-detected-hint {
+  margin: 8px 0 0;
+  font-size: var(--font-size-small, 14px);
+  color: var(--color-subtle, #54595d);
+}
+
+/* Manual cards section wrapper */
+.manual-cards-section {
+  margin-top: 16px;
+}
+
+/* Vue transition: cards reveal (fade + slide-up) */
+.cards-reveal-enter-active {
+  transition: all 0.3s ease-out;
+}
+
+.cards-reveal-leave-active {
+  transition: all 0.2s ease-in;
+}
+
+.cards-reveal-enter-from {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+.cards-reveal-leave-to {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
 .empty-state {
   margin-top: 24px;
 }
@@ -926,6 +1267,134 @@ onBeforeUnmount(() => {
 .search-footer-description {
   color: var(--color-subtle, #54595d);
   font-weight: 400;
+}
+
+/* Similar article search */
+.similar-search-block {
+  margin-bottom: 4px;
+}
+
+.similar-search-hint {
+  margin: 4px 0 12px;
+  font-size: var(--font-size-small, 14px);
+  color: var(--color-subtle, #54595d);
+}
+
+.similar-search-input-wrapper {
+  position: relative;
+}
+
+.similar-results-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--background-color-base, #fff);
+  border: 1px solid var(--border-color-base, #a2a9b1);
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.similar-result-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.similar-result-item:hover {
+  background-color: var(--background-color-interactive-subtle, #f8f9fa);
+}
+
+.similar-result-title {
+  font-size: var(--font-size-medium, 14px);
+  color: var(--color-base, #202122);
+  font-weight: 500;
+}
+
+.similar-result-desc {
+  font-size: var(--font-size-small, 13px);
+  color: var(--color-subtle, #54595d);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Detection confirmation */
+.similar-confirmation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--background-color-interactive-subtle, #f8f9fa);
+  border-radius: 4px;
+  border: 1px solid var(--border-color-subtle, #c8ccd1);
+}
+
+.similar-confirmation-text {
+  margin: 0;
+  font-size: var(--font-size-small, 14px);
+  color: var(--color-base, #202122);
+}
+
+.detected-type-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background-color: var(--background-color-progressive-subtle, #eaf3ff);
+  color: var(--color-progressive, #36c);
+  font-size: var(--font-size-x-small, 0.75rem);
+  font-weight: 600;
+}
+
+.detection-failed-hint {
+  margin: 12px 0 0;
+  font-size: var(--font-size-small, 14px);
+  color: var(--color-warning, #edab00);
+}
+
+/* Highlight type cards when detection fails */
+.type-cards-highlighted {
+  animation: highlight-pulse 0.6s ease-out;
+}
+
+@keyframes highlight-pulse {
+  0% { outline: 2px solid var(--color-warning, #edab00); outline-offset: 4px; border-radius: 4px; }
+  100% { outline: 2px solid transparent; outline-offset: 4px; }
+}
+
+/* End-of-prototype placeholder screen */
+.prototype-end {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px 16px;
+}
+
+.prototype-end__text {
+  margin: 0;
+  font-size: var(--font-size-large, 18px);
+  font-weight: 600;
+  color: var(--color-subtle, #54595d);
+}
+
+.prototype-end__subtext {
+  margin: 8px 0 24px;
+  font-size: var(--font-size-small, 14px);
+  color: var(--color-placeholder, #72777d);
 }
 
 @media (max-width: 600px), (hover: none) and (pointer: coarse) {
