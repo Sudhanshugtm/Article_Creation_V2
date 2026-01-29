@@ -50,7 +50,7 @@
           </div>
 
           <p class="something-else-row">
-            Something else? <a href="#" @click.prevent="selectNone">Skip to type selection</a>
+            None of these? <a href="#" @click.prevent="selectNone">Pick a type instead</a>
           </p>
         </div>
 
