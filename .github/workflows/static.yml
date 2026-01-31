@@ -28,18 +28,27 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: pre-ve/package-lock.json
+          cache-dependency-path: |
+            pre-ve/package-lock.json
+            variant2/package-lock.json
       - name: Install dependencies
         working-directory: pre-ve
         run: npm ci
       - name: Build
         working-directory: pre-ve
         run: npm run build
+      - name: Install variant2 dependencies
+        working-directory: variant2
+        run: npm ci
+      - name: Build variant2
+        working-directory: variant2
+        run: npm run build
       - name: Assemble site
         run: |
           mkdir -p _site
           cp -r pre-ve/dist/* _site/
           cp -r variant1 _site/variant1
+          cp -r variant2/dist _site/variant2
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
