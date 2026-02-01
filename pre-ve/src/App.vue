@@ -359,6 +359,9 @@ const visibleArticleTypes = [
 const TYPE_MAP = {
   Q5: 'person',
   Q2221906: 'place',        // geographic location
+  Q27096213: 'place',       // geographic entity (airports, buildings, etc.)
+  Q618123: 'place',         // geographical feature
+  Q82794: 'place',          // geographic region
   Q43229: 'organization',
   Q1190554: 'event',
   Q17537576: 'creative-work',
@@ -424,12 +427,28 @@ async function searchWikipediaArticles(searchText) {
 async function detectArticleType(articleTitle) {
   try {
     // Step 1: Resolve Wikipedia article title to Wikidata QID via pageprops
-    const ppUrl = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(articleTitle)}&prop=pageprops&ppprop=wikibase_item&format=json&origin=*`;
+    // Also request redirects to follow disambiguation/redirect pages
+    const ppUrl = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(articleTitle)}&prop=pageprops&ppprop=wikibase_item&redirects=1&format=json&origin=*`;
     const ppResponse = await fetch(ppUrl);
     const ppData = await ppResponse.json();
     const pages = ppData.query?.pages || {};
     const page = Object.values(pages)[0];
-    const qid = page?.pageprops?.wikibase_item;
+    let qid = page?.pageprops?.wikibase_item;
+
+    // If no QID (e.g. disambiguation page), try searching for the actual article
+    if (!qid) {
+      const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(articleTitle)}&srlimit=1&format=json&origin=*`;
+      const searchResponse = await fetch(searchUrl);
+      const searchData = await searchResponse.json();
+      const topResult = searchData.query?.search?.[0]?.title;
+      if (!topResult) return null;
+      const retryUrl = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(topResult)}&prop=pageprops&ppprop=wikibase_item&redirects=1&format=json&origin=*`;
+      const retryResponse = await fetch(retryUrl);
+      const retryData = await retryResponse.json();
+      const retryPages = retryData.query?.pages || {};
+      const retryPage = Object.values(retryPages)[0];
+      qid = retryPage?.pageprops?.wikibase_item;
+    }
     if (!qid) return null;
 
     // Step 2: SPARQL query to walk P31 → P279 chain and match known types
