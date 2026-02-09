@@ -79,7 +79,7 @@
 
           <!-- SECONDARY: Similar-article search (always visible, visually lightweight) -->
           <div class="similar-search-section">
-            <label class="similar-search-label">Similar to existing articles</label>
+            <CdxLabel class="similar-search-label">Similar to existing articles</CdxLabel>
 
             <div class="similar-search-input-wrapper">
               <CdxTextInput
@@ -89,20 +89,15 @@
                 :disabled="isDetectingType"
               />
 
-              <ul
-                v-if="similarResults.length > 0 && !selectedSimilarArticle && !isUrlInput"
-                class="similar-results-dropdown"
-              >
-                <li
-                  v-for="result in similarResults"
-                  :key="result.title"
-                  class="similar-result-item"
-                  @click="selectSimilarArticle(result)"
-                >
-                  <span class="similar-result-title">{{ result.title }}</span>
-                  <span v-if="result.description" class="similar-result-desc">{{ result.description }}</span>
-                </li>
-              </ul>
+              <CdxMenu
+                v-model:selected="selectedMenuValue"
+                v-model:expanded="similarMenuExpanded"
+                :menu-items="similarMenuItems"
+                :search-query="similarQuery"
+                :hide-description-overflow="true"
+                :render-in-place="true"
+                @menu-item-click="onSimilarMenuItemClick"
+              />
 
               <div v-if="isSearchingSimilar" class="loading-row">
                 <CdxProgressIndicator class="title-progress" />
@@ -127,9 +122,9 @@
                 </p>
               </template>
               <template v-else-if="detectionFailed">
-                <p class="detection-failed-hint">
+                <CdxMessage type="warning" :inline="true" :fade-in="true">
                   Couldn't detect the type. Pick one above.
-                </p>
+                </CdxMessage>
               </template>
             </div>
           </div>
@@ -155,6 +150,9 @@ import {
   CdxButton,
   CdxCard,
   CdxIcon,
+  CdxLabel,
+  CdxMenu,
+  CdxMessage,
   CdxProgressIndicator,
   CdxTextInput
 } from '@wikimedia/codex';
@@ -197,6 +195,27 @@ const detectedType = ref(null);
 const detectionFailed = ref(false);
 const isUrlInput = ref(false);
 const extractedUrlTitle = ref(null);
+
+// CdxMenu state for similar-article search results
+const selectedMenuValue = ref(null);
+const similarMenuExpanded = computed({
+  get: () => similarResults.value.length > 0 && !selectedSimilarArticle.value && !isUrlInput.value,
+  set: () => { /* CdxMenu writes to this, but we control expansion via similarResults state */ }
+});
+const similarMenuItems = computed(() =>
+  similarResults.value.map((result, index) => ({
+    value: index,
+    label: result.title,
+    description: result.description || null
+  }))
+);
+
+function onSimilarMenuItemClick(menuItem) {
+  const result = similarResults.value.find(r => r.title === menuItem.label);
+  if (result) {
+    selectSimilarArticle(result);
+  }
+}
 
 const typeIcons = {
   person: cdxIconUserAvatar,
@@ -513,6 +532,7 @@ function clearSimilarSearch() {
   similarQuery.value = '';
   similarResults.value = [];
   selectedSimilarArticle.value = null;
+  selectedMenuValue.value = null;
   detectedType.value = null;
   detectionFailed.value = false;
   isDetectingType.value = false;
@@ -1080,8 +1100,6 @@ onBeforeUnmount(() => {
 .similar-search-label {
   display: block;
   margin-bottom: 8px;
-  font-size: var(--font-size-small, 14px);
-  color: var(--color-subtle, #54595d);
 }
 
 /* Unified post-selection card (detecting → result → failure) */
@@ -1303,50 +1321,6 @@ onBeforeUnmount(() => {
   position: relative;
 }
 
-.similar-results-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  z-index: 10;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  background: var(--background-color-base, #fff);
-  border: 1px solid var(--border-color-base, #a2a9b1);
-  border-top: none;
-  border-radius: 0 0 4px 4px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  max-height: 240px;
-  overflow-y: auto;
-}
-
-.similar-result-item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 10px 12px;
-  cursor: pointer;
-}
-
-.similar-result-item:hover {
-  background-color: var(--background-color-interactive-subtle, #f8f9fa);
-}
-
-.similar-result-title {
-  font-size: var(--font-size-medium, 14px);
-  color: var(--color-base, #202122);
-  font-weight: 500;
-}
-
-.similar-result-desc {
-  font-size: var(--font-size-small, 13px);
-  color: var(--color-subtle, #54595d);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .detected-type-badge {
   display: inline-block;
   margin-left: 6px;
@@ -1356,12 +1330,6 @@ onBeforeUnmount(() => {
   color: var(--color-progressive, #36c);
   font-size: var(--font-size-x-small, 0.75rem);
   font-weight: 600;
-}
-
-.detection-failed-hint {
-  margin: 12px 0 0;
-  font-size: var(--font-size-small, 14px);
-  color: var(--color-warning, #edab00);
 }
 
 /* End-of-prototype placeholder screen */
