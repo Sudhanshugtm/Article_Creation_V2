@@ -24,27 +24,24 @@
               <span class="loading-label">Checking...</span>
             </div>
 
-            <p v-if="exactMatch && !isLoading" class="exists-hint">
-              "<strong>{{ exactMatch.label }}</strong>" already exists in {{ exactMatch.wikiLang }} Wikipedia.
-              <a :href="exactMatch.localWikiUrl" target="_blank">Read it</a> or try another.
-            </p>
+            <!-- Exact-match warning removed: disambiguation list handles existing articles inline -->
           </div>
         </div>
 
-        <div v-show="step === 'disambiguate' && creatableTopics.length > 0">
+        <div v-show="step === 'disambiguate' && wikidataResults.length > 0">
           <h3 class="question-title">What is "{{ query }}"?</h3>
 
           <p class="question-subtitle">Select a topic to get writing help.</p>
 
           <div class="topic-list">
             <CdxCard
-              v-for="topic in creatableTopics"
+              v-for="topic in wikidataResults"
               :key="topic.id"
               :thumbnail="topic.thumbnail ? { url: topic.thumbnail } : null"
               class="topic-card"
               @click="selectTopic(topic)"
             >
-              <template #title>{{ topic.label }}</template>
+              <template #title>{{ topic.label }}<span v-if="topic.instanceOf" class="instance-of-hint"> · {{ topic.instanceOf }}</span></template>
               <template #description>{{ topic.description }}</template>
             </CdxCard>
           </div>
@@ -241,117 +238,98 @@ function detectScript(text) {
 async function fetchWikidataResults(searchQuery) {
   isLoadingResults.value = true;
   try {
-    // Detect script and determine search/display languages
+    // Detect script and determine display language
     const detectedScript = detectScript(searchQuery);
-    const displayLang = detectedScript; // Show results in user's script language
-    const searchLanguages = detectedScript === 'en'
-      ? ['en', 'bn', 'ml', 'hi']  // Latin input: search English first, then others
-      : [detectedScript, 'en'];   // Non-Latin input: search detected language first, then English
+    const displayLang = detectedScript;
 
-    // Step 1: Search entities across multiple languages, display in user's language
-    const searchPromises = searchLanguages.map(lang =>
-      fetch(`https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(searchQuery)}&language=${lang}&uselang=${displayLang}&limit=10&format=json&origin=*`)
-        .then(r => r.json())
-        .then(data => ({ lang, results: data.search || [] }))
-        .catch(() => ({ lang, results: [] }))
-    );
+    // Step 1: CirrusSearch on Wikidata (full-text search across labels, descriptions, aliases)
+    const searchUrl = `https://www.wikidata.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(searchQuery)}&srnamespace=0&srlimit=10&format=json&origin=*`;
+    const searchResponse = await fetch(searchUrl);
+    const searchData = await searchResponse.json();
+    const searchHits = searchData.query?.search || [];
 
-    const searchResults = await Promise.all(searchPromises);
-
-    // Merge and dedupe by QID, keeping first occurrence (priority by language order)
-    const seen = new Set();
-    const mergedResults = [];
-    for (const { lang, results } of searchResults) {
-      for (const item of results) {
-        if (!seen.has(item.id)) {
-          seen.add(item.id);
-          mergedResults.push({ ...item, searchLang: lang });
-        }
-      }
-    }
+    const mergedResults = searchHits.map(hit => ({
+      id: hit.title,
+      label: hit.title,
+      description: '',
+    }));
 
     if (!mergedResults.length) {
       wikidataResults.value = [];
-      exactMatch.value = null;
-      // Skip empty disambiguate screen, go directly to article-type selection
       step.value = 'article-type';
       return;
     }
 
-    // Step 2: Get entities with images (P18) and sitelinks
-    const ids = mergedResults.slice(0, 15).map(item => item.id).join('|');
-    const entitiesUrl = `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${ids}&props=claims|sitelinks&format=json&origin=*`;
+    // Step 2: Get entities with labels, descriptions, images (P18), claims, and sitelinks
+    const ids = mergedResults.slice(0, 10).map(item => item.id).join('|');
+    const entitiesUrl = `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${ids}&props=labels|descriptions|claims|sitelinks&languages=${displayLang}|en&format=json&origin=*`;
     const entitiesResponse = await fetch(entitiesUrl);
     const entitiesData = await entitiesResponse.json();
 
-    // Step 3: Map and score results
-    const queryLower = searchQuery.toLowerCase().trim();
-    const scored = mergedResults.slice(0, 15).map(item => {
+    // Step 3: Collect P31 QIDs and batch-fetch their labels
+    const p31Ids = new Set();
+    for (const item of mergedResults.slice(0, 10)) {
       const entity = entitiesData.entities?.[item.id];
+      const p31Qid = entity?.claims?.P31?.[0]?.mainsnak?.datavalue?.value?.id;
+      if (p31Qid) p31Ids.add(p31Qid);
+    }
+
+    let p31Labels = {};
+    if (p31Ids.size > 0) {
+      const p31Url = `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${[...p31Ids].join('|')}&props=labels&languages=${displayLang}|en&format=json&origin=*`;
+      const p31Response = await fetch(p31Url);
+      const p31Data = await p31Response.json();
+      for (const [qid, entity] of Object.entries(p31Data.entities || {})) {
+        p31Labels[qid] = entity?.labels?.[displayLang]?.value || entity?.labels?.en?.value || '';
+      }
+    }
+
+    // Step 4: Map results using Wikidata's native relevance order (no custom scoring)
+    const wikiMap = {
+      bn: { key: 'bnwiki', lang: 'Bengali', prefix: 'bn' },
+      hi: { key: 'hiwiki', lang: 'Hindi', prefix: 'hi' },
+      ml: { key: 'mlwiki', lang: 'Malayalam', prefix: 'ml' },
+      en: { key: 'enwiki', lang: 'English', prefix: 'en' },
+    };
+
+    const mapped = mergedResults.slice(0, 10).map(item => {
+      const entity = entitiesData.entities?.[item.id];
+      const label = entity?.labels?.[displayLang]?.value || entity?.labels?.en?.value || item.id;
+      const description = entity?.descriptions?.[displayLang]?.value || entity?.descriptions?.en?.value || '';
       const imageFile = entity?.claims?.P18?.[0]?.mainsnak?.datavalue?.value;
       const thumbnail = imageFile
         ? `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(imageFile)}?width=100`
         : null;
-      const hasWikipedia = !!entity?.sitelinks?.enwiki;
-      const hasBnWiki = !!entity?.sitelinks?.bnwiki;
-      const hasMlWiki = !!entity?.sitelinks?.mlwiki;
-      const hasHiWiki = !!entity?.sitelinks?.hiwiki;
-      const exactMatch = item.label.toLowerCase().trim() === queryLower;
+      const p31Qid = entity?.claims?.P31?.[0]?.mainsnak?.datavalue?.value?.id;
+      const instanceOf = p31Qid ? p31Labels[p31Qid] || '' : '';
 
-      // Only check wiki matching detected script (English input = no "exists" message)
-      let hasTargetWiki = false;
-      let wikiLang = null;
-      let localWikiUrl = null;
-
-      if (detectedScript === 'bn' && hasBnWiki) {
-        hasTargetWiki = true;
-        wikiLang = 'Bengali';
-        localWikiUrl = `https://bn.wikipedia.org/wiki/${encodeURIComponent(entity?.sitelinks?.bnwiki?.title)}`;
-      } else if (detectedScript === 'hi' && hasHiWiki) {
-        hasTargetWiki = true;
-        wikiLang = 'Hindi';
-        localWikiUrl = `https://hi.wikipedia.org/wiki/${encodeURIComponent(entity?.sitelinks?.hiwiki?.title)}`;
-      } else if (detectedScript === 'ml' && hasMlWiki) {
-        hasTargetWiki = true;
-        wikiLang = 'Malayalam';
-        localWikiUrl = `https://ml.wikipedia.org/wiki/${encodeURIComponent(entity?.sitelinks?.mlwiki?.title)}`;
-      } else if (detectedScript === 'en' && hasWikipedia) {
-        hasTargetWiki = true;
-        wikiLang = 'English';
-        localWikiUrl = `https://en.wikipedia.org/wiki/${encodeURIComponent(entity?.sitelinks?.enwiki?.title)}`;
-      }
-
-      // Score: Target wiki (5) + Any Wikipedia (3) + Image (2) + Exact match (1)
-      const score = (hasTargetWiki ? 5 : 0) + (hasWikipedia ? 3 : 0) + (thumbnail ? 2 : 0) + (exactMatch ? 1 : 0);
+      // Check target wiki for this script
+      const wiki = wikiMap[detectedScript] || wikiMap.en;
+      const sitelinkTitle = entity?.sitelinks?.[wiki.key]?.title;
+      const hasLocalArticle = !!sitelinkTitle;
+      const wikiLang = hasLocalArticle ? wiki.lang : null;
+      const localWikiUrl = hasLocalArticle
+        ? `https://${wiki.prefix}.wikipedia.org/wiki/${encodeURIComponent(sitelinkTitle)}`
+        : null;
 
       return {
         id: item.id,
-        label: item.label,
-        description: item.description || '',
+        label,
+        description,
         thumbnail,
-        searchLang: item.searchLang,
-        hasLocalArticle: hasTargetWiki,
+        instanceOf,
+        hasLocalArticle,
         wikiLang,
         localWikiUrl,
-        score
       };
     });
 
-    // Step 4: Sort by score and take top 3
-    scored.sort((a, b) => b.score - a.score);
-    const topResults = scored.slice(0, 3).map(({ score, searchLang, ...rest }) => rest);
+    // Take top 5 results in Wikidata's search relevance order
+    const topResults = mapped.slice(0, 5);
     wikidataResults.value = topResults;
-
-    // Check for exact match with local article - show inline instead of disambiguation
-    const queryNormalized = searchQuery.toLowerCase().trim();
-    const exactMatchResult = topResults.find(
-      r => r.label.toLowerCase().trim() === queryNormalized && r.hasLocalArticle
-    );
-    exactMatch.value = exactMatchResult || null;
   } catch (error) {
     console.error('Wikidata fetch error:', error);
     wikidataResults.value = [];
-    exactMatch.value = null;
   } finally {
     isLoadingResults.value = false;
   }
@@ -595,19 +573,10 @@ watch(query, (val) => {
       completeTimer = setTimeout(async () => {
         await fetchWikidataResults(val);
         isLoading.value = false;
-        // If exact match with local article exists, stay on title screen with inline message
-        if (exactMatch.value) {
-          return;
-        }
-        // If there are creatable topics (without local articles), show disambiguation
-        // Otherwise go to article-type selection
-        if (creatableTopics.value.length > 0) {
+        // Show disambiguation if there are any Wikidata results
+        if (wikidataResults.value.length > 0) {
           step.value = 'disambiguate';
-        } else if (wikidataResults.value.length > 0) {
-          // All results have local articles - go to manual type selection
-          step.value = 'article-type';
         }
-        // fetchWikidataResults handles the case when no results at all
       }, 1000);
     }, 500);
   }
@@ -993,6 +962,11 @@ onBeforeUnmount(() => {
 
 .topic-card {
   cursor: pointer;
+}
+
+.instance-of-hint {
+  font-weight: 400;
+  color: #72777d;
 }
 
 :deep(.topic-card:hover) {
