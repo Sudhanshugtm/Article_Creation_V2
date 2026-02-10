@@ -9,12 +9,12 @@ export default defineConfig({
   plugins: [vue()],
   server: {
     host: true,
-    port: 5174,
+    port: 5175,
     strictPort: true
   },
   preview: {
     host: true,
-    port: 5174,
+    port: 5175,
     strictPort: true
   }
 })
