@@ -11,26 +11,21 @@
       </header>
 
       <div class="content">
-        <div v-show="step === 'title'">
-          <div class="input-block">
-            <CdxTextInput
-              v-model="query"
-              placeholder="Type article title"
-              aria-label="Article title"
-              class="borderless-input"
-            />
-            <div v-if="isLoading" class="loading-row">
-              <CdxProgressIndicator class="title-progress" />
-              <span class="loading-label">Checking...</span>
-            </div>
-
-            <!-- Exact-match warning removed: disambiguation list handles existing articles inline -->
+        <!-- Title input is always visible and editable, regardless of step -->
+        <div class="input-block">
+          <CdxTextInput
+            v-model="query"
+            placeholder="Type article title"
+            aria-label="Article title"
+            class="borderless-input"
+          />
+          <div v-if="isLoading" class="loading-row">
+            <CdxProgressIndicator class="title-progress" />
+            <span class="loading-label">Checking...</span>
           </div>
         </div>
 
         <div v-show="step === 'disambiguate' && wikidataResults.length > 0">
-          <h3 class="question-title">What is "{{ query }}"?</h3>
-
           <p class="question-subtitle">Select a topic to get writing help.</p>
 
           <div class="topic-list">
@@ -52,8 +47,6 @@
         </div>
 
         <div v-show="step === 'article-type'">
-          <h3 class="question-title">What is "{{ query }}"?</h3>
-
           <!-- PRIMARY: Type cards always visible -->
           <div class="type-cards-section">
             <div class="topic-list">
@@ -215,10 +208,10 @@ function onSimilarMenuItemClick(menuItem) {
 }
 
 const typeIcons = {
-  person: cdxIconUserAvatar,
-  place: cdxIconMapPin,
-  organization: cdxIconUserGroup,
-  event: cdxIconCalendar
+  person: cdxIconArticle,
+  place: cdxIconArticle,
+  organization: cdxIconArticle,
+  event: cdxIconArticle
 };
 let similarDebounceTimer = null;
 
