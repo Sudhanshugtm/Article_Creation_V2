@@ -23,7 +23,18 @@
     </header>
 
     <div class="minerva-content">
-      <h1 class="minerva-page-title">New article</h1>
+      <h1 class="minerva-page-title">
+        <CdxButton
+          v-if="step !== 'title'"
+          weight="quiet"
+          class="page-title__back"
+          aria-label="Go back"
+          @click="onBack"
+        >
+          <CdxIcon :icon="cdxIconArrowPrevious" />
+        </CdxButton>
+        <span class="page-title__text">New article</span>
+      </h1>
       <div class="content">
         <!-- Title input is always visible and editable, regardless of step -->
         <div class="input-block">
@@ -902,18 +913,28 @@ onBeforeUnmount(() => {
   background: #fff;
 }
 
-/* Page heading — matches .pre-content .heading-holder > h1 */
+/* Page heading — compact title per T414902 spec (1rem bold centered) */
 .minerva-page-title {
-  margin: 0 16px;
-  padding: 8px 0 0;
-  font-family: 'Linux Libertine', 'Georgia', 'Times', serif;
-  font-size: 1.7em;
+  margin: 0;
+  padding: 8px 16px;
+  font-size: 1rem;
   font-weight: 700;
-  line-height: 1.375;
+  text-align: center;
   color: #202122;
   border-bottom: 1px solid #eaecf0;
-  padding-bottom: 12px;
   word-wrap: break-word;
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.page-title__back {
+  position: absolute;
+  left: 8px;
+}
+
+.page-title__text {
+  flex: 1;
 }
 
 /* Footer — matches engineer's MediaWiki Minerva footer */
