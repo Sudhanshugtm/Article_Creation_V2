@@ -1,0 +1,93 @@
+== Goal ==
+* Help users confirm what they want to write about.
+* Make it easy to pick the right topic and avoid duplicates.
+* Move users forward quickly.
+
+**Live prototype:** [[https://sudhanshugtm.github.io/Article_Creation_V2/ | sudhanshugtm.github.io/Article_Creation_V2]]
+
+= Scope =
+This task covers the **title entry screen** and its two possible sub-experiences:
+# **Title input** with Wikidata label matching. The title is always visible and editable, regardless of which section is active below it.
+# **Topic disambiguation** shown below the title when Wikidata returns matching labels for the query.
+
+The title input stays there. Sections appear beneath it as a single scrollable document and not as a separate screen.
+
+It does **not** cover the manual article-type selection fallback (see T415483).
+
+== Page context ==
+This screen lives inside the Minerva mobile skin. A centered bold "New article" page title sits below the standard skin header. On deeper steps, a back button appears on the left side of this page title.
+
+== Entry point ==
+**TBD**. The entry point for this screen is being explored in T416686, which analyzes usage of different article creation entry points on mobile (red links, failed search, contribute menu, community workflows, etc.). The analysis will inform which entry points to connect with this experience. This screen should support being launched from **any** entry point that initiates article creation. The title input field may optionally be **pre-filled** if the entry point provides a title (e.g., a red link passes the missing article name, failed search passes the search query). When pre-filled, the system should immediately trigger the Wikidata check as if the user had typed the title.
+
+== Exit conditions ==
+| Outcome | What happens next |
+| --- | --- |
+| Wikidata label found, user clicks a topic match | **Skip T415483**, proceed to next step |
+| Wikidata label found, user clicks "None of these" | Go to T415483 (Article Type Selection) |
+| No Wikidata label found | Go to T415483 (Article Type Selection) |
+
+= State A: Empty (Initial) =
+{F_STATE_A, size=full}
+* Page title: centered bold title ("New article"). No back button on initial state.
+* `CdxTextInput` with custom serif styling, large underline-only input. Placeholder: "Type article title".
+* No other UI elements visible.
+
+== Title input tokens ==
+The title input departs from the default `CdxTextInput` appearance. It uses a serif font with an underline-only border to feel more like a writing surface than a form field.
+
+| Token | Value |
+| --- | --- |
+| Font | `'Linux Libertine', 'Georgia', 'Times', serif` (intentional serif choice, not a Codex token) |
+| Font size | `--font-size-x-large` (20px), line-height `--line-height-x-large` (30px) |
+| Underline (default) | `--border-color-base` |
+| Underline (focus) | `--color-progressive`, 2px solid |
+| Caret color | `--color-progressive` |
+| Placeholder | `--color-subtle` at 50% opacity |
+
+= State B: Loading ("Checking...") =
+{F_STATE_B, size=full}
+
+**Trigger:** User types ≥ 1 character, then pauses (~1.5s debounce).
+
+* `CdxProgressIndicator` spinner appears below the input with the label "Checking..."
+* System queries Wikidata for matching entities.
+
+== Components ==
+| Component | Detail |
+| --- | --- |
+| `CdxProgressIndicator` | Inline spinner next to "Checking..." label |
+
+= State C: Topic Disambiguation =
+{F_STATE_C, size=full}
+**Trigger:** Wikidata returns results for the query.
+
+* Title input remains visible and editable at the top.
+* Page title gains a back button.
+* Heading below the title: "What is this?"
+* Up to 5 topic cards, each showing the topic name, a type tag (e.g., "· fruit", "· city in the United States"), a short description, and an optional thumbnail image.
+* Fallback: "None of these? **Pick a type instead**" — navigates to T415483.
+* Clicking a topic card confirms the selection → **skips T415483** → proceeds to next step.
+
+== Components ==
+| Component | Detail |
+| --- | --- |
+| `CdxCard` | Topic result cards with optional thumbnail |
+| `CdxButton` | Quiet back button in page title |
+| `CdxIcon` | `cdxIconArrowPrevious` for back arrow |
+
+== Card tokens ==
+| Token | Value |
+| --- | --- |
+| Card hover | `--background-color-interactive-subtle` |
+| Card active/pressed | `--background-color-interactive` |
+| Card focus-visible | `--color-progressive`, 2px outline |
+| Card gap | `12px` between cards |
+| Type hint text | `--color-placeholder` (#72777d), font-weight 400 |
+
+= Edge Cases =
+| Scenario | Behavior |
+| --- | --- |
+| Zero Wikidata results | Skips to T415483 |
+| Network error during search | Treats as zero results |
+| Entry point pre-fills title | Triggers check immediately |
