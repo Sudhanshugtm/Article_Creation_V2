@@ -1,15 +1,29 @@
 <template>
-  <main class="page">
-    <section class="phone">
-      <header class="cdx-dialog__header">
-        <CdxButton v-if="step !== 'title'" weight="quiet" class="back-button" aria-label="Go back" @click="onBack">
-          <CdxIcon :icon="cdxIconArrowPrevious" />
+  <div class="minerva-shell">
+    <header class="header-container header-chrome">
+      <div class="minerva-header">
+        <CdxButton weight="quiet" class="minerva-header__icon cdx-button--size-large cdx-button--icon-only" aria-hidden="true" tabindex="-1">
+          <CdxIcon :icon="cdxIconMenu" />
         </CdxButton>
-        <span v-else class="header-spacer"></span>
-        <h2 class="cdx-dialog__header__title">New article</h2>
-        <span class="header-spacer"></span>
-      </header>
+        <div class="branding-box">
+          <span class="minerva-header__wordmark">mediawiki</span>
+        </div>
+        <div class="minerva-header__right">
+          <CdxButton weight="quiet" class="minerva-header__icon cdx-button--size-large cdx-button--icon-only" aria-hidden="true" tabindex="-1">
+            <CdxIcon :icon="cdxIconSearch" />
+          </CdxButton>
+          <CdxButton weight="quiet" class="minerva-header__icon cdx-button--size-large cdx-button--icon-only" aria-hidden="true" tabindex="-1">
+            <CdxIcon :icon="cdxIconBell" />
+          </CdxButton>
+          <CdxButton weight="quiet" class="minerva-header__icon cdx-button--size-large cdx-button--icon-only" aria-hidden="true" tabindex="-1">
+            <CdxIcon :icon="cdxIconUserAvatar" />
+          </CdxButton>
+        </div>
+      </div>
+    </header>
 
+    <div class="minerva-content">
+      <h1 class="minerva-page-title">New article</h1>
       <div class="content">
         <!-- Title input is always visible and editable, regardless of step -->
         <div class="input-block">
@@ -26,7 +40,7 @@
         </div>
 
         <div v-show="step === 'disambiguate' && wikidataResults.length > 0">
-          <p class="question-subtitle">Select a topic to get writing help.</p>
+          <h3 class="question-title">What is this?</h3>
 
           <div class="topic-list">
             <CdxCard
@@ -47,6 +61,8 @@
         </div>
 
         <div v-show="step === 'article-type'">
+          <h3 class="question-title">What is this?</h3>
+
           <!-- PRIMARY: Type cards always visible -->
           <div class="type-cards-section">
             <div class="topic-list">
@@ -128,8 +144,25 @@
           </CdxButton>
         </div>
       </div>
-    </section>
-  </main>
+    </div>
+
+    <footer class="mw-footer minerva-footer">
+      <div class="minerva-footer__content">
+        <div class="minerva-footer__logo-row">
+          <span class="minerva-footer__wordmark">mediawiki</span>
+          <!-- MediaWiki sunflower logo from mediawiki core: resources/assets/mediawiki_compact.svg -->
+          <img
+            class="minerva-footer__logo"
+            src="https://raw.githubusercontent.com/wikimedia/mediawiki/master/resources/assets/mediawiki_compact.svg"
+            alt="MediaWiki"
+          />
+        </div>
+        <div class="minerva-footer__links">
+          <a href="#">Privacy policy</a> · <a href="#">Terms of Use</a> · <a href="#">Desktop</a> · <a href="#">Developers</a> · <a href="#">Statistics</a> · <a href="#">Cookie statement</a>
+        </div>
+      </div>
+    </footer>
+  </div>
 </template>
 
 <script setup>
@@ -146,9 +179,16 @@ import {
   CdxProgressIndicator,
   CdxTextInput
 } from '@wikimedia/codex';
-import { cdxIconAdd, cdxIconArticle, cdxIconArrowPrevious, cdxIconCalendar, cdxIconCheck, cdxIconEdit, cdxIconMapPin, cdxIconSearch, cdxIconUserAvatar, cdxIconUserGroup } from '@wikimedia/codex-icons';
+import { cdxIconAdd, cdxIconArticle, cdxIconArrowPrevious, cdxIconBell, cdxIconCalendar, cdxIconCheck, cdxIconEdit, cdxIconMapPin, cdxIconMenu, cdxIconSearch, cdxIconUserAvatar, cdxIconUserGroup } from '@wikimedia/codex-icons';
 
 const step = ref('title');
+
+// Push browser history when navigating forward so the phone/browser back button works
+function navigateToStep(newStep) {
+  history.pushState({ step: newStep }, '');
+  step.value = newStep;
+}
+
 const query = ref('');
 const confirmedTopic = ref(null);
 const selectedTopic = ref(null);
@@ -249,7 +289,7 @@ async function fetchWikidataResults(searchQuery) {
 
     if (!mergedResults.length) {
       wikidataResults.value = [];
-      step.value = 'article-type';
+      navigateToStep('article-type');
       return;
     }
 
@@ -330,11 +370,11 @@ async function fetchWikidataResults(searchQuery) {
 
 function selectTopic(topic) {
   confirmedTopic.value = topic;
-  step.value = 'next';
+  navigateToStep('next');
 }
 
 function selectNone() {
-  step.value = 'article-type';
+  navigateToStep('article-type');
 }
 
 // Visible article types for manual selection (reduced set)
@@ -551,7 +591,7 @@ function selectArticleType(type) {
     articleType: type,
     isNew: true
   };
-  step.value = 'next';
+  navigateToStep('next');
 }
 
 watch(query, (val) => {
@@ -568,7 +608,7 @@ watch(query, (val) => {
         isLoading.value = false;
         // Show disambiguation if there are any Wikidata results
         if (wikidataResults.value.length > 0) {
-          step.value = 'disambiguate';
+          navigateToStep('disambiguate');
         }
       }, 1000);
     }, 500);
@@ -650,7 +690,7 @@ const runSearch = (val) => {
     results.push({
       value: topicHeaderValue,
       label: 'Choose a topic',
-      description: 'Select a topic to get writing help.',
+      description: 'Select one to get writing help.',
       disabled: true,
       class: 'topic-menu-header'
     });
@@ -704,12 +744,12 @@ function onSearchResultClick(event) {
       description: 'Is it a person, place, event, or…?',
       thumbnail: null
     };
-    step.value = 'next';
+    navigateToStep('next');
     return;
   }
   if (event.searchResult.value === topicHeaderValue) return;
   confirmedTopic.value = event.searchResult;
-  step.value = 'next';
+  navigateToStep('next');
 }
 
 function onBack() {
@@ -718,8 +758,8 @@ function onBack() {
     return;
   }
   if (step.value === 'article-type') {
-    // Skip disambiguate if there are no creatable topics to show
-    if (creatableTopics.value.length === 0) {
+    // Skip disambiguate if there are no Wikidata results to show
+    if (wikidataResults.value.length === 0) {
       goBackToTitle();
     } else {
       step.value = 'disambiguate';
@@ -754,7 +794,7 @@ function searchElse() {
 
 function proceedToDisambiguate() {
   exactMatch.value = null;
-  step.value = 'disambiguate';
+  navigateToStep('disambiguate');
 }
 
 function clearAndSearch() {
@@ -763,9 +803,18 @@ function clearAndSearch() {
   wikidataResults.value = [];
 }
 
+// Browser back button support via History API
+function onPopState() {
+  onBack();
+}
+
 let removeSubmitHandler = null;
 let removeFooterClickHandler = null;
 onMounted(() => {
+  // Set initial history state so popstate has something to return to
+  history.replaceState({ step: 'title' }, '');
+  window.addEventListener('popstate', onPopState);
+
   const form = document.getElementById(typeaheadFormId);
   if (!form) return;
 
@@ -786,6 +835,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  window.removeEventListener('popstate', onPopState);
   removeSubmitHandler?.();
   removeFooterClickHandler?.();
   clearPendingTimer();
@@ -793,64 +843,129 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.page {
+/* Minerva mobile chrome — matches MinervaNeue skin structure */
+.minerva-shell {
+  max-width: 360px;
+  margin: 0 auto;
   min-height: 100vh;
   min-height: 100dvh;
-  display: grid;
-  place-items: start center;
-  padding: 32px 16px;
-  background: var(--background-color-interactive-subtle, #f8f9fa);
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid #c8ccd1;
 }
 
-.phone {
-  width: min(100%, 360px);
-  min-height: 720px;
-  background: var(--background-color-base, #fff);
-  border: 1px solid var(--border-color-subtle, #c8ccd1);
-  border-radius: 18px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-  overflow: hidden;
+/* Outer header container — matches .header-container.header-chrome */
+.header-container {
+  flex-shrink: 0;
 }
 
-/* Use Codex dialog header pattern */
-.cdx-dialog__header {
+.header-chrome {
+  background-color: #eaecf0;
+  border: 0;
+  box-shadow: inset 0 -1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* Inner flex row — matches .minerva-header at 54px height */
+.minerva-header {
   display: flex;
   align-items: center;
-  padding-top: calc(12px + env(safe-area-inset-top));
-  padding-right: calc(16px + env(safe-area-inset-right));
-  padding-left: calc(16px + env(safe-area-inset-left));
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--border-color-subtle, #c8ccd1);
-  gap: 8px;
+  height: 3.375em; /* 54px */
+  padding: 0 16px;
+  white-space: nowrap;
 }
 
-.cdx-dialog__header__title {
+.branding-box {
+  opacity: 0.67;
+  margin-left: 5px;
   flex: 1;
-  margin: 0;
-  font-size: 1rem;
+}
+
+.minerva-header__wordmark {
+  font-family: 'Linux Libertine', 'Georgia', 'Times', serif;
+  font-size: 1em;
+  color: #202122;
+}
+
+.minerva-header__right {
+  display: flex;
+  align-items: center;
+}
+
+.minerva-header__icon {
+  color: #72777d;
+  pointer-events: none;
+}
+
+.minerva-content {
+  flex: 1;
+  background: #fff;
+}
+
+/* Page heading — matches .pre-content .heading-holder > h1 */
+.minerva-page-title {
+  margin: 0 16px;
+  padding: 8px 0 0;
+  font-family: 'Linux Libertine', 'Georgia', 'Times', serif;
+  font-size: 1.7em;
   font-weight: 700;
-  text-align: center;
+  line-height: 1.375;
+  color: #202122;
+  border-bottom: 1px solid #eaecf0;
+  padding-bottom: 12px;
+  word-wrap: break-word;
 }
 
-.step-counter {
-  font-size: var(--font-size-small, 14px);
-  color: var(--color-subtle, #54595d);
-  min-width: 32px;
-  text-align: right;
+/* Footer — matches engineer's MediaWiki Minerva footer */
+.minerva-footer {
+  flex-shrink: 0;
+  background-color: #eaecf0;
+  border-top: 1px solid #c8ccd1;
 }
 
-.back-button {
-  min-width: auto;
-  padding: 4px;
+.minerva-footer__content {
+  padding: 24px 16px 16px;
 }
 
-.header-spacer {
-  width: 32px;
+.minerva-footer__logo-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #c8ccd1;
 }
 
+.minerva-footer__wordmark {
+  font-family: 'Linux Libertine', 'Georgia', 'Times', serif;
+  font-size: 1.125em;
+  font-weight: 700;
+  color: #202122;
+}
+
+.minerva-footer__logo {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+}
+
+.minerva-footer__links {
+  margin-top: 12px;
+  font-size: 0.875em;
+  line-height: 2;
+  color: #72777d;
+}
+
+.minerva-footer__links a {
+  color: #36c;
+  text-decoration: none;
+}
+
+.minerva-footer__links a:hover {
+  text-decoration: underline;
+}
 
 .content {
-  padding-top: 24px;
+  padding-top: 16px;
   padding-right: calc(16px + env(safe-area-inset-right));
   padding-bottom: calc(16px + env(safe-area-inset-bottom));
   padding-left: calc(16px + env(safe-area-inset-left));
@@ -934,7 +1049,7 @@ onBeforeUnmount(() => {
 }
 
 .question-title {
-  margin: 0;
+  margin: 0 0 16px;
   font-size: var(--font-size-large, 18px);
   font-weight: 700;
   color: var(--color-base, #202122);
@@ -1048,7 +1163,6 @@ onBeforeUnmount(() => {
 
 /* Type cards section — primary action area */
 .type-cards-section {
-  margin-top: 16px;
 }
 
 .type-card-title {
@@ -1323,19 +1437,9 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 600px), (hover: none) and (pointer: coarse) {
-  .page {
-    display: block;
-    padding: 0;
-    background: var(--background-color-base, #fff);
-  }
-
-  .phone {
-    width: 100%;
-    min-height: 100vh;
-    min-height: 100dvh;
+  .minerva-shell {
+    max-width: 100%;
     border: none;
-    border-radius: 0;
-    box-shadow: none;
   }
 }
 </style>
